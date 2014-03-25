@@ -1,0 +1,35 @@
+%language=ANSI-C
+%compare-strncmp
+%includes
+%struct-type
+%define lookup-function-name AA_lookup
+%define hash-function-name AA_hash
+%define slot-name oneletter
+struct AA {
+    const char *oneletter;
+    const char *threeletter;
+};
+%%
+A,  "ALA"
+C,  "CYS"
+D,  "ASP"
+E,  "GLU"
+F,  "PHE"
+G,  "GLY"
+H,  "HIS"
+I,  "ILE"
+K,  "LYS"
+L,  "LEU"
+M,  "MET"
+N,  "ASN"
+P,  "PRO"
+Q,  "GLN"
+R,  "ARG"
+S,  "SER"
+T,  "THR"
+V,  "VAL"
+W,  "TRP"
+Y,  "TYR"
+Z,  "GLX"
+B,  "ASX"
+X,  "UNK"
