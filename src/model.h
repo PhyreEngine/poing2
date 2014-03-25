@@ -11,11 +11,11 @@
 
 struct model {
     ///Number of linear springs.
-    int num_linear_springs;
+    size_t num_linear_springs;
     ///Number of torsion springs.
-    int num_torsion_springs;
+    size_t num_torsion_springs;
     ///Number of residues
-    int num_residues;
+    size_t num_residues;
 
     ///Residues
     struct residue *residues;
