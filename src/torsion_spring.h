@@ -4,6 +4,8 @@
 #include "residue.h"
 #include "vector.h"
 
+enum torsion_unit {R1, R4};
+
 struct torsion_spring {
     struct residue *r1, *r2, *r3, *r4;
     double angle;
@@ -18,7 +20,7 @@ void torsion_spring_free(struct torsion_spring *s);
 vector torsion_spring_axis(struct torsion_spring *s);
 vector torsion_spring_torque(struct torsion_spring *s);
 double torsion_spring_angle(struct torsion_spring *s);
-vector torsion_spring_force(struct torsion_spring *s);
+vector torsion_spring_force(struct torsion_spring *s, enum torsion_unit on);
 
 #endif /* TORSION_SPRING_H_ */
 

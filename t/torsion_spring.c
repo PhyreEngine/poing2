@@ -13,7 +13,7 @@ void is_vector(vector v1, vector v2, const char *text){
 }
 
 int main(int argc, char **argv){
-    plan(29);
+    plan(20);
     struct residue *r1, *r2, *r3, *r4;
     struct torsion_spring *s;
 
@@ -65,37 +65,17 @@ int main(int argc, char **argv){
             "Torque at -45 degrees (angle=45)");
 
     //Calculate the force applied to the atom to supply this torque
-    r4->position = vector_create(0, -1, 1);
+    r4->position = vector_create(2, 2, 1);
     s->angle = 0;
     s->constant = 1;
     is_vector(
-            torsion_spring_force(s),
-            vector_create(-M_PI/2, 0, 0),
-            "Force test 1");
-
-    r4->position = vector_create(0, -2, 1);
+            torsion_spring_force(s, R4),
+            vector_create(-3*M_PI/4/2, 3*M_PI/4/2, 0),
+            "Force test 1 (on R4)");
     is_vector(
-            torsion_spring_force(s),
-            vector_create(-M_PI/2/2, 0, 0),
-            "Force test 2");
-
-    r4->position = vector_create(0, 2, 1);
-    is_vector(
-            torsion_spring_force(s),
-            vector_create(-M_PI/2/4, 0, 0),
-            "Force test 3");
-
-    r4->position = vector_create(2, 2, 1);
-    is_vector(
-            torsion_spring_force(s),
-            vector_create(-M_PI/2/sqrt(8)/2, +M_PI/2/sqrt(8)/2, 0),
-            "Force test 4");
-
-    r4->position = vector_create(2, -2, 1);
-    is_vector(
-            torsion_spring_force(s),
-            vector_create(-M_PI/2/sqrt(8)/2, -M_PI/2/sqrt(8)/2, 0),
-            "Force test 5");
+            torsion_spring_force(s, R1),
+            vector_create(0, 3*M_PI/4, 0),
+            "Force test 1 (on R1)");
 
     done_testing();
 }

@@ -47,10 +47,13 @@ vector torsion_spring_torque(struct torsion_spring *s){
     return axis;
 }
 
-vector torsion_spring_force(struct torsion_spring *s){
+vector torsion_spring_force(struct torsion_spring *s, enum torsion_unit on){
     vector torque = torsion_spring_torque(s);
-    vector arm = vsub(s->r4->position, s->r3->position);
+    vector arm = (on == R1) ?
+        vsub(s->r1->position, s->r2->position)
+        :
+        vsub(s->r4->position, s->r3->position);
     double r = vmag(arm);
     vdiv_by(arm, r);
-    return vdiv(vcross(arm, torque), -r);
+    return vdiv(vcross(arm, torque), (on == R1)? r : -r);
 }
