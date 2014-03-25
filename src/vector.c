@@ -3,7 +3,7 @@
 #include "vector.h"
 
 vector vector_zero(){
-    return vector_fill(0, 0, 0);
+    return vector_create(0, 0, 0);
 }
 
 vector vector_copy(vector v){
@@ -13,7 +13,7 @@ vector vector_copy(vector v){
     return r;
 }
 
-vector vector_fill(double x, double y, double z){
+vector vector_create(double x, double y, double z){
     vector v = malloc(sizeof(double) * 3);
     if(!v)
         return NULL;
@@ -21,6 +21,12 @@ vector vector_fill(double x, double y, double z){
     v[1] = y;
     v[2] = z;
     return v;
+}
+
+vector vector_fill(vector v, double x, double y, double z){
+    v[0] = x;
+    v[1] = y;
+    v[2] = z;
 }
 
 vector vsub_to(vector v1, vector v2){

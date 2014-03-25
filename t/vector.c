@@ -10,9 +10,14 @@ void is_vector(vector v1, vector v2, const char *text){
 }
 
 int main(int argc, char **argv){
-    plan(28);
-    vector v1 = vector_fill(1, 2, 3);
-    vector v2 = vector_fill(3, 2, 1);
+    plan(31);
+
+    vector f = vector_zero();
+    vector_fill(f, 3, 2, 1);
+    is_vector(f, vector_create(3, 2, 1), "Filled vector");
+
+    vector v1 = vector_create(1, 2, 3);
+    vector v2 = vector_create(3, 2, 1);
 
     ok(abs(vmag(v1) - sqrt(14)) < 1e-9, "Vector magnitude");
 
@@ -23,20 +28,20 @@ int main(int argc, char **argv){
     vector mul   = vmul(v1, 3.);
     vector div   = vdiv(v1, 3.);
 
-    is_vector(diff,  vector_fill(-2,    0,     2),   "Subtraction");
-    is_vector(sum,   vector_fill(4,     4,     4),   "Addition");
-    is_vector(cross, vector_fill(-4,    8,     -4),  "Cross product");
-    is_vector(mul,   vector_fill(3,     6,     9),   "Scalar multiplication");
-    is_vector(div,   vector_fill(1.0/3, 2.0/3, 1.0), "Scalar division");
+    is_vector(diff,  vector_create(-2,    0,     2),   "Subtraction");
+    is_vector(sum,   vector_create(4,     4,     4),   "Addition");
+    is_vector(cross, vector_create(-4,    8,     -4),  "Cross product");
+    is_vector(mul,   vector_create(3,     6,     9),   "Scalar multiplication");
+    is_vector(div,   vector_create(1.0/3, 2.0/3, 1.0), "Scalar division");
 
     vsub_to(v1, v2);
-    is_vector(v1,  vector_fill(-2, 0, 2),   "Subtraction side effect");
+    is_vector(v1,  vector_create(-2, 0, 2),   "Subtraction side effect");
     vadd_to(v1, v2);
-    is_vector(v1,  vector_fill(1, 2, 3),   "Addition side effect");
+    is_vector(v1,  vector_create(1, 2, 3),   "Addition side effect");
     vmul_by(v1, 3.);
-    is_vector(v1,  vector_fill(3, 6, 9),   "Multiplication side effect");
+    is_vector(v1,  vector_create(3, 6, 9),   "Multiplication side effect");
     vdiv_by(v1, 3.);
-    is_vector(v1,  vector_fill(1, 2, 3),   "Division side effect");
+    is_vector(v1,  vector_create(1, 2, 3),   "Division side effect");
 
     done_testing();
 }

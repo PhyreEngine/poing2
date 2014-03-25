@@ -19,24 +19,24 @@ int main(int argc, char **argv){
     a = residue_alloc(AA_lookup("G", 1));
     b = residue_alloc(AA_lookup("G", 1));
 
-    a->position = vector_fill(-0.5, 0, 0);
-    b->position = vector_fill( 0.5, 0, 0);
+    a->position = vector_create(-0.5, 0, 0);
+    b->position = vector_create( 0.5, 0, 0);
     s = linear_spring_alloc(1, 1.0, a, b);
 
     is_vector(linear_spring_force(s, A), vector_zero(), "Force = 0 ");
     is_vector(linear_spring_force(s, B), vector_zero(), "Force = 0 ");
 
     s->distance = 2.0;
-    is_vector(linear_spring_force(s, A), vector_fill(-1, 0, 0), "X: -1 ");
-    is_vector(linear_spring_force(s, B), vector_fill( 1, 0, 0), "X:  1 ");
+    is_vector(linear_spring_force(s, A), vector_create(-1, 0, 0), "X: -1 ");
+    is_vector(linear_spring_force(s, B), vector_create( 1, 0, 0), "X:  1 ");
 
     s->distance = 0.5;
-    is_vector(linear_spring_force(s, A), vector_fill( .5, 0, 0), "X:  0.5");
-    is_vector(linear_spring_force(s, B), vector_fill(-.5, 0, 0), "X: -0.5 ");
+    is_vector(linear_spring_force(s, A), vector_create( .5, 0, 0), "X:  0.5");
+    is_vector(linear_spring_force(s, B), vector_create(-.5, 0, 0), "X: -0.5 ");
 
     s->distance = 2.0;
     s->constant = 2;
-    is_vector(linear_spring_force(s, A), vector_fill(-2, 0, 0), "X: -2 ");
-    is_vector(linear_spring_force(s, B), vector_fill( 2, 0, 0), "X:  2 ");
+    is_vector(linear_spring_force(s, A), vector_create(-2, 0, 0), "X: -2 ");
+    is_vector(linear_spring_force(s, B), vector_create( 2, 0, 0), "X:  2 ");
     done_testing();
 }

@@ -5,7 +5,7 @@
 
 struct residue {
     struct AA *aa;
-    vector position, velocity;
+    vector position, velocity, force;
 };
 
 struct residue *residue_alloc(const struct AA *aa);
