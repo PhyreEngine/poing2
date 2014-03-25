@@ -27,6 +27,7 @@ vector vector_fill(vector v, double x, double y, double z){
     v[0] = x;
     v[1] = y;
     v[2] = z;
+    return v;
 }
 
 vector vsub_to(vector v1, vector v2){
