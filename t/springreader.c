@@ -16,6 +16,7 @@ const char *pdb =
 "1 2 3 4 40 0.1\n";
 
 int main(int argc, char **argv){
+    plan(21);
     struct model *m = springreader_parse_str(pdb);
 
     cmp_ok(m->num_linear_springs, "==", 3, "Read three linear springs");
@@ -47,4 +48,5 @@ int main(int argc, char **argv){
     ok(abs(m->torsion_springs[0].constant - 0.1) < 1e9, "Constant correct");
 
     model_free(m);
+    done_testing();
 }

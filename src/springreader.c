@@ -127,8 +127,13 @@ struct torsion_spring * parse_torsion_spring_line(char *line, struct model *m){
         fprintf(stderr, "Couldn't interpret torsion spring: %s\n", line);
         return NULL;
     }
+    r1--;
+    r2--;
+    r3--;
+    r4--;
     struct torsion_spring *s = torsion_spring_alloc(
-            r1, r2, r3, r4,
+            &m->residues[r1], &m->residues[r2],
+            &m->residues[r3], &m->residues[r4],
             angle, constant);
     return s;
 }
@@ -143,13 +148,15 @@ struct linear_spring * parse_linear_spring_line(char *line, struct model *m){
         fprintf(stderr, "Couldn't interpret linear spring: %s\n", line);
         return NULL;
     }
-    if(i >= m->num_residues || i < 0){
+    if(i > m->num_residues || i < 1){
         fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n", i);
         return NULL;
-    }else if(j >= m->num_residues || j < 0){
+    }else if(j > m->num_residues || j < 1){
         fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n", j);
         return NULL;
     }
+    i--;
+    j--;
 
     struct linear_spring *s = linear_spring_alloc(
             distance, constant,
