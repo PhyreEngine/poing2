@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "../src/vector.h"
 #include "tap.h"
 
@@ -10,7 +11,7 @@ void is_vector(vector v1, vector v2, const char *text){
 }
 
 int main(int argc, char **argv){
-    plan(31);
+    plan(32);
 
     vector f = vector_zero();
     vector_fill(f, 3, 2, 1);
@@ -28,6 +29,7 @@ int main(int argc, char **argv){
     vector mul   = vmul(v1, 3.);
     vector div   = vdiv(v1, 3.);
 
+    ok(abs(dot - 10) < 1e-9, "Dot product");
     is_vector(diff,  vector_create(-2,    0,     2),   "Subtraction");
     is_vector(sum,   vector_create(4,     4,     4),   "Addition");
     is_vector(cross, vector_create(-4,    8,     -4),  "Cross product");
