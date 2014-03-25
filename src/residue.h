@@ -4,11 +4,12 @@
 #include "vector.h"
 
 struct residue {
-    struct AA *aa;
+    const struct AA *aa;
     vector position, velocity, force;
 };
 
 struct residue *residue_alloc(const struct AA *aa);
 void residue_free(struct residue *r);
+extern struct AA * AA_lookup (register const char *str, register unsigned int len);
 
 #endif /* RESIDUE_H_ */
