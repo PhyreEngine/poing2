@@ -30,6 +30,7 @@ struct model *model_alloc();
 void model_free(struct model *m);
 
 void model_accumulate_forces(struct model *m);
+char * model_pdb(const struct model *m);
 
 #endif /* MODEL_H_ */
 

@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include "model.h"
 #include "vector.h"
 
@@ -65,4 +67,21 @@ void model_accumulate_forces(struct model *m){
         vmul_by(&tmp, -1);
         vadd_to(&m->residues[i].force, &tmp);
     }
+}
+
+
+const char *fmt = "ATOM  %5d %4s %-3s  %4d%1s   %8.3f%8.3f%8.3f\n";
+char * model_pdb(const struct model *m){
+    char *buffer = malloc(m->num_residues * 80);
+    buffer[0] = '\0';
+
+    char line[80];
+    for(size_t i=0; i < m->num_residues; i++){
+        sprintf(line, fmt, i+1, " CA ", "GLY", i+1, " ",
+                m->residues[i].position.c[0],
+                m->residues[i].position.c[1],
+                m->residues[i].position.c[2]);
+        strcat(buffer, line);
+    }
+    return buffer;
 }
