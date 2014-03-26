@@ -1,104 +1,87 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <math.h>
 #include "vector.h"
 
-vector vector_zero(){
-    return vector_create(0, 0, 0);
-}
-
-vector vector_copy(vector v){
-    vector r = vector_zero();
-    for(unsigned int i=0; i < 3; i++)
-        r[i] = v[i];
-    return r;
-}
-
-vector vector_copy_to(vector dst, vector src){
-    for(unsigned int i=0; i < 3; i++)
-        dst[i] = src[i];
-    return dst;
-}
-
-vector vector_create(double x, double y, double z){
-    vector v = malloc(sizeof(double) * 3);
+struct vector *vector_alloc(double x, double y, double z){
+    struct vector *v = malloc(sizeof(struct vector));
     if(!v)
         return NULL;
-    v[0] = x;
-    v[1] = y;
-    v[2] = z;
+    v->c[0] = x;
+    v->c[1] = y;
+    v->c[2] = z;
     return v;
 }
 
-vector vector_fill(vector v, double x, double y, double z){
-    v[0] = x;
-    v[1] = y;
-    v[2] = z;
-    return v;
+void vector_free(struct vector *v){
+    free(v);
 }
 
-vector vsub_to(vector v1, vector v2){
-    for(unsigned int i=0; i < 3; i++)
-        v1[i] -= v2[i];
-    return v1;
+void vector_zero(struct vector *v){
+    for(size_t i=0; i < N; i++)
+        v->c[i] = 0;
 }
 
-vector vadd_to(vector v1, vector v2){
-    for(unsigned int i=0; i < 3; i++)
-        v1[i] += v2[i];
-    return v1;
+void vector_copy_to(struct vector *dst, struct vector *src){
+    for(size_t i=0; i < N; i++)
+        dst->c[i] = src->c[i];
 }
 
-vector vmul_by(vector v1, double s){
-    for(unsigned int i=0; i < 3; i++)
-        v1[i] *= s;
-    return v1;
+void vector_fill(struct vector *v, double x, double y, double z){
+    v->c[0] = x;
+    v->c[1] = y;
+    v->c[2] = z;
 }
 
-vector vdiv_by(vector v1, double s){
-    for(unsigned int i=0; i < 3; i++)
-        v1[i] /= s;
-    return v1;
+void vsub_to(struct vector *v1, struct vector *v2){
+    vsub(v1, v1, v2);
 }
 
-vector vsub(vector v1, vector v2){
-    vector r = vector_copy(v1);
-    vsub_to(r, v2);
-    return r;
+void vadd_to(struct vector *v1, struct vector *v2){
+    vadd(v1, v1, v2);
 }
 
-vector vadd(vector v1, vector v2){
-    vector r = vector_copy(v1);
-    vadd_to(r, v2);
-    return r;
+void vmul_by(struct vector *v1, double s){
+    vmul(v1, v1, s);
 }
 
-vector vmul(vector v1, double s){
-    vector r = vector_copy(v1);
-    vmul_by(r, s);
-    return r;
+void vdiv_by(struct vector *v1, double s){
+    vdiv(v1, v1, s);
 }
 
-vector vdiv(vector v1, double s){
-    vector r = vector_copy(v1);
-    vdiv_by(r, s);
-    return r;
+void vsub(struct vector *dst, struct vector *v1, struct vector *v2){
+    for(size_t i=0; i < N; i++)
+        dst->c[i] = v1->c[i] - v2->c[i];
 }
 
-vector vcross(vector v1, vector v2){
-    vector r = vector_zero();
-    r[0] = v1[1]*v2[2] - v1[2]*v2[1];
-    r[1] = v1[2]*v2[0] - v1[0]*v2[2];
-    r[2] = v1[0]*v2[1] - v1[1]*v2[0];
-    return r;
+void vadd(struct vector *dst, struct vector *v1, struct vector *v2){
+    for(size_t i=0; i < N; i++)
+        dst->c[i] = v1->c[i] + v2->c[i];
 }
 
-double vdot(vector v1, vector v2){
+void vmul(struct vector *dst, struct vector *v1, double s){
+    for(size_t i=0; i < N; i++)
+        dst->c[i] = v1->c[i] * s;
+}
+
+void vdiv(struct vector *dst, struct vector *v1, double s){
+    for(size_t i=0; i < N; i++)
+        dst->c[i] = v1->c[i] / s;
+}
+
+void vcross(struct vector *dst, struct vector *v1, struct vector *v2){
+    dst->c[0] = v1->c[1]*v2->c[2] - v1->c[2]*v2->c[1];
+    dst->c[1] = v1->c[2]*v2->c[0] - v1->c[0]*v2->c[2];
+    dst->c[2] = v1->c[0]*v2->c[1] - v1->c[1]*v2->c[0];
+}
+
+double vdot(struct vector *v1, struct vector *v2){
     double s=0;
-    for(unsigned int i=0; i < 3; i++)
-        s += v1[i]*v2[i];
+    for(size_t i=0; i < N; i++)
+        s += v1->c[i]*v2->c[i];
     return s;
 }
 
-double vmag(vector v1){
+double vmag(struct vector *v1){
     return sqrt(vdot(v1, v1));
 }

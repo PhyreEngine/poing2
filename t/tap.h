@@ -31,6 +31,9 @@ int     is_at_loc       (const char *file, int line, const char *got,
                          const char *expected, const char *fmt, ...);
 int     isnt_at_loc     (const char *file, int line, const char *got,
                          const char *expected, const char *fmt, ...);
+int     fis_at_loc      (const char *file, int line, double got,
+                         double expected, double epsilon,
+                         const char *fmt, ...);
 int     cmp_ok_at_loc   (const char *file, int line, int a, const char *op,
                          int b, const char *fmt, ...);
 int     bail_out        (int ignore, const char *fmt, ...);
@@ -47,6 +50,7 @@ void    tap_end_todo    (void);
 #define ok(...)          ok_at_loc(__FILE__, __LINE__, __VA_ARGS__, NULL)
 #define is(...)          is_at_loc(__FILE__, __LINE__, __VA_ARGS__, NULL)
 #define isnt(...)        isnt_at_loc(__FILE__, __LINE__, __VA_ARGS__, NULL)
+#define fis(...)         fis_at_loc(__FILE__, __LINE__, __VA_ARGS__, NULL)
 #define cmp_ok(...)      cmp_ok_at_loc(__FILE__, __LINE__, __VA_ARGS__, NULL)
 #define plan(...)        tap_plan(__VA_ARGS__, NULL)
 #define done_testing()   return exit_status()

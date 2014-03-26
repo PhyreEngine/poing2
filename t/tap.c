@@ -10,6 +10,7 @@ This file is licensed under the GPLv2 or any later version
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <math.h>
 #include "tap.h"
 
 static int expected_tests = NO_PLAN;
@@ -130,6 +131,22 @@ isnt_at_loc (const char *file, int line, const char *got, const char *expected,
     if (!test) {
         diag("         got: '%s'", got);
         diag("    expected: anything else");
+    }
+    return test;
+}
+
+int
+fis_at_loc (const char *file, int line, double got, double expected,
+            double epsilon, const char *fmt, ...)
+{
+    int test = fabs(got - expected) < epsilon;
+    va_list args;
+    va_start(args, fmt);
+    vok_at_loc(file, line, test, fmt, args);
+    va_end(args);
+    if (!test) {
+        diag("         got: '%g'", got);
+        diag("    expected: '%g'", expected);
     }
     return test;
 }

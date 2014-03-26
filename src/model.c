@@ -32,20 +32,37 @@ void model_free(struct model *m){
 }
 
 void model_accumulate_forces(struct model *m){
+    struct vector force;
+    struct vector tmp;
+
     //Begin by zeroing out any existing forces
     for(size_t i=0; i < m->num_residues; i++)
-        vector_fill(m->residues[i].force, 0, 0, 0);
+        vector_zero(&m->residues[i].force);
 
     //Then go through all springs and accumulate forces on the residues
     for(size_t i=0; i < m->num_linear_springs; i++){
         struct linear_spring s = m->linear_springs[i];
-        vadd_to(s.a->force, linear_spring_force(&s, A));
-        vadd_to(s.b->force, linear_spring_force(&s, B));
+
+        linear_spring_force(&force, &s, A);
+        vadd_to(&s.a->force, &force);
+
+        linear_spring_force(&force, &s, B);
+        vadd_to(&s.b->force, &force);
     }
 
     for(size_t i=0; i < m->num_torsion_springs; i++){
         struct torsion_spring s = m->torsion_springs[i];
-        vadd_to(s.r1->force, torsion_spring_force(&s, R1));
-        vadd_to(s.r4->force, torsion_spring_force(&s, R4));
+
+        torsion_spring_force(&force, &s, R1);
+        vadd_to(&s.r1->force, &force);
+
+        torsion_spring_force(&force, &s, R4);
+        vadd_to(&s.r4->force, &force);
+    }
+
+    for(size_t i=0; i < m->num_residues; i++){
+        vector_copy_to(&tmp, &m->residues[i].velocity);
+        vmul_by(&tmp, -1);
+        vadd_to(&m->residues[i].force, &tmp);
     }
 }

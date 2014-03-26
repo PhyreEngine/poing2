@@ -17,10 +17,11 @@ struct torsion_spring * torsion_spring_alloc(
         struct residue *r3, struct residue *r4,
         double angle, double constant);
 void torsion_spring_free(struct torsion_spring *s);
-vector torsion_spring_axis(struct torsion_spring *s);
-vector torsion_spring_torque(struct torsion_spring *s);
+void torsion_spring_axis(struct vector *dst, struct torsion_spring *s);
+void torsion_spring_torque(struct vector *dst, struct torsion_spring *s);
 double torsion_spring_angle(struct torsion_spring *s);
-vector torsion_spring_force(struct torsion_spring *s, enum torsion_unit on);
+void torsion_spring_force(struct vector *dst, struct torsion_spring *s,
+        enum torsion_unit on);
 
 #endif /* TORSION_SPRING_H_ */
 

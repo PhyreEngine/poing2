@@ -4,50 +4,84 @@
 #include "../src/vector.h"
 #include "tap.h"
 
-void is_vector(vector v1, vector v2, const char *text){
-    ok(abs(v1[0] - v2[0]) < 1e-9, "%s: x element", text);
-    ok(abs(v1[1] - v2[1]) < 1e-9, "%s: y element", text);
-    ok(abs(v1[2] - v2[2]) < 1e-9, "%s: z element", text);
+void is_vector(struct vector *v1, struct vector *v2, double epsilon, const char *text){
+    for(size_t i=0; i < N; i++)
+        fis(v1->c[i], v2->c[i], epsilon, "%s: element %d", text, i);
 }
 
 int main(int argc, char **argv){
-    plan(35);
+    plan(41);
 
-    vector f = vector_zero();
-    vector_fill(f, 3, 2, 1);
-    is_vector(f, vector_create(3, 2, 1), "Filled vector");
+    struct vector zero = {.c = {0.0, 0.0, 0.0}};
+    struct vector cmp  = {.c = {1.0, 2.0, 3.0}};
+    struct vector v1, v2, v3, result;
 
-    vector z = vector_zero();
-    vector_copy_to(z, f);
-    is_vector(z, f, "Copy into");
+    vector_zero(&v1);
+    is_vector(&v1, &zero, 1e-10, "Zeroed vector");
 
-    vector v1 = vector_create(1, 2, 3);
-    vector v2 = vector_create(3, 2, 1);
+    vector_copy_to(&v1, &cmp);
+    is_vector(&v1, &cmp, 1e-10, "Copied vector");
 
-    ok(abs(vmag(v1) - sqrt(14)) < 1e-9, "Vector magnitude");
+    vector_fill(&v2, 1.0, 2.0, 3.0);
+    is_vector(&v2, &cmp, 1e-10, "Filled vector");
 
-    vector diff  = vsub(v1, v2);
-    vector sum   = vadd(v1, v2);
-    vector cross = vcross(v1, v2);
-    double dot   = vdot(v1, v2);
-    vector mul   = vmul(v1, 3.);
-    vector div   = vdiv(v1, 3.);
+    vector_fill(&v1, 0.0, 0.0, 0.0);
+    vector_fill(&result, -1.0, -2.0, -3.0);
+    vsub_to(&v1, &cmp);
+    is_vector(&v1, &result, 1e-10, "In-place subtraction");
 
-    ok(abs(dot - 10) < 1e-9, "Dot product");
-    is_vector(diff,  vector_create(-2,    0,     2),   "Subtraction");
-    is_vector(sum,   vector_create(4,     4,     4),   "Addition");
-    is_vector(cross, vector_create(-4,    8,     -4),  "Cross product");
-    is_vector(mul,   vector_create(3,     6,     9),   "Scalar multiplication");
-    is_vector(div,   vector_create(1.0/3, 2.0/3, 1.0), "Scalar division");
+    vector_fill(&v1, 2.0, 4.0, 6.0);
+    vector_fill(&result, 1.0, 2.0, 3.0);
+    vsub(&v2, &v1, &cmp);
+    is_vector(&v2, &result, 1e-10, "Subtraction");
 
-    vsub_to(v1, v2);
-    is_vector(v1,  vector_create(-2, 0, 2),   "Subtraction side effect");
-    vadd_to(v1, v2);
-    is_vector(v1,  vector_create(1, 2, 3),   "Addition side effect");
-    vmul_by(v1, 3.);
-    is_vector(v1,  vector_create(3, 6, 9),   "Multiplication side effect");
-    vdiv_by(v1, 3.);
-    is_vector(v1,  vector_create(1, 2, 3),   "Division side effect");
+    vector_fill(&v1, 1.0, 2.0, 3.0);
+    vector_fill(&result, 2.0, 4.0, 6.0);
+    vadd_to(&v1, &cmp);
+    is_vector(&v1, &result, 1e-10, "In-place addition");
+
+    vector_fill(&v1, 1.0, 2.0, 3.0);
+    vector_fill(&result, 2.0, 4.0, 6.0);
+    vadd(&v2, &v1, &cmp);
+    is_vector(&v2, &result, 1e-10, "Addition");
+
+    vector_fill(&v1, 1.0, 2.0, 3.0);
+    vector_fill(&result, 2.0, 4.0, 6.0);
+    vmul_by(&v1, 2);
+    is_vector(&v1, &result, 1e-10, "In-place scalar multiplication");
+
+    vector_fill(&v1, 1.0, 2.0, 3.0);
+    vector_fill(&result, 2.0, 4.0, 6.0);
+    vmul(&v2, &v1, 2);
+    is_vector(&v2, &result, 1e-10, "Scalar multiplication");
+
+    vector_fill(&v1, 2.0, 4.0, 6.0);
+    vector_fill(&result, 1.0, 2.0, 3.0);
+    vdiv_by(&v1, 2);
+    is_vector(&v1, &result, 1e-10, "In-place scalar division");
+
+    vector_fill(&v1, 2.0, 4.0, 6.0);
+    vector_fill(&result, 1.0, 2.0, 3.0);
+    vdiv(&v2, &v1, 2);
+    is_vector(&v2, &result, 1e-10, "Scalar division");
+
+    vector_fill(&v1, 1.0, 2.0, 3.0);
+    vector_fill(&v2, 3.0, 2.0, 1.0);
+    vector_fill(&result, -4.0, 8.0, -4.0);
+
+    vcross(&v3, &v1, &v2);
+    is_vector(&v3, &result, 1e-10, "Cross product");
+
+    double dot = vdot(&v1, &v2);
+    fis(dot, 10.0, 1e-10, "Dot product");
+
+    double mag = vmag(&v1);
+    fis(mag*mag, 14.0, 1e-10, "Vector magnitude");
+
+    vector_fill(&result, 1.0, 2.0, 3.0);
+    struct vector *alloced = vector_alloc(1.0, 2.0, 3.0);
+    is_vector(alloced, &result, 1e-10, "Allocated vector");
+    vector_free(alloced);
 
     done_testing();
 }

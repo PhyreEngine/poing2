@@ -5,10 +5,11 @@
 #include "../src/vector.h"
 #include "tap.h"
 
-void is_vector(vector v1, vector v2, const char *text){
-    ok(abs(v1[0] - v2[0]) < 1e-9, "%s: x element", text);
-    ok(abs(v1[1] - v2[1]) < 1e-9, "%s: y element", text);
-    ok(abs(v1[2] - v2[2]) < 1e-9, "%s: z element", text);
+void is_vector(struct vector *v1, struct vector *v2,
+        double epsilon, const char *text){
+
+    for(size_t i=0; i < N; i++)
+        fis(v1->c[i], v2->c[i], epsilon, "%s: element %d", text, i);
 }
 
 int main(int argc, char **argv){
@@ -19,24 +20,50 @@ int main(int argc, char **argv){
     a = residue_alloc(AA_lookup("G", 1));
     b = residue_alloc(AA_lookup("G", 1));
 
-    a->position = vector_create(-0.5, 0, 0);
-    b->position = vector_create( 0.5, 0, 0);
+    vector_fill(&a->position, -0.5, 0, 0);
+    vector_fill(&b->position, +0.5, 0, 0);
     s = linear_spring_alloc(1, 1.0, a, b);
 
-    is_vector(linear_spring_force(s, A), vector_zero(), "Force = 0 ");
-    is_vector(linear_spring_force(s, B), vector_zero(), "Force = 0 ");
+    struct vector result;
+    struct vector force;
 
+    //At equilibrium
+    vector_fill(&result, 0, 0, 0);
+    linear_spring_force(&force, s, A);
+    is_vector(&force, &result, 1e-10, "Force = 0 on A");
+    linear_spring_force(&force, s, B);
+    is_vector(&force, &result, 1e-10, "Force = 0 on B");
+
+    //Pushing outwards
     s->distance = 2.0;
-    is_vector(linear_spring_force(s, A), vector_create(-1, 0, 0), "X: -1 ");
-    is_vector(linear_spring_force(s, B), vector_create( 1, 0, 0), "X:  1 ");
+    vector_fill(&result, -1, 0, 0);
+    linear_spring_force(&force, s, A);
+    is_vector(&force, &result, 1e-10, "Force = (-1, 0, 0) on A");
 
+    vector_fill(&result, +1, 0, 0);
+    linear_spring_force(&force, s, B);
+    is_vector(&force, &result, 1e-10, "Force = (+1, 0, 0) on B");
+
+    //Pulling inwards
     s->distance = 0.5;
-    is_vector(linear_spring_force(s, A), vector_create( .5, 0, 0), "X:  0.5");
-    is_vector(linear_spring_force(s, B), vector_create(-.5, 0, 0), "X: -0.5 ");
+    vector_fill(&result, +0.5, 0, 0);
+    linear_spring_force(&force, s, A);
+    is_vector(&force, &result, 1e-10, "Force = (+0.5, 0, 0) on A");
 
+    vector_fill(&result, -0.5, 0, 0);
+    linear_spring_force(&force, s, B);
+    is_vector(&force, &result, 1e-10, "Force = (-0.5, 0, 0) on B");
+
+    //With a different spring constant
+    s->constant = 2.0;
     s->distance = 2.0;
-    s->constant = 2;
-    is_vector(linear_spring_force(s, A), vector_create(-2, 0, 0), "X: -2 ");
-    is_vector(linear_spring_force(s, B), vector_create( 2, 0, 0), "X:  2 ");
+    vector_fill(&result, -2, 0, 0);
+    linear_spring_force(&force, s, A);
+    is_vector(&force, &result, 1e-10, "Force = (-2, 0, 0) on A");
+
+    vector_fill(&result, +2, 0, 0);
+    linear_spring_force(&force, s, B);
+    is_vector(&force, &result, 1e-10, "Force = (+2, 0, 0) on B");
+
     done_testing();
 }
