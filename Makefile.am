@@ -1,9 +1,11 @@
 #bin_PROGRAMS=a.out
 #a_out_SOURCES=src/pppoing.cpp
 check_PROGRAMS=test_springreader test_vector \
-			   test_linear_spring test_torsion_spring
+			   test_linear_spring test_torsion_spring \
+			   test_rk4
 TESTS=test_springreader test_vector \
-	  test_linear_spring test_torsion_spring
+	  test_linear_spring test_torsion_spring \
+	  test_rk4
 BUILT_SOURCES=data/AA.c
 SUFFIXES=.gperf
 
@@ -19,6 +21,10 @@ test_linear_spring_SOURCES=t/linear_spring.c src/linear_spring.c \
 
 test_torsion_spring_SOURCES=t/torsion_spring.c src/torsion_spring.c \
 						   src/vector.c src/residue.c data/AA.c t/tap.c
+
+test_rk4_SOURCES=t/rk4.c src/rk4.c src/model.c src/residue.c \
+				 src/linear_spring.c src/torsion_spring.c \
+				 src/vector.c data/AA.c t/tap.c
 
 .gperf.c:
 	$(GPERF) $< --output-file $@

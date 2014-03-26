@@ -1,6 +1,7 @@
 #ifndef MODEL_H_
 #define MODEL_H_
 
+#include <stddef.h>
 #include "residue.h"
 #include "linear_spring.h"
 #include "torsion_spring.h"
@@ -27,6 +28,8 @@ struct model {
 
 struct model *model_alloc();
 void model_free(struct model *m);
+
+void model_accumulate_forces(struct model *m);
 
 #endif /* MODEL_H_ */
 

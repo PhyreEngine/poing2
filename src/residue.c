@@ -8,6 +8,7 @@ struct residue *residue_alloc(const struct AA *aa){
     r->aa = aa;
     r->position = vector_zero();
     r->velocity = vector_zero();
+    r->force    = vector_zero();
     return r;
 }
 
