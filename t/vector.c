@@ -11,11 +11,15 @@ void is_vector(vector v1, vector v2, const char *text){
 }
 
 int main(int argc, char **argv){
-    plan(32);
+    plan(35);
 
     vector f = vector_zero();
     vector_fill(f, 3, 2, 1);
     is_vector(f, vector_create(3, 2, 1), "Filled vector");
+
+    vector z = vector_zero();
+    vector_copy_to(z, f);
+    is_vector(z, f, "Copy into");
 
     vector v1 = vector_create(1, 2, 3);
     vector v2 = vector_create(3, 2, 1);

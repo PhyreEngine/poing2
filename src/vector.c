@@ -13,6 +13,12 @@ vector vector_copy(vector v){
     return r;
 }
 
+vector vector_copy_to(vector dst, vector src){
+    for(unsigned int i=0; i < 3; i++)
+        dst[i] = src[i];
+    return dst;
+}
+
 vector vector_create(double x, double y, double z){
     vector v = malloc(sizeof(double) * 3);
     if(!v)

@@ -5,6 +5,7 @@ typedef double* vector;
 
 vector vector_zero();
 vector vector_copy(vector v);
+vector vector_copy_to(vector dst, vector src);
 vector vector_create(double x, double y, double z);
 vector vector_fill(vector v, double x, double y, double z);
 vector vsub_to(vector v1, vector v2);
