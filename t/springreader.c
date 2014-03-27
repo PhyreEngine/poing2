@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../src/springreader.h"
 #include "../src/model.h"
 #include "tap.h"
@@ -15,10 +16,7 @@ const char *pdb =
 "[Torsion]\n"
 "1 2 3 4 40 0.1\n";
 
-int main(int argc, char **argv){
-    plan(21);
-    struct model *m = springreader_parse_str(pdb);
-
+void check_model(struct model *m){
     cmp_ok(m->num_linear_springs, "==", 3, "Read three linear springs");
     cmp_ok(m->num_torsion_springs, "==", 1, "Read one torsion spring");
     cmp_ok(m->num_residues, "==", 8, "Read eight residues");
@@ -46,7 +44,25 @@ int main(int argc, char **argv){
     ok(m->torsion_springs[0].r4 == &m->residues[3], "Torsion r4 = r4");
     ok(abs(m->torsion_springs[0].angle - 40) < 1e9, "Angle correct");
     ok(abs(m->torsion_springs[0].constant - 0.1) < 1e9, "Constant correct");
+}
 
-    model_free(m);
+int main(int argc, char **argv){
+    plan(42);
+
+    struct model *ms = springreader_parse_str(pdb);
+    check_model(ms);
+    model_free(ms);
+
+    //Write temporary file with the same string
+    char tmpfile_name[13];
+    strcpy(tmpfile_name, "springXXXXXX");
+    int tmpfile_fd = mkstemp(tmpfile_name);
+    write(tmpfile_fd, pdb, strlen(pdb));
+
+    struct model *mf = springreader_parse_file(tmpfile_name);
+    check_model(mf);
+    model_free(mf);
+    unlink(tmpfile_name);
+
     done_testing();
 }

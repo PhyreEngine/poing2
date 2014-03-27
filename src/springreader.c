@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -15,11 +16,18 @@ enum section {
     UNKNOWN
 };
 
-enum section parse_section_header(char *line);
-void parse_preamble_line(char *line, struct model *m);
-struct linear_spring * parse_linear_spring_line(char *line, struct model *m);
-struct torsion_spring * parse_torsion_spring_line(char *line, struct model *m);
-size_t parse_sequence(char *seq, struct model *m, struct residue **res);
+static enum section parse_section_header(
+        const char *line);
+static void parse_preamble_line(
+        const char *line, struct model *m);
+static struct linear_spring * parse_linear_spring_line(
+        const char *line, struct model *m);
+static struct torsion_spring * parse_torsion_spring_line(
+        const char *line, struct model *m);
+static size_t parse_sequence(
+        const char *seq, struct model *m, struct residue **res);
+static void parse_line(
+        const char *line, struct model *m, enum section *section);
 
 /**
  * Parse  a configuration string into a model.
@@ -36,47 +44,8 @@ struct model * springreader_parse_str(const char *str){
 
     enum section section = PREAMBLE;
     char *line;
-    struct linear_spring *ls;
-    struct torsion_spring *ts;
     for(line = strtok(copy, "\n"); line; line = strtok(NULL, "\n")){
-        if(strlen(line) == 0 || line[0] == '#')
-            continue;
-        else if(line[0] == '['){
-            section = parse_section_header(line);
-            if(section == UNKNOWN)
-                fprintf(stderr, "I don't understand the section '%s'\n", line);
-        }else{
-            switch(section){
-                case PREAMBLE:
-                    parse_preamble_line(line, m);
-                    break;
-                case LINEAR_SPRINGS:
-                    ls = parse_linear_spring_line(line, m);
-                    if(ls){
-                        m->num_linear_springs++;
-                        m->linear_springs = realloc(
-                                m->linear_springs,
-                                m->num_linear_springs
-                                * sizeof(*m->linear_springs));
-                        m->linear_springs[m->num_linear_springs-1] = *ls;
-                    }
-                    break;
-                case TORSION_SPRINGS:
-                    ts = parse_torsion_spring_line(line, m);
-                    if(ts){
-                        m->num_torsion_springs++;
-                        m->torsion_springs = realloc(
-                                m->torsion_springs,
-                                m->num_torsion_springs
-                                * sizeof(*m->torsion_springs));
-                        m->torsion_springs[m->num_torsion_springs-1] = *ts;
-                    }
-                    break;
-                case UNKNOWN:
-                    //Ignore lines in unknown section
-                    break;
-            }
-        }
+        parse_line(line, m, &section);
     }
 free_copy:
     free(copy);
@@ -84,7 +53,30 @@ exit:
     return m;
 }
 
-enum section parse_section_header(char *line){
+struct model * springreader_parse_file(const char *file){
+    struct model *m = model_alloc();
+    if(!m) goto bail;
+
+    FILE *f = fopen(file, "r");
+    if(!f){
+        perror("Error reading input file");
+        goto free_model;
+    }
+
+    enum section section = PREAMBLE;
+    char line_buffer[80];
+    while(fgets(line_buffer, 80, f))
+        parse_line(line_buffer, m, &section);
+
+    fclose(f);
+    return m;
+free_model:
+    free(m);
+bail:
+    return NULL;
+}
+
+enum section parse_section_header(const char *line){
     int len = (strrchr(line, ']') - line) - 1;
 
     char section_name[len+1];
@@ -101,7 +93,7 @@ enum section parse_section_header(char *line){
     return UNKNOWN;
 }
 
-void parse_preamble_line(char *line, struct model *m){
+void parse_preamble_line(const char *line, struct model *m){
     char param[strlen(line)];
     char value[strlen(line)];
     sscanf(line, "%s = %s", param, value);
@@ -117,7 +109,7 @@ void parse_preamble_line(char *line, struct model *m){
     }
 }
 
-struct torsion_spring * parse_torsion_spring_line(char *line, struct model *m){
+struct torsion_spring * parse_torsion_spring_line(const char *line, struct model *m){
     int r1, r2, r3, r4;
     double angle, constant;
     int num_matched = sscanf(line, "%d %d %d %d %lf %lf",
@@ -138,7 +130,7 @@ struct torsion_spring * parse_torsion_spring_line(char *line, struct model *m){
     return s;
 }
 
-struct linear_spring * parse_linear_spring_line(char *line, struct model *m){
+struct linear_spring * parse_linear_spring_line(const char *line, struct model *m){
     int i, j;
     double distance, constant;
     int num_matched = sscanf(line, "%d %d %lf %lf",
@@ -165,7 +157,50 @@ struct linear_spring * parse_linear_spring_line(char *line, struct model *m){
     return s;
 }
 
-size_t parse_sequence(char *seq, struct model *m, struct residue **res){
+void parse_line(const char *line, struct model *m, enum section *section){
+    struct linear_spring *ls;
+    struct torsion_spring *ts;
+    if(strlen(line) == 0 || line[0] == '#')
+        return;
+    else if(line[0] == '['){
+        *section = parse_section_header(line);
+        if(*section == UNKNOWN)
+            fprintf(stderr, "I don't understand the section '%s'\n", line);
+    }else{
+        switch(*section){
+            case PREAMBLE:
+                parse_preamble_line(line, m);
+                break;
+            case LINEAR_SPRINGS:
+                ls = parse_linear_spring_line(line, m);
+                if(ls){
+                    m->num_linear_springs++;
+                    m->linear_springs = realloc(
+                            m->linear_springs,
+                            m->num_linear_springs
+                            * sizeof(*m->linear_springs));
+                    m->linear_springs[m->num_linear_springs-1] = *ls;
+                }
+                break;
+            case TORSION_SPRINGS:
+                ts = parse_torsion_spring_line(line, m);
+                if(ts){
+                    m->num_torsion_springs++;
+                    m->torsion_springs = realloc(
+                            m->torsion_springs,
+                            m->num_torsion_springs
+                            * sizeof(*m->torsion_springs));
+                    m->torsion_springs[m->num_torsion_springs-1] = *ts;
+                }
+                break;
+            case UNKNOWN:
+                //Ignore lines in unknown section
+                break;
+        }
+    }
+}
+
+size_t parse_sequence(const char *seq, struct model *m, struct residue **res){
     *res = malloc(strlen(seq) * sizeof(struct residue *));
     if(!res)
         return 0;
