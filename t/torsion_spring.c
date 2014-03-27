@@ -13,14 +13,14 @@ void is_vector(struct vector *v1, struct vector *v2,
 }
 
 int main(int argc, char **argv){
-    plan(27);
+    plan(30);
     struct residue *r1, *r2, *r3, *r4;
     struct torsion_spring *s;
 
-    r1 = residue_alloc(AA_lookup("G", 1));
-    r2 = residue_alloc(AA_lookup("G", 1));
-    r3 = residue_alloc(AA_lookup("G", 1));
-    r4 = residue_alloc(AA_lookup("G", 1));
+    r1 = residue_alloc(AA_lookup("G", 1), 1);
+    r2 = residue_alloc(AA_lookup("G", 1), 2);
+    r3 = residue_alloc(AA_lookup("G", 1), 3);
+    r4 = residue_alloc(AA_lookup("G", 1), 4);
 
     vector_fill(&r1->position, -1, 0, 0);
     vector_fill(&r2->position,  0, 0, 0);
@@ -82,11 +82,17 @@ int main(int argc, char **argv){
     vector_fill(&r4->position, 2, -2, 1);
     vector_fill(&result, -3*M_PI/16, -3*M_PI/16, 0);
     torsion_spring_force(&force, s, R4);
-    is_vector(&force, &result, 1e-10, "Force test 1 (on R4)");
+    is_vector(&force, &result, 1e-10, "Force test 2 (on R4)");
 
     vector_fill(&result, 0, -3*M_PI/4, 0);
     torsion_spring_force(&force, s, R1);
-    is_vector(&force, &result, 1e-10, "Force test 1 (on R1)");
+    is_vector(&force, &result, 1e-10, "Force test 2 (on R1)");
+
+    //Force should only depend on the perpendicular distance from the axis
+    vector_fill(&r4->position, 2, -2, 2);
+    vector_fill(&result, -3*M_PI/16, -3*M_PI/16, 0);
+    torsion_spring_force(&force, s, R4);
+    is_vector(&force, &result, 1e-10, "Force test 3 (on R4)");
 
     done_testing();
 }

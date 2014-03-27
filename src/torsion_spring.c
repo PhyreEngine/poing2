@@ -75,14 +75,44 @@ void torsion_spring_force(struct vector *dst, struct torsion_spring *s,
     else
         vsub(&arm, &s->r4->position, &s->r3->position);
 
+    /*
+     * We want to project the arm to a vector perpendicular to the axis,
+     * because the force should only depend on this perpendicular distance to
+     * the axis.
+     *
+     *     r4 /
+     *       /
+     *      /
+     *  r3 /___ <- we want this vector (a)
+     *     |
+     *     |
+     *   __|r2
+     *    /
+     *   /r1
+     *
+     * We can get vector a by first finding the projection of (r4-r3) onto the
+     * axis, p(r4-r3). Then a is (r4-r3) - p(r4-r3).
+     *
+     */
+
+    struct vector axis;
+    torsion_spring_axis(&axis, s);
+    double axis_mag = vmag(&axis);
+    double proj_mag = vdot(&arm, &axis);
+
+    struct vector proj;
+    vmul(&proj, &axis, proj_mag / axis_mag / axis_mag);
+    struct vector rej;
+    vsub(&rej, &arm, &proj);
+
     //Direction of arm
-    double r   = vmag(&arm);
+    double r   = vmag(&rej);
     double tau = vmag(&torque);
-    vdiv_by(&arm, r);
+    vdiv_by(&rej, r);
     vdiv_by(&torque, tau);
 
     //Direction of force
-    vcross(dst, &torque, &arm);
+    vcross(dst, &torque, &rej);
     //Correct magnitude by arm length
     vmul_by(dst, (on == R1) ? -tau/r : tau/r);
 }
