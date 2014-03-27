@@ -24,6 +24,15 @@ struct model {
     struct linear_spring *linear_springs;
     ///Torsion springs
     struct torsion_spring *torsion_springs;
+
+    ///Current time
+    double time;
+    ///Timestep
+    double timestep;
+    ///Time between residues being synthesised
+    double synth_time;
+    ///Drag coefficient
+    double drag_coefficient;
 };
 
 struct model *model_alloc();
@@ -31,6 +40,7 @@ void model_free(struct model *m);
 
 void model_accumulate_forces(struct model *m);
 char * model_pdb(const struct model *m);
+
 
 #endif /* MODEL_H_ */
 

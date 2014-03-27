@@ -28,6 +28,8 @@ static size_t parse_sequence(
         const char *seq, struct model *m, struct residue **res);
 static void parse_line(
         const char *line, struct model *m, enum section *section);
+static void scan_double(
+        const char *line, const char *value, double *dst);
 
 /**
  * Parse  a configuration string into a model.
@@ -106,7 +108,18 @@ void parse_preamble_line(const char *line, struct model *m){
         size_t num_res = parse_sequence(value, m, &res);
         m->num_residues = num_res;
         m->residues = res;
+    }else if(strcmp(param, "timestep") == 0){
+        scan_double(line, value, &m->timestep);
+    }else if(strcmp(param, "synth_time") == 0){
+        scan_double(line, value, &m->synth_time);
+    }else if(strcmp(param, "drag_coefficient") == 0){
+        scan_double(line, value, &m->drag_coefficient);
     }
+}
+
+void scan_double(const char *line, const char *value, double *dst){
+    if(sscanf(value, "%lf", dst) != 1)
+        fprintf(stderr, "Couldn't interpret line %s\n", line);
 }
 
 struct torsion_spring * parse_torsion_spring_line(const char *line, struct model *m){
@@ -201,15 +214,14 @@ void parse_line(const char *line, struct model *m, enum section *section){
 }
 
 size_t parse_sequence(const char *seq, struct model *m, struct residue **res){
-    *res = malloc(strlen(seq) * sizeof(struct residue *));
+    *res = malloc(strlen(seq) * sizeof(struct residue));
     if(!res)
         return 0;
 
     size_t i;
     for(i = 0; seq[i]; i++){
         struct AA *aa = AA_lookup(&seq[i], 1);
-        struct residue *r = residue_alloc(aa);
-        res[i] = r;
+        residue_init(&(*res)[i], aa);
     }
     return i;
 }

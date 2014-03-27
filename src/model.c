@@ -20,6 +20,10 @@ struct model *model_alloc(){
     m->residues = NULL;
     m->linear_springs = NULL;
     m->torsion_springs = NULL;
+    m->time = 0;
+    m->timestep = 0.1;
+    m->synth_time = 100;
+    m->drag_coefficient = 0.1;
     return m;
 }
 
@@ -77,7 +81,9 @@ char * model_pdb(const struct model *m){
 
     char line[80];
     for(size_t i=0; i < m->num_residues; i++){
-        sprintf(line, fmt, i+1, " CA ", "GLY", i+1, " ",
+        sprintf(line, fmt, i+1, " CA ", 
+                m->residues[i].aa->threeletter,
+                i+1, " ",
                 m->residues[i].position.c[0],
                 m->residues[i].position.c[1],
                 m->residues[i].position.c[2]);

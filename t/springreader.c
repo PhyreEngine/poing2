@@ -8,6 +8,9 @@
 const char *pdb =
 "#Sequence:\n"
 "sequence = PAPLEQMR\n"
+"timestep = 0.01\n"
+"synth_time = 100\n"
+"drag_coefficient = 0.1\n"
 "#List of springs (i, j, distance)\n"
 "[Linear]\n"
 "1 2 4.0 0.3\n"
@@ -17,11 +20,24 @@ const char *pdb =
 "1 2 3 4 40 0.1\n";
 
 void check_model(struct model *m){
+    fis(m->timestep, 0.01, 1e-10, "Timestep");
+    fis(m->synth_time, 100, 1e-10, "Synth time");
+    fis(m->drag_coefficient, 0.1, 1e-10, "Drag coefficient");
+
     cmp_ok(m->num_linear_springs, "==", 3, "Read three linear springs");
     cmp_ok(m->num_torsion_springs, "==", 1, "Read one torsion spring");
     cmp_ok(m->num_residues, "==", 8, "Read eight residues");
     if(m->num_residues != 8)
         BAIL_OUT("Didn't read any residues: can't complete tests");
+
+    is(m->residues[0].aa->oneletter, "P", "Residue 0 is P");
+    is(m->residues[1].aa->oneletter, "A", "Residue 0 is A");
+    is(m->residues[2].aa->oneletter, "P", "Residue 0 is P");
+    is(m->residues[3].aa->oneletter, "L", "Residue 0 is L");
+    is(m->residues[4].aa->oneletter, "E", "Residue 0 is E");
+    is(m->residues[5].aa->oneletter, "Q", "Residue 0 is Q");
+    is(m->residues[6].aa->oneletter, "M", "Residue 0 is M");
+    is(m->residues[7].aa->oneletter, "R", "Residue 0 is R");
 
     ok(m->linear_springs[0].a == &m->residues[0], "Spring 1 attached to residue 1");
     ok(m->linear_springs[0].b == &m->residues[1], "Spring 1 attached to residue 2");
@@ -47,7 +63,7 @@ void check_model(struct model *m){
 }
 
 int main(int argc, char **argv){
-    plan(42);
+    plan(64);
 
     struct model *ms = springreader_parse_str(pdb);
     check_model(ms);
