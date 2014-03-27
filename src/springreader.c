@@ -221,7 +221,7 @@ size_t parse_sequence(const char *seq, struct model *m, struct residue **res){
     size_t i;
     for(i = 0; seq[i]; i++){
         struct AA *aa = AA_lookup(&seq[i], 1);
-        residue_init(&(*res)[i], aa);
+        residue_init(&(*res)[i], aa, i+1);
     }
     return i;
 }

@@ -17,8 +17,8 @@ int main(int argc, char **argv){
     struct residue *a, *b;
     struct linear_spring *s;
 
-    a = residue_alloc(AA_lookup("G", 1));
-    b = residue_alloc(AA_lookup("G", 1));
+    a = residue_alloc(AA_lookup("G", 1), 1);
+    b = residue_alloc(AA_lookup("G", 1), 2);
 
     vector_fill(&a->position, -0.5, 0, 0);
     vector_fill(&b->position, +0.5, 0, 0);
