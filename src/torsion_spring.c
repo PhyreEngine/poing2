@@ -108,6 +108,8 @@ void torsion_spring_force(struct vector *dst, struct torsion_spring *s,
     //Direction of arm
     double r   = vmag(&rej);
     double tau = vmag(&torque);
+    if(r == 0 || tau == 0)
+        return;
     vdiv_by(&rej, r);
     vdiv_by(&torque, tau);
 
