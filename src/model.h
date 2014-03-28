@@ -41,6 +41,7 @@ void model_free(struct model *m);
 
 void model_accumulate_forces(struct model *m);
 char * model_pdb(const struct model *m, bool conect);
+void model_synth(struct model *state, const struct model *m);
 
 
 #endif /* MODEL_H_ */
