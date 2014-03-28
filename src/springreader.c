@@ -66,9 +66,13 @@ struct model * springreader_parse_file(const char *file){
     }
 
     enum section section = PREAMBLE;
-    char line_buffer[80];
-    while(fgets(line_buffer, 80, f))
+    size_t line_sz;
+    char *line_buffer = NULL;
+    while(getline(&line_buffer, &line_sz, f) != -1){
         parse_line(line_buffer, m, &section);
+        free(line_buffer);
+        line_buffer = NULL;
+    }
 
     fclose(f);
     return m;
