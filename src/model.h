@@ -2,6 +2,7 @@
 #define MODEL_H_
 
 #include <stddef.h>
+#include <stdbool.h>
 #include "residue.h"
 #include "linear_spring.h"
 #include "torsion_spring.h"
@@ -39,7 +40,7 @@ struct model *model_alloc();
 void model_free(struct model *m);
 
 void model_accumulate_forces(struct model *m);
-char * model_pdb(const struct model *m);
+char * model_pdb(const struct model *m, bool conect);
 
 
 #endif /* MODEL_H_ */

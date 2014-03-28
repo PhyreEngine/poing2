@@ -2,7 +2,10 @@
 #include "rk4.h"
 #include "vector.h"
 
-void rk4_push(struct model *model, double dt){
+void rk4_push(struct model *model){
+    double dt = model->timestep;
+    model->time += dt;
+
     struct vector orig_pos[model->num_residues];
     struct vector k1[model->num_residues];
     struct vector k2[model->num_residues];

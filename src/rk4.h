@@ -3,7 +3,7 @@
 
 #include "model.h"
 
-void rk4_push(struct model *model, double dt);
+void rk4_push(struct model *model);
 
 #endif /* RK4_H_ */
 

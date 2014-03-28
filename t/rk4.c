@@ -48,6 +48,8 @@ int main(int argc, char **argv){
 
     const char *spec = 
         "sequence = GGGG\n"
+        "timestep = 0.01\n"
+        "synth_time = 1\n"
         "[Linear]\n"
         "1 2 1.0 1.0\n"
         "2 3 1.0 1.0\n"
@@ -56,6 +58,7 @@ int main(int argc, char **argv){
         "1 2 3 4 -45 0.01\n"
         ;
 
+    struct model state;
     struct model *m = springreader_parse_str(spec);
     vector_fill(&m->residues[0].position, -1, 0, 0);
     vector_fill(&m->residues[1].position,  0, 0, 0);
@@ -64,17 +67,16 @@ int main(int argc, char **argv){
 
     FILE *fout = fopen("test.csv", "w");
     for(int i=0; i < 10000; i++){
+        model_synth(&state, m);
         if(i % 10 == 0){
-            char *pdb = model_pdb(m);
+            char *pdb = model_pdb(&state, true);
             fprintf(fout, "MODEL     % d\n", i);
             fprintf(fout, "%s", pdb);
-            fprintf(fout, "CONECT% 5d% 5d\n", 1, 2);
-            fprintf(fout, "CONECT% 5d% 5d\n", 2, 3);
-            fprintf(fout, "CONECT% 5d% 5d\n", 3, 4);
             fprintf(fout, "ENDMDL\n");
             free(pdb);
         }
-        rk4_push(m, 0.01);
+        rk4_push(&state);
+        m->time = state.time;
     }
     fclose(fout);
 
