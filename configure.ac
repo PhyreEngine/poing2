@@ -10,6 +10,7 @@ AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
 AC_PROG_CC
 AC_PROG_CC_C99
 AC_PROG_RANLIB
+AC_OPENMP
 
 AM_MISSING_PROG([GPERF], [gperf])
 AC_SEARCH_LIBS(sqrt, m)

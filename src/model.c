@@ -42,13 +42,19 @@ void model_accumulate_forces(struct model *m){
     struct vector force;
     struct vector tmp;
 
+    struct residue *residues = m->residues;
+    struct linear_spring *linear_springs = m->linear_springs;
+    struct torsion_spring *torsion_springs = m->torsion_springs;
+
     //Begin by zeroing out any existing forces
+    #pragma omp parallel for shared(residues)
     for(size_t i=0; i < m->num_residues; i++)
-        vector_zero(&m->residues[i].force);
+        vector_zero(&residues[i].force);
 
     //Then go through all springs and accumulate forces on the residues
+    #pragma omp parallel for shared(linear_springs)
     for(size_t i=0; i < m->num_linear_springs; i++){
-        struct linear_spring s = m->linear_springs[i];
+        struct linear_spring s = linear_springs[i];
 
         if(s.a->synthesised && s.b->synthesised){
             linear_spring_force(&force, &s, A);
@@ -59,8 +65,9 @@ void model_accumulate_forces(struct model *m){
         }
     }
 
+    #pragma omp parallel for shared(torsion_springs)
     for(size_t i=0; i < m->num_torsion_springs; i++){
-        struct torsion_spring s = m->torsion_springs[i];
+        struct torsion_spring s = torsion_springs[i];
 
         if(s.r1->synthesised
                 && s.r2->synthesised
@@ -75,10 +82,11 @@ void model_accumulate_forces(struct model *m){
         }
     }
 
+    #pragma parallel omp parallel for shared(residues)
     for(size_t i=0; i < m->num_residues; i++){
-        vector_copy_to(&tmp, &m->residues[i].velocity);
+        vector_copy_to(&tmp, &residues[i].velocity);
         vmul_by(&tmp, -1);
-        vadd_to(&m->residues[i].force, &tmp);
+        vadd_to(&residues[i].force, &tmp);
     }
 }
 

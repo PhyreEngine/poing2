@@ -1,4 +1,5 @@
 bin_PROGRAMS=poing2
+poing2_CFLAGS=$(OPENMP_CFLAGS)
 poing2_SOURCES=src/poing.c src/rk4.c src/model.c src/residue.c \
 			   src/linear_spring.c src/torsion_spring.c src/springreader.c \
 			   src/vector.c data/AA.c
