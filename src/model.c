@@ -82,7 +82,7 @@ void model_accumulate_forces(struct model *m){
         }
     }
 
-    #pragma parallel omp parallel for shared(residues)
+    #pragma omp parallel for shared(residues)
     for(size_t i=0; i < m->num_residues; i++){
         vector_copy_to(&tmp, &residues[i].velocity);
         vmul_by(&tmp, -1);
