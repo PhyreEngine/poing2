@@ -10,7 +10,7 @@ void is_vector(struct vector *v1, struct vector *v2, double epsilon, const char 
 }
 
 int main(int argc, char **argv){
-    plan(41);
+    plan(62);
 
     struct vector zero = {.c = {0.0, 0.0, 0.0}};
     struct vector cmp  = {.c = {1.0, 2.0, 3.0}};
@@ -82,6 +82,44 @@ int main(int argc, char **argv){
     struct vector *alloced = vector_alloc(1.0, 2.0, 3.0);
     is_vector(alloced, &result, 1e-10, "Allocated vector");
     vector_free(alloced);
+
+    //Rotation of vectors
+    vector_fill(&v1, 0, 0, 1);
+    vector_fill(&result, 0, -1, 0);
+    vrot_x(&v2, &v1, M_PI/2);
+    is_vector(&v2, &result, 1e-10, "Rotation about x axis");
+
+    vector_fill(&v1, 0, 0, 1);
+    vector_fill(&result, 1, 0, 0);
+    vrot_y(&v2, &v1, M_PI/2);
+    is_vector(&v2, &result, 1e-10, "Rotation about y axis");
+
+    vector_fill(&v1, 1, 0, 0);
+    vector_fill(&result, 0, 1, 0);
+    vrot_z(&v2, &v1, M_PI/2);
+    is_vector(&v2, &result, 1e-10, "Rotation about z axis");
+
+    vector_fill(&v1, 1, 0, 0);
+    vector_fill(&v2, 0, 0, 1);
+    vector_fill(&result, 0, 1, 0);
+    vrot_axis(&v3, &v2, &v1, M_PI/2);
+    is_vector(&v3, &result, 1e-10, "Rotation about arbitrary axis");
+
+    //Spherical coords
+    vector_fill(&v1, 0, 0, 1);
+    vector_fill(&result, 1, 0, 0);
+    vector_spherical_coords(&v2, &v1);
+    is_vector(&v2, &result, 1e-10, "Spherical coordinates (0, 0, 1)");
+
+    vector_fill(&v1, 1, 0, 0);
+    vector_fill(&result, 1, 0, M_PI/2);
+    vector_spherical_coords(&v2, &v1);
+    is_vector(&v2, &result, 1e-10, "Spherical coordinates (1, 0, 0)");
+
+    vector_fill(&v1, 1, 1, 1);
+    vector_fill(&result, sqrt(3), M_PI/4, acos(1/sqrt(3)));
+    vector_spherical_coords(&v2, &v1);
+    is_vector(&v2, &result, 1e-10, "Spherical coordinates (1, 1, 1)");
 
     done_testing();
 }
