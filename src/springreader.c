@@ -25,7 +25,7 @@ static struct linear_spring * parse_linear_spring_line(
 static struct torsion_spring * parse_torsion_spring_line(
         const char *line, struct model *m);
 static size_t parse_sequence(
-        const char *seq, struct model *m, struct residue **res);
+        const char *seq, struct residue **res);
 static void parse_line(
         const char *line, struct model *m, enum section *section);
 static void scan_double(
@@ -109,7 +109,7 @@ void parse_preamble_line(const char *line, struct model *m){
 
     if(strcmp(param, "sequence") == 0){
         struct residue *res;
-        size_t num_res = parse_sequence(value, m, &res);
+        size_t num_res = parse_sequence(value, &res);
         m->num_residues = num_res;
         m->residues = res;
     }else if(strcmp(param, "timestep") == 0){
@@ -217,7 +217,7 @@ void parse_line(const char *line, struct model *m, enum section *section){
     }
 }
 
-size_t parse_sequence(const char *seq, struct model *m, struct residue **res){
+size_t parse_sequence(const char *seq, struct residue **res){
     *res = malloc(strlen(seq) * sizeof(struct residue));
     if(!res)
         return 0;
