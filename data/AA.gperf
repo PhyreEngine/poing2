@@ -1,3 +1,7 @@
+%{
+#include <stdbool.h>
+%}
+
 %language=ANSI-C
 %compare-strncmp
 %includes
@@ -8,28 +12,32 @@
 struct AA {
     const char *oneletter;
     const char *threeletter;
+    double mass;
+    bool has_sidechain;
+    double sc_bond_len;
+    double sc_steric_radius;
 };
 %%
-A,  "ALA"
-C,  "CYS"
-D,  "ASP"
-E,  "GLU"
-F,  "PHE"
-G,  "GLY"
-H,  "HIS"
-I,  "ILE"
-K,  "LYS"
-L,  "LEU"
-M,  "MET"
-N,  "ASN"
-P,  "PRO"
-Q,  "GLN"
-R,  "ARG"
-S,  "SER"
-T,  "THR"
-V,  "VAL"
-W,  "TRP"
-Y,  "TYR"
-Z,  "GLX"
-B,  "ASX"
-X,  "UNK"
+A, "ALA", 15.0,  true,  1.52370477561, 1.6
+C, "CYS", 31.0,  true,  2.06811484067, 2.3
+D, "ASP", 42.0,  true,  2.47099367559, 2.5
+E, "GLU", 56.0,  true,  3.09553537293, 2.8
+F, "PHE", 91.0,  true,  3.40440459167, 3.0
+G, "GLY", 0.0,   false, 0.0,           0.0
+H, "HIS", 81.0,  true,  3.14743193894, 2.8
+I, "ILE", 57.0,  true,  2.31086434835, 2.7
+K, "LYS", 73.0,  true,  3.4901931337 , 3.1
+L, "LEU", 57.0,  true,  2.60580156453, 2.7
+M, "MET", 59.0,  true,  2.95965999222, 2.8
+N, "ASN", 58.0,  true,  2.47427117216, 2.5
+P, "PRO", 42.0,  true,  1.86904639926, 2.4
+Q, "GLN", 64.0,  true,  3.08907392747, 2.8
+R, "ARG", 101.0, true,  4.11059670604, 3.4
+S, "SER", 23.0,  true,  1.89881631226, 2.0
+T, "THR", 37.0,  true,  1.93550699219, 2.4
+V, "VAL", 43.0,  true,  1.95268816215, 2.5
+W, "TRP", 126.0, true,  3.86897045069, 3.5
+Y, "TYR", 99.0,  true,  3.40900993765, 3.0
+Z, "GLX", 0.0,   false, 0.0,           0.0
+B, "ASX", 0.0,   false, 0.0,           0.0
+X, "UNK", 0.0,   false, 0.0,           0.0

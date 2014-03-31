@@ -7,6 +7,10 @@
 struct AA {
     const char *oneletter;
     const char *threeletter;
+    double mass;
+    bool has_sidechain;
+    double sc_bond_len;
+    double sc_steric_radius;
 };
 
 struct residue {
