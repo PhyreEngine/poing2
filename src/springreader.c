@@ -148,9 +148,9 @@ struct torsion_spring * parse_torsion_spring_line(const char *line, struct model
 }
 
 struct linear_spring * parse_linear_spring_line(const char *line, struct model *m){
-    int i, j;
+    unsigned int i, j;
     double distance, constant;
-    int num_matched = sscanf(line, "%d %d %lf %lf",
+    int num_matched = sscanf(line, "%u %u %lf %lf",
             &i, &j,
             &distance, &constant);
     if(num_matched != 4){
