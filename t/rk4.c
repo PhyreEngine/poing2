@@ -1,3 +1,4 @@
+#include <fenv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "../src/rk4.h"
@@ -11,6 +12,7 @@
 
 
 int main(int argc, char **argv){
+    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
     plan(2);
 /*
     struct residue *r1 = residue_alloc(AA_lookup("G", 1));
@@ -60,20 +62,20 @@ int main(int argc, char **argv){
 
     struct model state;
     struct model *m = springreader_parse_str(spec);
-    vector_fill(&m->residues[0].position, -1, 0, 0);
-    vector_fill(&m->residues[1].position,  0, 0, 0);
-    vector_fill(&m->residues[2].position,  0, 0, 1);
-    vector_fill(&m->residues[3].position,  0, 1, 1);
+    for(size_t i = 0; i < 4; i++)
+        m->residues[i].num_atoms = 1;
+    vector_fill(&m->residues[0].atoms[0].position, -1, 0, 0);
+    vector_fill(&m->residues[1].atoms[0].position,  0, 0, 0);
+    vector_fill(&m->residues[2].atoms[0].position,  0, 0, 1);
+    vector_fill(&m->residues[3].atoms[0].position,  0, 1, 1);
 
     FILE *fout = fopen("test.csv", "w");
     for(int i=0; i < 10000; i++){
         model_synth(&state, m);
         if(i % 10 == 0){
-            char *pdb = model_pdb(&state, true);
             fprintf(fout, "MODEL     % d\n", i);
-            fprintf(fout, "%s", pdb);
+            model_pdb(fout, &state, true);
             fprintf(fout, "ENDMDL\n");
-            free(pdb);
         }
         rk4_push(&state);
         m->time = state.time;

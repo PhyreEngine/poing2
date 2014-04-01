@@ -7,10 +7,10 @@ poing2_SOURCES=src/poing.c src/rk4.c src/model.c src/residue.c \
 
 check_PROGRAMS=test_springreader test_vector \
 			   test_linear_spring test_torsion_spring \
-			   test_rk4 test_model
+			   test_rk4 test_model test_residue
 TESTS=test_springreader test_vector \
 	  test_linear_spring test_torsion_spring \
-	  test_rk4 test_model
+	  test_rk4 test_model test_residue
 BUILT_SOURCES=data/AA.c
 SUFFIXES=.gperf
 
@@ -40,6 +40,11 @@ test_rk4_SOURCES=t/rk4.c src/rk4.c src/model.c src/residue.c \
 test_model_CFLAGS=$(OPENMP_CFLAGS)
 test_model_SOURCES=t/model.c src/model.c src/residue.c src/vector.c \
 				   src/linear_spring.c src/torsion_spring.c \
+				   data/AA.c t/tap.c
+
+test_residue_CFLAGS=$(OPENMP_CFLAGS)
+test_residue_SOURCES=t/residue.c src/model.c src/residue.c src/vector.c \
+				   src/linear_spring.c src/torsion_spring.c src/springreader.c \
 				   data/AA.c t/tap.c
 
 .gperf.c:

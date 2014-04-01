@@ -2,7 +2,7 @@
 #include "linear_spring.h"
 
 struct linear_spring * linear_spring_alloc(double distance, double constant,
-        struct residue *a, struct residue *b){
+        struct atom *a, struct atom *b){
     struct linear_spring * s = malloc(sizeof(struct linear_spring));
     if(!s)
         return NULL;

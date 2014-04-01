@@ -66,9 +66,8 @@ int main(int argc, char **argv){
         rk4_push(&state);
         if(snapshot > 0 &&
                 (int)(state.time / snapshot) > (int)(model->time / snapshot)){
-            char *pdb = model_pdb(&state, true);
             printf("MODEL     % d\n", (int)state.time / snapshot);
-            printf("%s", pdb);
+            model_pdb(stdout, &state, true);
             printf("ENDMDL\n");
         }
         model->time = state.time;

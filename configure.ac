@@ -13,7 +13,9 @@ AC_PROG_RANLIB
 AC_OPENMP
 
 AM_MISSING_PROG([GPERF], [gperf])
-AC_SEARCH_LIBS(sqrt, m)
+AC_SEARCH_LIBS([cos], [m], [], [
+    AC_MSG_ERROR([Could not find cosine function])
+])
 
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT

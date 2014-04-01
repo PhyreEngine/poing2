@@ -141,8 +141,8 @@ struct torsion_spring * parse_torsion_spring_line(const char *line, struct model
     r3--;
     r4--;
     struct torsion_spring *s = torsion_spring_alloc(
-            &m->residues[r1], &m->residues[r2],
-            &m->residues[r3], &m->residues[r4],
+            &m->residues[r1].atoms[0], &m->residues[r2].atoms[0],
+            &m->residues[r3].atoms[0], &m->residues[r4].atoms[0],
             angle, constant);
     return s;
 }
@@ -169,7 +169,7 @@ struct linear_spring * parse_linear_spring_line(const char *line, struct model *
 
     struct linear_spring *s = linear_spring_alloc(
             distance, constant,
-            &m->residues[i], &m->residues[j]
+            &m->residues[i].atoms[0], &m->residues[j].atoms[0]
     );
     return s;
 }
@@ -224,8 +224,14 @@ size_t parse_sequence(const char *seq, struct residue **res){
 
     size_t i;
     for(i = 0; seq[i]; i++){
+        struct residue *r = &(*res)[i];
         struct AA *aa = AA_lookup(&seq[i], 1);
-        residue_init(&(*res)[i], aa, i+1);
+        residue_init(r, aa, i+1);
+
+        r->atoms = malloc(2 * sizeof(struct atom));
+        r->num_atoms = 2;
+        atom_init(&r->atoms[0], (i+1)*2 - 1, "CA");
+        atom_init(&r->atoms[1], (i+1)*2, "CB");
     }
     return i;
 }

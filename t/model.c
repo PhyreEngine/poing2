@@ -19,19 +19,28 @@ int main(int argc, char **argv){
     for(size_t i=0; i < m->num_residues; i++){
         residue_init(&m->residues[i], AA_lookup("G", 1), i+1);
         m->residues[i].synthesised = true;
-    }
-    vector_fill(&m->residues[0].position, -1, 0, 0);
-    vector_fill(&m->residues[1].position,  0, 0, 0);
-    vector_fill(&m->residues[2].position,  0, 0, 1);
-    vector_fill(&m->residues[3].position,  0, 1, 1);
 
-    const char *pdb_str = model_pdb(m, false);
+        m->residues[i].atoms = malloc(sizeof(struct atom));
+        m->residues[i].num_atoms = 1;
+        atom_init(&m->residues[i].atoms[0], i+1, "CA");
+        m->residues[i].atoms[0].synthesised = true;
+    }
+    vector_fill(&m->residues[0].atoms[0].position, -1, 0, 0);
+    vector_fill(&m->residues[1].atoms[0].position,  0, 0, 0);
+    vector_fill(&m->residues[2].atoms[0].position,  0, 0, 1);
+    vector_fill(&m->residues[3].atoms[0].position,  0, 1, 1);
+
+    char *pdb_str;
+    size_t pdb_sz;
+    FILE *pdb_buf = open_memstream(&pdb_str, &pdb_sz);
+    model_pdb(pdb_buf, m, false);
+    fclose(pdb_buf);
 
     const char *correct =
-    "ATOM      1  CA  GLY     1      -1.000   0.000   0.000\n"
-    "ATOM      2  CA  GLY     2       0.000   0.000   0.000\n"
-    "ATOM      3  CA  GLY     3       0.000   0.000   1.000\n"
-    "ATOM      4  CA  GLY     4       0.000   1.000   1.000\n";
+    "ATOM      1   CA GLY     1      -1.000   0.000   0.000\n"
+    "ATOM      2   CA GLY     2       0.000   0.000   0.000\n"
+    "ATOM      3   CA GLY     3       0.000   0.000   1.000\n"
+    "ATOM      4   CA GLY     4       0.000   1.000   1.000\n";
 
     is(pdb_str, correct, "PDB correct");
 

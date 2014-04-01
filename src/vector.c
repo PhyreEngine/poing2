@@ -89,14 +89,18 @@ double vmag(struct vector *v1){
 /**
  * Find a random vector within a given azimuthal angle.
  *
- * This produces a cone of vectors along the z axis with the azimuthal angle
- * between zero and max_phi.
+ * This produces a random vector with an azimuthal angle between min_phi and
+ * max_phi.
  */
 
-void vector_rand(struct vector *dst, double max_phi){
+void vector_rand(struct vector *dst, double min_phi, double max_phi){
     double cos_max_phi = cos(max_phi);
-    double z   = (double)rand() / RAND_MAX * (1 - cos_max_phi) + cos_max_phi;
-    double phi = (double)rand() / RAND_MAX * M_PI * 2;
+    double cos_min_phi = cos(min_phi);
+
+    double i = (double)rand() / RAND_MAX;
+    double j = (double)rand() / RAND_MAX;
+    double z   = cos_min_phi - i * (cos_min_phi - cos_max_phi);
+    double phi = j * M_PI * 2;
 
     dst->c[0] = sqrt(1 - z*z) * cos(phi);
     dst->c[1] = sqrt(1 - z*z) * sin(phi);

@@ -12,17 +12,22 @@ void is_vector(struct vector *v1, struct vector *v2,
         fis(v1->c[i], v2->c[i], epsilon, "%s: element %d", text, i);
 }
 
-int main(int argc, char **argv){
+int main(){
     plan(24);
     struct residue *a, *b;
     struct linear_spring *s;
 
+    struct atom a_atoms[1];
+    struct atom b_atoms[1];
     a = residue_alloc(AA_lookup("G", 1), 1);
     b = residue_alloc(AA_lookup("G", 1), 2);
+    a->num_atoms = b->num_atoms = 1;
+    a->atoms = a_atoms;
+    b->atoms = b_atoms;
 
-    vector_fill(&a->position, -0.5, 0, 0);
-    vector_fill(&b->position, +0.5, 0, 0);
-    s = linear_spring_alloc(1, 1.0, a, b);
+    vector_fill(&a->atoms[0].position, -0.5, 0, 0);
+    vector_fill(&b->atoms[0].position, +0.5, 0, 0);
+    s = linear_spring_alloc(1, 1.0, &a_atoms[0], &b_atoms[0]);
 
     struct vector result;
     struct vector force;

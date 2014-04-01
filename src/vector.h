@@ -23,7 +23,7 @@ void vdiv(struct vector *dst, struct vector *v1, double s);
 void vcross(struct vector *dst, struct vector *v1, struct vector *v2);
 double vdot(struct vector *v1, struct vector *v2);
 double vmag(struct vector *v1);
-void vector_rand(struct vector *dst, double max_phi);
+void vector_rand(struct vector *dst, double min_phi, double max_phi);
 void vector_spherical_coords(struct vector *dst, struct vector *v);
 void vrot_x(struct vector *dst, struct vector *v, double theta);
 void vrot_y(struct vector *dst, struct vector *v, double theta);

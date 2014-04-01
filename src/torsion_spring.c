@@ -3,17 +3,17 @@
 #include "torsion_spring.h"
 
 struct torsion_spring * torsion_spring_alloc(
-        struct residue *r1, struct residue *r2,
-        struct residue *r3, struct residue *r4,
+        struct atom *a1, struct atom *a2,
+        struct atom *a3, struct atom *a4,
         double angle, double constant){
 
     struct torsion_spring *s = malloc(sizeof(struct torsion_spring));
     if(!s)
         return NULL;
-    s->r1 = r1;
-    s->r2 = r2;
-    s->r3 = r3;
-    s->r4 = r4;
+    s->a1 = a1;
+    s->a2 = a2;
+    s->a3 = a3;
+    s->a4 = a4;
     s->angle = angle;
     s->constant = constant;
     return s;
@@ -26,9 +26,9 @@ double torsion_spring_angle(struct torsion_spring *s){
 
     //Bond vectors
     struct vector b1, b2, b3;
-    vsub(&b1, &s->r2->position, &s->r1->position);
-    vsub(&b2, &s->r3->position, &s->r2->position);
-    vsub(&b3, &s->r4->position, &s->r3->position);
+    vsub(&b1, &s->a2->position, &s->a1->position);
+    vsub(&b2, &s->a3->position, &s->a2->position);
+    vsub(&b3, &s->a4->position, &s->a3->position);
 
     struct vector cross_b1_b2, cross_b2_b3;
     vcross(&cross_b1_b2, &b1, &b2);
@@ -47,7 +47,7 @@ double torsion_spring_angle(struct torsion_spring *s){
 }
 
 void torsion_spring_axis(struct vector *dst, struct torsion_spring *s){
-    vsub(dst, &s->r3->position, &s->r2->position);
+    vsub(dst, &s->a3->position, &s->a2->position);
 }
 
 void torsion_spring_torque(struct vector *dst, struct torsion_spring *s){
@@ -71,9 +71,9 @@ void torsion_spring_force(struct vector *dst, struct torsion_spring *s,
     struct vector torque, arm;
     torsion_spring_torque(&torque, s);
     if(on == R1)
-        vsub(&arm, &s->r1->position, &s->r2->position);
+        vsub(&arm, &s->a1->position, &s->a2->position);
     else
-        vsub(&arm, &s->r4->position, &s->r3->position);
+        vsub(&arm, &s->a4->position, &s->a3->position);
 
     /*
      * We want to project the arm to a vector perpendicular to the axis,

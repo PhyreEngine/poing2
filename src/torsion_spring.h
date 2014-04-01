@@ -7,14 +7,14 @@
 enum torsion_unit {R1, R4};
 
 struct torsion_spring {
-    struct residue *r1, *r2, *r3, *r4;
+    struct atom *a1, *a2, *a3, *a4;
     double angle;
     double constant;
 };
 
 struct torsion_spring * torsion_spring_alloc(
-        struct residue *r1, struct residue *r2,
-        struct residue *r3, struct residue *r4,
+        struct atom *a1, struct atom *a2,
+        struct atom *a3, struct atom *a4,
         double angle, double constant);
 void torsion_spring_free(struct torsion_spring *s);
 void torsion_spring_axis(struct vector *dst, struct torsion_spring *s);
