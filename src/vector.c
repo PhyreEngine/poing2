@@ -86,15 +86,21 @@ double vmag(struct vector *v1){
     return sqrt(vdot(v1, v1));
 }
 
-//See http://mathworld.wolfram.com/SpherePointPicking.html
-void vector_rand(struct vector *dst){
-    double u = (double)rand() / RAND_MAX;
-    double v = (double)rand() / RAND_MAX;
-    double theta = 2 * M_PI * u;
-    double phi   = acos(2*v - 1);
-    dst->c[0] = cos(theta) * sin(phi);
-    dst->c[1] = sin(theta) * sin(phi);
-    dst->c[2] = cos(phi);
+/**
+ * Find a random vector within a given azimuthal angle.
+ *
+ * This produces a cone of vectors along the z axis with the azimuthal angle
+ * between zero and max_phi.
+ */
+
+void vector_rand(struct vector *dst, double max_phi){
+    double cos_max_phi = cos(max_phi);
+    double z   = (double)rand() / RAND_MAX * (1 - cos_max_phi) + cos_max_phi;
+    double phi = (double)rand() / RAND_MAX * M_PI * 2;
+
+    dst->c[0] = sqrt(1 - z*z) * cos(phi);
+    dst->c[1] = sqrt(1 - z*z) * sin(phi);
+    dst->c[2] = z;
 }
 
 void vector_spherical_coords(struct vector *dst, struct vector *v){
