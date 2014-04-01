@@ -123,9 +123,9 @@ void scan_double(const char *line, const char *value, double *dst){
 }
 
 void parse_torsion_spring_line(const char *line, struct model *m){
-    unsigned int r1, r2, r3, r4;
+    int r1, r2, r3, r4;
     double angle, constant;
-    int num_matched = sscanf(line, "%u %u %u %u %lf %lf",
+    int num_matched = sscanf(line, "%d %d %d %d %lf %lf",
             &r1, &r2, &r3, &r4,
             &angle, &constant);
     if(num_matched != 6){
@@ -162,9 +162,9 @@ void parse_torsion_spring_line(const char *line, struct model *m){
 }
 
 void parse_linear_spring_line(const char *line, struct model *m){
-    unsigned int i, j;
+    int i, j;
     double distance, constant;
-    int num_matched = sscanf(line, "%u %u %lf %lf",
+    int num_matched = sscanf(line, "%d %d %lf %lf",
             &i, &j,
             &distance, &constant);
     if(num_matched != 4){
