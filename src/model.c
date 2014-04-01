@@ -108,9 +108,9 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
         for(size_t j=0; j < r.num_atoms; j++){
             struct atom a = r.atoms[j];
             if(a.synthesised){
-                int res = fprintf(out, atom_fmt, r.id, a.name,
+                int res = fprintf(out, atom_fmt, a.id, a.name,
                         r.aa->threeletter,
-                        a.id,
+                        r.id,
                         " ",
                         a.position.c[0],
                         a.position.c[1],
@@ -158,6 +158,7 @@ void model_synth(struct model *dst, const struct model *src){
     for(size_t i=0; i < dst->num_residues; i++){
         struct residue *prev  = (i >= 1) ? &dst->residues[i-1] : NULL;
         struct residue *prev2 = (i >= 2) ? &dst->residues[i-2] : NULL;
-        residue_synth(&dst->residues[i], prev, prev2);
+        if(!dst->residues[i].synthesised)
+            residue_synth(&dst->residues[i], prev, prev2);
     }
 }

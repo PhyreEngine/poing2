@@ -24,7 +24,8 @@ void check_model(struct model *m){
     fis(m->synth_time, 100, 1e-10, "Synth time");
     fis(m->drag_coefficient, 0.1, 1e-10, "Drag coefficient");
 
-    cmp_ok(m->num_linear_springs, "==", 3, "Read three linear springs");
+    //3 read + 11 conneting sidechains to backbone + 7 BB-BB
+    cmp_ok(m->num_linear_springs, "==", 18, "Read three linear springs");
     cmp_ok(m->num_torsion_springs, "==", 1, "Read one torsion spring");
     cmp_ok(m->num_residues, "==", 8, "Read eight residues");
     if(m->num_residues != 8)
@@ -39,20 +40,20 @@ void check_model(struct model *m){
     is(m->residues[6].aa->oneletter, "M", "Residue 0 is M");
     is(m->residues[7].aa->oneletter, "R", "Residue 0 is R");
 
-    ok(m->linear_springs[0].a == &m->residues[0].atoms[0], "Spring 1 attached to residue 1");
-    ok(m->linear_springs[0].b == &m->residues[1].atoms[0], "Spring 1 attached to residue 2");
-    ok(abs(m->linear_springs[0].distance - 4.0) < 1e9, "Spring 1 distance is 4.0A");
-    ok(abs(m->linear_springs[0].constant - 0.3) < 1e9, "Spring 1 constant is 0.3A");
+    ok(m->linear_springs[15].a == &m->residues[0].atoms[0], "Spring 1 attached to residue 1");
+    ok(m->linear_springs[15].b == &m->residues[1].atoms[0], "Spring 1 attached to residue 2");
+    ok(abs(m->linear_springs[15].distance - 4.0) < 1e9, "Spring 1 distance is 4.0A");
+    ok(abs(m->linear_springs[15].constant - 0.3) < 1e9, "Spring 1 constant is 0.3A");
 
-    ok(m->linear_springs[1].a == &m->residues[0].atoms[0], "Spring 2 attached to residue 1");
-    ok(m->linear_springs[1].b == &m->residues[2].atoms[0], "Spring 2 attached to residue 3");
-    ok(abs(m->linear_springs[1].distance - 3.0) < 1e9, "Spring 2 distance is 3.0A");
-    ok(abs(m->linear_springs[1].constant - 0.2) < 1e9, "Spring 2 constant is 0.2A");
+    ok(m->linear_springs[16].a == &m->residues[0].atoms[0], "Spring 2 attached to residue 1");
+    ok(m->linear_springs[16].b == &m->residues[2].atoms[0], "Spring 2 attached to residue 3");
+    ok(abs(m->linear_springs[16].distance - 3.0) < 1e9, "Spring 2 distance is 3.0A");
+    ok(abs(m->linear_springs[16].constant - 0.2) < 1e9, "Spring 2 constant is 0.2A");
 
-    ok(m->linear_springs[2].a == &m->residues[2].atoms[0], "Spring 3 attached to residue 3");
-    ok(m->linear_springs[2].b == &m->residues[3].atoms[0], "Spring 3 attached to residue 3");
-    ok(abs(m->linear_springs[2].distance - 4.0) < 1e9, "Spring 3 distance is 4.0A");
-    ok(abs(m->linear_springs[2].constant - 0.3) < 1e9, "Spring 3 constant is 0.3A");
+    ok(m->linear_springs[17].a == &m->residues[2].atoms[0], "Spring 3 attached to residue 3");
+    ok(m->linear_springs[17].b == &m->residues[3].atoms[0], "Spring 3 attached to residue 3");
+    ok(abs(m->linear_springs[17].distance - 4.0) < 1e9, "Spring 3 distance is 4.0A");
+    ok(abs(m->linear_springs[17].constant - 0.3) < 1e9, "Spring 3 constant is 0.3A");
 
     ok(m->torsion_springs[0].a1 == &m->residues[0].atoms[0], "Torsion a1 = a1");
     ok(m->torsion_springs[0].a2 == &m->residues[1].atoms[0], "Torsion a2 = a2");

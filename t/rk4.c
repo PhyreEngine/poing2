@@ -1,3 +1,4 @@
+#include <config.h>
 #include <fenv.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +13,9 @@
 
 
 int main(int argc, char **argv){
+#ifdef _GNU_SOURCE
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+#endif
     plan(2);
 /*
     struct residue *r1 = residue_alloc(AA_lookup("G", 1));

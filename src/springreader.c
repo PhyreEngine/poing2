@@ -20,12 +20,11 @@ static enum section parse_section_header(
         const char *line);
 static void parse_preamble_line(
         const char *line, struct model *m);
-static struct linear_spring * parse_linear_spring_line(
+static void parse_linear_spring_line(
         const char *line, struct model *m);
-static struct torsion_spring * parse_torsion_spring_line(
+static void parse_torsion_spring_line(
         const char *line, struct model *m);
-static size_t parse_sequence(
-        const char *seq, struct residue **res);
+void parse_sequence(const char *seq, struct model *m);
 static void parse_line(
         const char *line, struct model *m, enum section *section);
 static void scan_double(
@@ -108,10 +107,7 @@ void parse_preamble_line(const char *line, struct model *m){
     for(char *p = param; *p; p++) *p = tolower(*p);
 
     if(strcmp(param, "sequence") == 0){
-        struct residue *res;
-        size_t num_res = parse_sequence(value, &res);
-        m->num_residues = num_res;
-        m->residues = res;
+        parse_sequence(value, m);
     }else if(strcmp(param, "timestep") == 0){
         scan_double(line, value, &m->timestep);
     }else if(strcmp(param, "synth_time") == 0){
@@ -126,28 +122,46 @@ void scan_double(const char *line, const char *value, double *dst){
         fprintf(stderr, "Couldn't interpret line %s\n", line);
 }
 
-struct torsion_spring * parse_torsion_spring_line(const char *line, struct model *m){
-    int r1, r2, r3, r4;
+void parse_torsion_spring_line(const char *line, struct model *m){
+    unsigned int r1, r2, r3, r4;
     double angle, constant;
-    int num_matched = sscanf(line, "%d %d %d %d %lf %lf",
+    int num_matched = sscanf(line, "%u %u %u %u %lf %lf",
             &r1, &r2, &r3, &r4,
             &angle, &constant);
     if(num_matched != 6){
         fprintf(stderr, "Couldn't interpret torsion spring: %s\n", line);
-        return NULL;
+        return;
     }
+
+    int r[4] = {r1, r2, r3, r4};
+    for(size_t i=0; i < 4; i++){
+        if(r[i] < 0){
+            fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n",
+                    r[i]);
+            return;
+        }
+    }
+
+    //Alter the indexing; the file uses 1-indexing, we use 0-indexing
     r1--;
     r2--;
     r3--;
     r4--;
-    struct torsion_spring *s = torsion_spring_alloc(
+
+    m->num_torsion_springs++;
+    m->torsion_springs = realloc(
+            m->torsion_springs,
+            m->num_torsion_springs
+            * sizeof(*m->torsion_springs));
+
+    torsion_spring_init(&m->torsion_springs[m->num_torsion_springs-1],
             &m->residues[r1].atoms[0], &m->residues[r2].atoms[0],
             &m->residues[r3].atoms[0], &m->residues[r4].atoms[0],
             angle, constant);
-    return s;
+
 }
 
-struct linear_spring * parse_linear_spring_line(const char *line, struct model *m){
+void parse_linear_spring_line(const char *line, struct model *m){
     unsigned int i, j;
     double distance, constant;
     int num_matched = sscanf(line, "%u %u %lf %lf",
@@ -155,28 +169,31 @@ struct linear_spring * parse_linear_spring_line(const char *line, struct model *
             &distance, &constant);
     if(num_matched != 4){
         fprintf(stderr, "Couldn't interpret linear spring: %s\n", line);
-        return NULL;
+        return;
     }
-    if(i > m->num_residues || i < 1){
+    if(i < 1){
         fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n", i);
-        return NULL;
-    }else if(j > m->num_residues || j < 1){
+        return;
+    }else if(j < 1){
         fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n", j);
-        return NULL;
+        return;
     }
+    //Springs are indexed by 1 in the file and zero in the program
     i--;
     j--;
 
-    struct linear_spring *s = linear_spring_alloc(
+    m->num_linear_springs++;
+    m->linear_springs = realloc(
+            m->linear_springs,
+            m->num_linear_springs
+            * sizeof(*m->linear_springs));
+    linear_spring_init(
+            &m->linear_springs[m->num_linear_springs-1],
             distance, constant,
-            &m->residues[i].atoms[0], &m->residues[j].atoms[0]
-    );
-    return s;
+            &m->residues[i].atoms[0], &m->residues[j].atoms[0]);
 }
 
 void parse_line(const char *line, struct model *m, enum section *section){
-    struct linear_spring *ls;
-    struct torsion_spring *ts;
     if(strlen(line) == 0 || line[0] == '#')
         return;
     else if(line[0] == '['){
@@ -189,26 +206,10 @@ void parse_line(const char *line, struct model *m, enum section *section){
                 parse_preamble_line(line, m);
                 break;
             case LINEAR_SPRINGS:
-                ls = parse_linear_spring_line(line, m);
-                if(ls){
-                    m->num_linear_springs++;
-                    m->linear_springs = realloc(
-                            m->linear_springs,
-                            m->num_linear_springs
-                            * sizeof(*m->linear_springs));
-                    m->linear_springs[m->num_linear_springs-1] = *ls;
-                }
+                parse_linear_spring_line(line, m);
                 break;
             case TORSION_SPRINGS:
-                ts = parse_torsion_spring_line(line, m);
-                if(ts){
-                    m->num_torsion_springs++;
-                    m->torsion_springs = realloc(
-                            m->torsion_springs,
-                            m->num_torsion_springs
-                            * sizeof(*m->torsion_springs));
-                    m->torsion_springs[m->num_torsion_springs-1] = *ts;
-                }
+                 parse_torsion_spring_line(line, m);
                 break;
             case UNKNOWN:
                 //Ignore lines in unknown section
@@ -217,21 +218,51 @@ void parse_line(const char *line, struct model *m, enum section *section){
     }
 }
 
-size_t parse_sequence(const char *seq, struct residue **res){
-    *res = malloc(strlen(seq) * sizeof(struct residue));
-    if(!res)
-        return 0;
+void parse_sequence(const char *seq, struct model *m){
 
+    struct residue *res = malloc(strlen(seq) * sizeof(struct residue));
+
+    //Count sidechains (need to do this because GLY doesn't have one)
+    size_t k = 0;
+    size_t num_sc = 0;
     size_t i;
     for(i = 0; seq[i]; i++){
-        struct residue *r = &(*res)[i];
+        struct residue *r = &res[i];
         struct AA *aa = AA_lookup(&seq[i], 1);
         residue_init(r, aa, i+1);
 
-        r->atoms = malloc(2 * sizeof(struct atom));
-        r->num_atoms = 2;
-        atom_init(&r->atoms[0], (i+1)*2 - 1, "CA");
-        atom_init(&r->atoms[1], (i+1)*2, "CB");
+        size_t num_atoms = (aa->has_sidechain) ? 2 : 1;
+        if(aa->has_sidechain)
+            num_sc++;
+
+        r->atoms = malloc(num_atoms * sizeof(struct atom));
+        r->num_atoms = num_atoms;
+        atom_init(&r->atoms[0], ++k, "CA");
+        if(aa->has_sidechain)
+            atom_init(&r->atoms[1], ++k, "CB");
     }
-    return i;
+
+    struct linear_spring *ls = malloc((num_sc + i) * sizeof(struct linear_spring));
+    k = 0;
+    for(i=0; seq[i]; i++){
+        struct residue *r = &res[i];
+
+        if(r->aa->has_sidechain){
+            for(size_t j=1; j < r->num_atoms; j++){
+                linear_spring_init(
+                        &ls[k++],
+                        r->aa->sc_bond_len, .01,
+                        &r->atoms[0], &r->atoms[j]);
+            }
+        }
+        if(i > 0){
+            linear_spring_init(&ls[k++],
+                    CA_CA_LEN, .01,
+                    &res[i-1].atoms[0], &res[i].atoms[0]);
+        }
+    }
+    m->residues = res;
+    m->linear_springs = ls;
+    m->num_residues = i;
+    m->num_linear_springs = k;
 }

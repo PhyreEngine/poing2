@@ -10,14 +10,22 @@ struct torsion_spring * torsion_spring_alloc(
     struct torsion_spring *s = malloc(sizeof(struct torsion_spring));
     if(!s)
         return NULL;
+    torsion_spring_init(s, a1, a2, a3, a4, angle, constant);
+    return s;
+}
+
+void torsion_spring_init(struct torsion_spring *s,
+        struct atom *a1, struct atom *a2,
+        struct atom *a3, struct atom *a4,
+        double angle, double constant){
     s->a1 = a1;
     s->a2 = a2;
     s->a3 = a3;
     s->a4 = a4;
     s->angle = angle;
     s->constant = constant;
-    return s;
 }
+
 void torsion_spring_free(struct torsion_spring *s){
     free(s);
 }

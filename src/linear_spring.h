@@ -12,10 +12,20 @@ struct linear_spring {
 
 enum unit { A, B };
 
-struct linear_spring * linear_spring_alloc(double distance, double constant,
+struct linear_spring * linear_spring_alloc(
+        double distance, double constant,
         struct atom *a, struct atom *b);
+
+void linear_spring_init(
+        struct linear_spring *s,
+        double distance, double constant,
+        struct atom *a, struct atom *b);
+
 void linear_spring_free(struct linear_spring *s);
 
-void linear_spring_force(struct vector *dst, struct linear_spring *s, enum unit on);
+void linear_spring_force(
+        struct vector *dst,
+        struct linear_spring *s,
+        enum unit on);
 
 #endif //LINEAR_SPRING_H_

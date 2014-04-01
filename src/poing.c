@@ -1,9 +1,14 @@
+#include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
 #include "springreader.h"
 #include "model.h"
 #include "rk4.h"
+
+#ifdef _GNU_SOURCE
+#   include <fenv.h>
+#endif
 
 static struct option opts[] = {
     {"help",     no_argument,       0, 'h'},
@@ -55,6 +60,10 @@ char * get_options(int argc, char **argv){
 }
 
 int main(int argc, char **argv){
+#ifdef _GNU_SOURCE
+    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+#endif
+
     char * spec = get_options(argc, argv);
     struct model *model = springreader_parse_file(spec);
     if(!model)

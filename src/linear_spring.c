@@ -7,11 +7,17 @@ struct linear_spring * linear_spring_alloc(double distance, double constant,
     if(!s)
         return NULL;
 
+    linear_spring_init(s, distance, constant, a, b);
+    return s;
+}
+
+void linear_spring_init(struct linear_spring *s,
+        double distance, double constant,
+        struct atom *a, struct atom *b){
     s->distance = distance;
     s->constant = constant;
     s->a = a;
     s->b = b;
-    return s;
 }
 
 void linear_spring_free(struct linear_spring *s){

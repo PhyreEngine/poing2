@@ -16,6 +16,12 @@ struct torsion_spring * torsion_spring_alloc(
         struct atom *a1, struct atom *a2,
         struct atom *a3, struct atom *a4,
         double angle, double constant);
+
+void torsion_spring_init(
+        struct torsion_spring *s,
+        struct atom *a1, struct atom *a2,
+        struct atom *a3, struct atom *a4,
+        double angle, double constant);
 void torsion_spring_free(struct torsion_spring *s);
 void torsion_spring_axis(struct vector *dst, struct torsion_spring *s);
 void torsion_spring_torque(struct vector *dst, struct torsion_spring *s);
