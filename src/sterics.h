@@ -3,7 +3,7 @@
 
 #define GRID_BUFFER 0.01
 #define MAX_STERIC_DISTANCE 5.0
-#define STERIC_FORCE_CONSTANT 0.1
+#define STERIC_FORCE_CONSTANT 0.025
 
 #include "residue.h"
 #include "model.h"
@@ -16,7 +16,9 @@ struct steric_grid {
     size_t *num_atoms;
 };
 
+struct steric_grid *steric_grid_alloc(size_t divisions);
 void steric_grid_init(struct steric_grid *grid, size_t divisions);
+void steric_grid_free(struct steric_grid *grid);
 void steric_grid_update(struct steric_grid *grid, struct model *model);
 void steric_grid_forces(struct steric_grid *grid, struct model *model);
 size_t steric_grid_index(struct steric_grid *grid, struct atom *a);

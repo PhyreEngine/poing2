@@ -4,6 +4,7 @@
 #include <string.h>
 #include "model.h"
 #include "vector.h"
+#include "sterics.h"
 
 /**
  * Allocate memory for a model structure.
@@ -25,13 +26,16 @@ struct model *model_alloc(){
     m->timestep = 0.1;
     m->synth_time = 100;
     m->drag_coefficient = 0.1;
+    m->steric_grid = NULL;
     return m;
 }
 
 /**
- * Free memory for a model structure, including the residues and springs.
+ * Free memory for a model structure, including the residues, atoms and springs.
  */
 void model_free(struct model *m){
+    for(size_t i=0; i < m->num_residues; i++)
+        free(m->residues[i].atoms);
     free(m->residues);
     free(m->linear_springs);
     free(m->torsion_springs);
@@ -67,6 +71,7 @@ void model_accumulate_forces(struct model *m){
         }
     }
 
+    //Torsion springs
     #pragma omp parallel for shared(torsion_springs)
     for(size_t i=0; i < m->num_torsion_springs; i++){
         struct torsion_spring s = torsion_springs[i];
@@ -82,6 +87,12 @@ void model_accumulate_forces(struct model *m){
             torsion_spring_force(&force, &s, R4);
             vadd_to(&s.a4->force, &force);
         }
+    }
+
+    //Steric forces
+    if(m->steric_grid){
+        steric_grid_update(m->steric_grid, m);
+        steric_grid_forces(m->steric_grid, m);
     }
 
     //Drag force

@@ -11,6 +11,9 @@
 ///CA-CA bond length
 #define CA_CA_LEN 3.8
 
+///Radius of steric sphere for CA atoms
+#define CA_STERIC_RADIUS 1.0
+
 struct AA {
     const char *oneletter;
     const char *threeletter;
@@ -25,6 +28,7 @@ struct atom {
     bool synthesised;
     char name[MAX_ATOM_NAME_SZ];
     struct vector position, velocity, force;
+    double radius;
 };
 
 struct residue {

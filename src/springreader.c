@@ -72,6 +72,7 @@ struct model * springreader_parse_file(const char *file){
         free(line_buffer);
         line_buffer = NULL;
     }
+    free(line_buffer);
 
     fclose(f);
     return m;
@@ -238,8 +239,11 @@ void parse_sequence(const char *seq, struct model *m){
         r->atoms = malloc(num_atoms * sizeof(struct atom));
         r->num_atoms = num_atoms;
         atom_init(&r->atoms[0], ++k, "CA");
-        if(aa->has_sidechain)
+        r->atoms[0].radius = CA_STERIC_RADIUS;
+        if(aa->has_sidechain){
             atom_init(&r->atoms[1], ++k, "CB");
+            r->atoms[1].radius = aa->sc_steric_radius;
+        }
     }
 
     struct linear_spring *ls = malloc((num_sc + i) * sizeof(struct linear_spring));

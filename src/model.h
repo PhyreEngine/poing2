@@ -8,10 +8,11 @@
 #include "linear_spring.h"
 #include "torsion_spring.h"
 
+struct steric_grid;
+
 /**
  * Represents a model of a protein, with residues and springs.
  */
-
 struct model {
     ///Number of linear springs.
     size_t num_linear_springs;
@@ -35,6 +36,9 @@ struct model {
     double synth_time;
     ///Drag coefficient
     double drag_coefficient;
+
+    ///Grid from which steric forces are calculated
+    struct steric_grid *steric_grid;
 };
 
 struct model *model_alloc();

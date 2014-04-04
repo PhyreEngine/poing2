@@ -2,9 +2,16 @@
 #include <math.h>
 #include "sterics.h"
 
+unsigned long long called = 0;
 static void apply_forces_nearby(struct steric_grid *grid, struct atom *a);
 static int min(int a, int b);
 static int max(int a, int b);
+
+struct steric_grid *steric_grid_alloc(size_t divisions){
+    struct steric_grid *sg = malloc(sizeof(struct steric_grid));
+    steric_grid_init(sg, divisions);
+    return sg;
+}
 
 void steric_grid_init(struct steric_grid *grid, size_t divisions){
     double d3 = divisions * divisions * divisions;
@@ -17,6 +24,16 @@ void steric_grid_init(struct steric_grid *grid, size_t divisions){
     }
     vector_fill(&grid->min, 0, 0, 0);
     vector_fill(&grid->max, 0, 0, 0);
+}
+
+void steric_grid_free(struct steric_grid *grid){
+    double d3 = grid->divisions * grid->divisions * grid->divisions;
+    for(size_t i=0; i < d3; i++)
+        free(grid->atom_grid[i]);
+
+    free(grid->atom_grid);
+    free(grid->num_atoms);
+    free(grid);
 }
 
 /**
@@ -34,6 +51,11 @@ void steric_grid_init(struct steric_grid *grid, size_t divisions){
 void steric_grid_update(struct steric_grid *grid, struct model *model){
     vector_fill(&grid->min, INFINITY, INFINITY, INFINITY);
     vector_fill(&grid->max, -INFINITY, -INFINITY, -INFINITY);
+
+    double d3 = grid->divisions * grid->divisions * grid->divisions;
+    for(size_t i=0; i < d3; i++)
+        grid->num_atoms[i] = 0;
+
     for(size_t i=0; i < model->num_residues; i++){
         for(size_t j=0; j < model->residues[i].num_atoms; j++){
             for(size_t k=0; k < N; k++){
@@ -88,12 +110,11 @@ void steric_grid_coords(struct steric_grid *grid, struct atom *a,
 }
 
 void steric_grid_forces(struct steric_grid *grid, struct model *model){
-    size_t d3 = grid->divisions * grid->divisions * grid->divisions;
-    for(size_t i=0; i < d3; i++){
-        for(size_t j=0; j < grid->num_atoms[i]; j++){
+    for(size_t i=0; i < model->num_residues; i++){
+        for(size_t j=0; j < model->residues[i].num_atoms; j++){
             //Get the list of nearby atoms; that is, all atoms in this cell or
             //the surrounding cells
-            struct atom *a = grid->atom_grid[i][j];
+            struct atom *a = &model->residues[i].atoms[j]; //grid->atom_grid[i][j];
             apply_forces_nearby(grid, a);
         }
     }
@@ -112,6 +133,7 @@ void apply_forces_nearby(struct steric_grid *grid, struct atom *a){
     int dz = ceil(MAX_STERIC_DISTANCE * grid->divisions
             / (grid->max.c[2] - grid->min.c[2]));
 
+    called=0;
     for(int i=max(0, x-dx); i <= min(grid->divisions-1, x+dx); i++){
         for(int j=max(0, y-dy); j <= min(grid->divisions-1, y+dy); j++){
             for(int k=max(0, z-dz); k <= min(grid->divisions-1, z+dz); k++){
@@ -130,13 +152,16 @@ void apply_forces_nearby(struct steric_grid *grid, struct atom *a){
 }
 
 void steric_force(struct atom *a, struct atom *b){
+    called++;
     struct vector displacement;
     vsub(&displacement, &a->position, &b->position);
     double dist = vmag(&displacement);
     if(dist < a->radius + b->radius){
+        double excess = (dist - (a->radius + b->radius));
         vmul_by(&displacement,
-                STERIC_FORCE_CONSTANT 
-                * (dist - (a->radius + b->radius)) / dist);
+                STERIC_FORCE_CONSTANT
+                * excess / dist);
+
 
         //Only apply in one direction; because of the way we are iterating over
         //the atoms, this function will be called with the other atom as a
