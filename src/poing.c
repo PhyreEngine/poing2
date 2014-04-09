@@ -40,7 +40,7 @@ void usage(const char *msg, int exitval){
     FILE *out = (exitval < 2) ? stdout : stderr;
     if(msg)
         fprintf(out, "%s\n", msg);
-    fprintf(out, usage_str);
+    fprintf(out, "%s", usage_str);
     exit(exitval);
 }
 
