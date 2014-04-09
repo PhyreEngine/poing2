@@ -164,14 +164,22 @@ void parse_torsion_spring_line(const char *line, struct model *m){
 
 void parse_linear_spring_line(const char *line, struct model *m){
     int i, j;
-    double distance, constant;
-    int num_matched = sscanf(line, "%d %d %lf %lf",
+    double distance, constant, cutoff;
+    int num_matched = sscanf(line, "%d %d %lf %lf %lf",
             &i, &j,
-            &distance, &constant);
-    if(num_matched != 4){
-        fprintf(stderr, "Couldn't interpret linear spring: %s\n", line);
-        return;
+            &distance, &constant, &cutoff);
+    switch(num_matched){
+        case 3:
+            constant = DEFAULT_SPRING_CONSTANT;
+        case 4:
+            cutoff = -1;
+        case 5:
+            break;
+        default:
+            fprintf(stderr, "Couldn't interpret linear spring: %s\n", line);
+            return;
     }
+
     if(i < 1){
         fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n", i);
         return;

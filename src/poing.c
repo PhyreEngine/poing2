@@ -56,6 +56,7 @@ char * get_options(int argc, char **argv){
                 break;
             case 'u':
                 until = atof(optarg);
+                break;
             case 'c':
                 print_connect = false;
                 break;
@@ -67,7 +68,7 @@ char * get_options(int argc, char **argv){
 }
 
 int main(int argc, char **argv){
-#ifdef _GNU_SOURCE
+#if defined(_GNU_SOURCE) && !defined(__FAST_MATH__)
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
 

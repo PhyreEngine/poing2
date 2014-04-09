@@ -136,7 +136,7 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
     if(conect){
         for(size_t i=0; i < m->num_linear_springs; i++){
             struct linear_spring s = m->linear_springs[i];
-            if(s.a->synthesised && s.b->synthesised){
+            if(linear_spring_active(&s) && s.a->synthesised && s.b->synthesised){
                 int res = fprintf(out, conect_fmt, s.a->id, s.b->id);
 
                 if(res < 0)

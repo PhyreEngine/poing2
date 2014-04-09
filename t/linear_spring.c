@@ -13,7 +13,7 @@ void is_vector(struct vector *v1, struct vector *v2,
 }
 
 int main(){
-    plan(24);
+    plan(30);
     struct residue *a, *b;
     struct linear_spring *s;
 
@@ -69,6 +69,21 @@ int main(){
     vector_fill(&result, +2, 0, 0);
     linear_spring_force(&force, s, B);
     is_vector(&force, &result, 1e-10, "Force = (+2, 0, 0) on B");
+
+    //Using cutoffs
+    s->constant = 1.0;
+    s->cutoff   = 0.5;
+    s->distance = 1.0;
+    vector_fill(&a->atoms[0].position, -1, 0, 0);
+    vector_fill(&b->atoms[0].position, +1, 0, 0);
+    vector_fill(&result, 0, 0, 0);
+    linear_spring_force(&force, s, A);
+    is_vector(&force, &result, 1e-10, "Force = 0 past cutoff");
+
+    s->cutoff = 2.5;
+    vector_fill(&result, 1, 0, 0);
+    linear_spring_force(&force, s, A);
+    is_vector(&force, &result, 1e-10, "Force applied within cutoff");
 
     done_testing();
 }
