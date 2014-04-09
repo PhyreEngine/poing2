@@ -107,7 +107,7 @@ void model_accumulate_forces(struct model *m){
 }
 
 
-const char *atom_fmt   = "ATOM  %5d %4s %-3s  %4d%1s   %8.3f%8.3f%8.3f\n";
+const char *atom_fmt   = "ATOM  %5d %3s  %-3s  %4d%1s   %8.3f%8.3f%8.3f\n";
 const char *conect_fmt = "CONECT% 5d% 5d\n";
 
 int model_pdb(FILE *out, const struct model *m, bool conect){
