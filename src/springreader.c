@@ -115,6 +115,8 @@ void parse_preamble_line(const char *line, struct model *m){
         scan_double(line, value, &m->synth_time);
     }else if(strcmp(param, "drag_coefficient") == 0){
         scan_double(line, value, &m->drag_coefficient);
+    }else if(strcmp(param, "max_synth_angle") == 0){
+        scan_double(line, value, &m->max_synth_angle);
     }
 }
 

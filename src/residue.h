@@ -45,6 +45,10 @@ void residue_free(struct residue *r);
 extern struct AA * AA_lookup (register const char *str, register unsigned int len);
 void atom_init(struct atom *a, int id, const char *name);
 
-void residue_synth(struct residue *r, struct residue *prev, struct residue *prev2);
+void residue_synth(
+        struct residue *r,
+        struct residue *prev,
+        struct residue *prev2,
+        double max_angle);
 
 #endif /* RESIDUE_H_ */

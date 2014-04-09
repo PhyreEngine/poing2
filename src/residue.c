@@ -57,7 +57,12 @@ void atom_init(struct atom *a, int id, const char *name){
  *   in the position vectors of the backbone atoms of prev and prev2.
  *
  */
-void residue_synth(struct residue *r, struct residue *prev, struct residue *prev2){
+void residue_synth(
+        struct residue *r,
+        struct residue *prev,
+        struct residue *prev2,
+        double max_angle){
+
     struct vector z = {.c = {0, 0, 1}};
     if(!prev2 && ! prev){
         for(size_t i=1; i < r->num_atoms; i++){
@@ -67,7 +72,7 @@ void residue_synth(struct residue *r, struct residue *prev, struct residue *prev
         }
     }else if(prev && !prev2){
         //Put the backbone atom in the Z direction
-        vector_rand(&r->atoms[0].position, 0, M_PI/16);
+        vector_rand(&r->atoms[0].position, 0, max_angle / 180 * M_PI);
         vmul_by(&r->atoms[0].position, CA_CA_LEN);
         vadd_to(&r->atoms[0].position, &prev->atoms[0].position);
         //Place any sidechains at a random angle close to the X-Y plane
@@ -78,7 +83,7 @@ void residue_synth(struct residue *r, struct residue *prev, struct residue *prev
         }
     }else if(prev && prev2){
         //Get a random displacment vector for the new CA atom
-        vector_rand(&r->atoms[0].position, 0, M_PI/16);
+        vector_rand(&r->atoms[0].position, 0, max_angle / 180 * M_PI);
         vmul_by(&r->atoms[0].position, CA_CA_LEN);
         /*
          *fprintf(stderr, "%g %g %g %g %g %g ", 

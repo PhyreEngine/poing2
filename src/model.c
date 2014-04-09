@@ -27,6 +27,7 @@ struct model *model_alloc(){
     m->synth_time = 100;
     m->drag_coefficient = 0.1;
     m->steric_grid = NULL;
+    m->max_synth_angle = DEFAULT_MAX_SYNTH_ANGLE;
     return m;
 }
 
@@ -170,6 +171,6 @@ void model_synth(struct model *dst, const struct model *src){
         struct residue *prev  = (i >= 1) ? &dst->residues[i-1] : NULL;
         struct residue *prev2 = (i >= 2) ? &dst->residues[i-2] : NULL;
         if(!dst->residues[i].synthesised)
-            residue_synth(&dst->residues[i], prev, prev2);
+            residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle);
     }
 }

@@ -8,6 +8,7 @@
 #include "linear_spring.h"
 #include "torsion_spring.h"
 
+#define DEFAULT_MAX_SYNTH_ANGLE 45
 struct steric_grid;
 
 /**
@@ -39,6 +40,9 @@ struct model {
 
     ///Grid from which steric forces are calculated
     struct steric_grid *steric_grid;
+
+    ///Maximum synthesis angle for new residues
+    double max_synth_angle;
 };
 
 struct model *model_alloc();
