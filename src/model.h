@@ -40,6 +40,8 @@ struct model {
 
     ///Grid from which steric forces are calculated
     struct steric_grid *steric_grid;
+    ///Enable / disable steric grid
+    bool use_sterics;
 
     ///Maximum synthesis angle for new residues
     double max_synth_angle;

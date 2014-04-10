@@ -27,6 +27,8 @@ void steric_grid_init(struct steric_grid *grid, size_t divisions){
 }
 
 void steric_grid_free(struct steric_grid *grid){
+    if(!grid)
+        return;
     double d3 = grid->divisions * grid->divisions * grid->divisions;
     for(size_t i=0; i < d3; i++)
         free(grid->atom_grid[i]);

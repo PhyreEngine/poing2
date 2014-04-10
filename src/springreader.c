@@ -32,6 +32,7 @@ static void parse_line(
         const char *line, struct model *m, enum section *section);
 static void scan_double(
         const char *line, const char *value, double *dst);
+static bool scan_bool(const char *line, const char *value);
 
 /**
  * Parse  a configuration string into a model.
@@ -143,6 +144,8 @@ void parse_preamble_line(const char *line, struct model *m){
         scan_double(line, value, &m->drag_coefficient);
     }else if(strcmp(param, "max_synth_angle") == 0){
         scan_double(line, value, &m->max_synth_angle);
+    }else if(strcmp(param, "use_sterics") == 0){
+        m->use_sterics = scan_bool(line, value);
     }
 }
 
@@ -151,20 +154,39 @@ void scan_double(const char *line, const char *value, double *dst){
         fprintf(stderr, "Couldn't interpret line %s\n", line);
 }
 
+bool scan_bool(const char *line, const char *value){
+    if(strcmp(value, "true") == 0){
+        return true;
+    }else if(strcmp(value, "false") == 0){
+        return false;
+    }else{
+        fprintf(
+                stderr,
+                "Couldn't interpret boolean `%s' (assuming false): %s",
+                value, line);
+        return false;
+    }
+}
+
 void parse_torsion_spring_line(const char *line, struct model *m){
     int r1, r2, r3, r4;
-    double angle, constant;
-    int num_matched = sscanf(line, "%d %d %d %d %lf %lf",
+    double angle, constant, cutoff;
+    int num_matched = sscanf(line, "%d %d %d %d %lf %lf %lf",
             &r1, &r2, &r3, &r4,
-            &angle, &constant);
-    if(num_matched != 6){
-        fprintf(stderr, "Couldn't interpret torsion spring: %s\n", line);
-        return;
+            &angle, &constant, &cutoff);
+    switch(num_matched){
+        case 6:
+            cutoff = -1;
+        case 7:
+            break;
+        default:
+            fprintf(stderr, "Couldn't interpret torsion spring: %s\n", line);
+            return;
     }
 
     int r[4] = {r1, r2, r3, r4};
     for(size_t i=0; i < 4; i++){
-        if(r[i] < 0){
+        if(r[i] <= 0 || r[i] > m->num_residues){
             fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n",
                     r[i]);
             return;
@@ -208,10 +230,10 @@ void parse_linear_spring_line(const char *line, struct model *m){
             return;
     }
 
-    if(i < 1){
+    if(i < 1 || i > m->num_residues){
         fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n", i);
         return;
-    }else if(j < 1){
+    }else if(j < 1 || i > m->num_residues){
         fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n", j);
         return;
     }

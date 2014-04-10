@@ -29,6 +29,7 @@ struct atom {
     char name[MAX_ATOM_NAME_SZ];
     struct vector position, velocity, force;
     double radius;
+    bool fixed;
 };
 
 struct residue {

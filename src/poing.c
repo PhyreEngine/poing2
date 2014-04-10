@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <math.h>
+#include <time.h>
+#include <unistd.h>
 #include "springreader.h"
 #include "model.h"
 #include "rk4.h"
@@ -71,15 +73,20 @@ int main(int argc, char **argv){
 #if defined(_GNU_SOURCE) && !defined(__FAST_MATH__)
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
+    //srand(time(NULL) * getpid());
 
     char * spec = get_options(argc, argv);
     struct model *model = springreader_parse_file(spec);
-    struct steric_grid *steric_grid = steric_grid_alloc(
-            (int)ceil(cbrt(model->num_residues)));
-    model->steric_grid = steric_grid;
-
     if(!model)
         return 2;
+
+    struct steric_grid *steric_grid = NULL;
+    if(model->use_sterics){
+         steric_grid_alloc(
+                (int)ceil(cbrt(model->num_residues)));
+        model->steric_grid = steric_grid;
+    }
+
 
     struct model state;
     unsigned long i=0;

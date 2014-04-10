@@ -24,6 +24,7 @@ void torsion_spring_init(struct torsion_spring *s,
     s->a4 = a4;
     s->angle = angle;
     s->constant = constant;
+    s->cutoff = -1;
 }
 
 void torsion_spring_free(struct torsion_spring *s){
@@ -59,7 +60,12 @@ void torsion_spring_axis(struct vector *dst, struct torsion_spring *s){
 }
 
 void torsion_spring_torque(struct vector *dst, struct torsion_spring *s){
-    double delta_angle = (torsion_spring_angle(s) - s->angle) / 180 * M_PI;
+    double delta_angle = (torsion_spring_angle(s) - s->angle);
+    if(delta_angle < -180)
+        delta_angle += 360;
+    else if(delta_angle > 180)
+        delta_angle -= 360;
+    delta_angle *= M_PI / 180;
 
     //Normalised axis
     struct vector axis;
@@ -75,6 +81,12 @@ void torsion_spring_torque(struct vector *dst, struct torsion_spring *s){
 
 void torsion_spring_force(struct vector *dst, struct torsion_spring *s,
         enum torsion_unit on){
+
+    double angle = torsion_spring_angle(s);
+    if(s->cutoff > 0 && fabs(angle - s->angle) > s->cutoff){
+        vector_zero(dst);
+        return;
+    }
 
     struct vector torque, arm;
     torsion_spring_torque(&torque, s);

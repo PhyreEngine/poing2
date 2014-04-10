@@ -30,6 +30,7 @@ void atom_init(struct atom *a, int id, const char *name){
     a->name[0] = '\0';
     strncat(a->name, name, MAX_ATOM_NAME_SZ-1);
     a->radius = 0;
+    a->fixed = false;
     vector_zero(&a->position);
     vector_zero(&a->velocity);
     vector_zero(&a->force);

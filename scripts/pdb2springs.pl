@@ -166,7 +166,7 @@ print "[Linear]\n";
 for my $pair_id(keys %{$pairs}){
     for my $spring(@{$pairs->{$pair_id}}){
         if($spring->{dist} < $options{'max-dist'}){
-            printf "% 4d % 4d %8.3f %8.3f %8.3f\n",
+            printf "% 4d % 4d %8.6f %8.6f %8.6f\n",
                 $spring->{ra}{id}, $spring->{rb}{id},
                 $spring->{dist}, $options{const}, $options{cutoff};
         }
@@ -177,7 +177,7 @@ if(!$options{'no-torsion'}){
     print "[Torsion]\n";
     for my $id(sort {$a <=> $b} keys %{$torsion}){
         for my $spring(@{$torsion->{$id}}){
-            printf "% 4d % 4d % 4d % 4d %8.3f %8.3f\n",
+            printf "% 4d % 4d % 4d % 4d %8.5f %8.6f\n",
                 $spring->{r1}{id},
                 $spring->{r2}{id},
                 $spring->{r3}{id},

@@ -10,6 +10,7 @@ struct torsion_spring {
     struct atom *a1, *a2, *a3, *a4;
     double angle;
     double constant;
+    double cutoff;
 };
 
 struct torsion_spring * torsion_spring_alloc(

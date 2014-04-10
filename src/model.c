@@ -25,8 +25,9 @@ struct model *model_alloc(){
     m->time = 0;
     m->timestep = 0.1;
     m->synth_time = 100;
-    m->drag_coefficient = 0.1;
+    m->drag_coefficient = -0.1;
     m->steric_grid = NULL;
+    m->use_sterics = false;
     m->max_synth_angle = DEFAULT_MAX_SYNTH_ANGLE;
     return m;
 }
@@ -64,11 +65,15 @@ void model_accumulate_forces(struct model *m){
         struct linear_spring s = linear_springs[i];
 
         if(s.a->synthesised && s.b->synthesised){
-            linear_spring_force(&force, &s, A);
-            vadd_to(&s.a->force, &force);
+            if(!s.a->fixed){
+                linear_spring_force(&force, &s, A);
+                vadd_to(&s.a->force, &force);
+            }
 
-            linear_spring_force(&force, &s, B);
-            vadd_to(&s.b->force, &force);
+            if(!s.b->fixed){
+                linear_spring_force(&force, &s, B);
+                vadd_to(&s.b->force, &force);
+            }
         }
     }
 
@@ -82,11 +87,15 @@ void model_accumulate_forces(struct model *m){
                 && s.a3->synthesised
                 && s.a4->synthesised){
 
-            torsion_spring_force(&force, &s, R1);
-            vadd_to(&s.a1->force, &force);
+            if(!s.a1->fixed){
+                torsion_spring_force(&force, &s, R1);
+                vadd_to(&s.a1->force, &force);
+            }
 
-            torsion_spring_force(&force, &s, R4);
-            vadd_to(&s.a4->force, &force);
+            if(!s.a4->fixed){
+                torsion_spring_force(&force, &s, R4);
+                vadd_to(&s.a4->force, &force);
+            }
         }
     }
 
@@ -101,7 +110,7 @@ void model_accumulate_forces(struct model *m){
     for(size_t i=0; i < m->num_residues; i++){
         for(size_t j=0; j < residues[i].num_atoms; j++){
             vector_copy_to(&tmp, &residues[i].atoms[j].velocity);
-            vmul_by(&tmp, -1);
+            vmul_by(&tmp, m->drag_coefficient);
             vadd_to(&residues[i].atoms[j].force, &tmp);
         }
     }
@@ -174,7 +183,13 @@ void model_synth(struct model *dst, const struct model *src){
     for(size_t i=0; i < dst->num_residues; i++){
         struct residue *prev  = (i >= 1) ? &dst->residues[i-1] : NULL;
         struct residue *prev2 = (i >= 2) ? &dst->residues[i-2] : NULL;
-        if(!dst->residues[i].synthesised)
+        if(!dst->residues[i].synthesised){
             residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle);
+        }
+
+        if(prev){
+            //for(size_t j=0; j < prev->num_atoms; j++)
+            //    prev->atoms[j].fixed = true;
+        }
     }
 }
