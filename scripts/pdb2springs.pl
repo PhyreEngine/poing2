@@ -158,9 +158,9 @@ while(<>){
 my $pairs = build_pairs(\@pdb_names, \%pdbs);
 my $torsion = build_torsion_springs(\@pdb_names, \%pdbs);
 
-print_query($options{query})                  if $options{query};
-print "timestep = $options{timestep}\n"       if $options{timestep};
-print "synth_time = $options{'synth-time'}\n" if $options{'synth-time'};
+print_query($options{query})                  if defined $options{query};
+print "timestep = $options{timestep}\n"       if defined $options{timestep};
+print "synth_time = $options{'synth-time'}\n" if defined $options{'synth-time'};
 
 print "[Linear]\n";
 for my $pair_id(keys %{$pairs}){
