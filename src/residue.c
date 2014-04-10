@@ -66,73 +66,58 @@ void residue_synth(
     struct vector z = {.c = {0, 0, 1}};
     if(!prev2 && ! prev){
         for(size_t i=1; i < r->num_atoms; i++){
-            vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
-            vmul_by(&r->atoms[i].position, r->aa->sc_bond_len);
-            vadd_to(&r->atoms[i].position, &r->atoms[0].position);
+            if(!r->atoms[i].synthesised){
+                vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
+                vmul_by(&r->atoms[i].position, r->aa->sc_bond_len);
+                vadd_to(&r->atoms[i].position, &r->atoms[0].position);
+            }
         }
     }else if(prev && !prev2){
         //Put the backbone atom in the Z direction
-        vector_rand(&r->atoms[0].position, 0, max_angle / 180 * M_PI);
-        vmul_by(&r->atoms[0].position, CA_CA_LEN);
-        vadd_to(&r->atoms[0].position, &prev->atoms[0].position);
+        if(!r->atoms[0].synthesised){
+            vector_rand(&r->atoms[0].position, 0, max_angle / 180 * M_PI);
+            vmul_by(&r->atoms[0].position, CA_CA_LEN);
+            vadd_to(&r->atoms[0].position, &prev->atoms[0].position);
+        }
         //Place any sidechains at a random angle close to the X-Y plane
         for(size_t i=1; i < r->num_atoms; i++){
-            vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
-            vmul_by(&r->atoms[i].position, r->aa->sc_bond_len);
-            vadd_to(&r->atoms[i].position, &r->atoms[0].position);
+            if(!r->atoms[i].synthesised){
+                vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
+                vmul_by(&r->atoms[i].position, r->aa->sc_bond_len);
+                vadd_to(&r->atoms[i].position, &r->atoms[0].position);
+            }
         }
     }else if(prev && prev2){
         //Get a random displacment vector for the new CA atom
-        vector_rand(&r->atoms[0].position, 0, max_angle / 180 * M_PI);
-        vmul_by(&r->atoms[0].position, CA_CA_LEN);
-        /*
-         *fprintf(stderr, "%g %g %g %g %g %g ", 
-         *        prev->atoms[0].position.c[0],
-         *        prev->atoms[0].position.c[1],
-         *        prev->atoms[0].position.c[2],
-         *        r->atoms[0].position.c[0],
-         *        r->atoms[0].position.c[1],
-         *        r->atoms[0].position.c[2]);
-         */
-
+        struct vector tmp;
+        vector_rand(&tmp, 0, max_angle / 180 * M_PI);
+        vmul_by(&tmp, CA_CA_LEN);
         //Rotate it with the same angle and axis that the (prev - prev2)
         //displacement vector has from the z axis.
         struct vector displ;
         vsub(&displ, &prev->atoms[0].position, &prev2->atoms[0].position);
-        /*
-         *fprintf(stderr, "%g %g %g ",
-         *        displ.c[0],
-         *        displ.c[1],
-         *        displ.c[2]);
-         */
 
         struct vector rot_axis;
         vcross(&rot_axis, &displ, &z);
         vdiv_by(&rot_axis, vmag(&rot_axis));
-        /*
-         *fprintf(stderr, "%g %g %g 0 0 1 ",
-         *        rot_axis.c[0],
-         *        rot_axis.c[1],
-         *        rot_axis.c[2]);
-         */
 
         double angle = acos(vdot(&displ, &z) / vmag(&displ));
-        vrot_axis(&r->atoms[0].position, &rot_axis, &r->atoms[0].position, -angle);
-        /*
-         *fprintf(stderr, "%g %g %g\n", 
-         *        r->atoms[0].position.c[0],
-         *        r->atoms[0].position.c[1],
-         *        r->atoms[0].position.c[2]);
-         */
-        vadd_to(&r->atoms[0].position, &prev->atoms[0].position);
+        vrot_axis(&tmp, &rot_axis, &tmp, -angle);
+        vadd_to(&tmp, &prev->atoms[0].position);
+
+        if(!r->atoms[0].synthesised){
+            vector_copy_to(&r->atoms[0].position, &tmp);
+        }
 
         //Similar procedure with sidechain, but with a random vector starting
         //in the X-Y plane
         for(size_t i=1; i < r->num_atoms; i++){
-            vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
-            vmul_by(&r->atoms[i].position, r->aa->sc_bond_len);
-            vrot_axis(&r->atoms[i].position, &rot_axis, &r->atoms[i].position, angle);
-            vadd_to(&r->atoms[i].position, &r->atoms[0].position);
+            if(!r->atoms[i].synthesised){
+                vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
+                vmul_by(&r->atoms[i].position, r->aa->sc_bond_len);
+                vrot_axis(&r->atoms[i].position, &rot_axis, &r->atoms[i].position, angle);
+                vadd_to(&r->atoms[i].position, &r->atoms[0].position);
+            }
         }
     }
     r->synthesised = true;

@@ -162,7 +162,11 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
  */
 void model_synth(struct model *dst, const struct model *src){
     memcpy(dst, src, sizeof(*src));
-    dst->num_residues = src->time / src->synth_time;
+
+    if(src->synth_time <= 0)
+        dst->num_residues = src->num_residues;
+    else
+        dst->num_residues = src->time / src->synth_time;
 
     if(dst->num_residues > src->num_residues)
         dst->num_residues = src->num_residues;

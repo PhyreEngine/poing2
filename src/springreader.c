@@ -13,11 +13,14 @@ enum section {
     PREAMBLE,
     LINEAR_SPRINGS,
     TORSION_SPRINGS,
+    POSITIONS,
     UNKNOWN
 };
 
 static enum section parse_section_header(
         const char *line);
+static void parse_position_line(
+        const char *line, struct model *m);
 static void parse_preamble_line(
         const char *line, struct model *m);
 static void parse_linear_spring_line(
@@ -96,7 +99,30 @@ enum section parse_section_header(const char *line){
         return LINEAR_SPRINGS;
     else if(strcmp(section_name, "torsion") == 0)
         return TORSION_SPRINGS;
+    else if(strcmp(section_name, "position") == 0)
+        return POSITIONS;
     return UNKNOWN;
+}
+
+void parse_position_line(const char *line, struct model *m){
+    int i;
+    double x, y, z;
+    int n = sscanf(line, "%d %lf %lf %lf", &i, &x, &y, &z);
+
+    if(n != 4){
+        fprintf(stderr, "I didn't understand the line `%s'", line);
+        return;
+    }
+    if(i < 1 || (unsigned int) i > m->num_residues){
+        fprintf(stderr, "%i is not a valid residue\n", i);
+        return;
+    }
+
+    i--;
+    m->residues[i].atoms[0].position.c[0] = x;
+    m->residues[i].atoms[0].position.c[1] = y;
+    m->residues[i].atoms[0].position.c[2] = z;
+    m->residues[i].atoms[0].synthesised = true;
 }
 
 void parse_preamble_line(const char *line, struct model *m){
@@ -220,7 +246,10 @@ void parse_line(const char *line, struct model *m, enum section *section){
                 parse_linear_spring_line(line, m);
                 break;
             case TORSION_SPRINGS:
-                 parse_torsion_spring_line(line, m);
+                parse_torsion_spring_line(line, m);
+                break;
+            case POSITIONS:
+                parse_position_line(line, m);
                 break;
             case UNKNOWN:
                 //Ignore lines in unknown section
