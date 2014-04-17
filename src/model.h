@@ -45,6 +45,9 @@ struct model {
 
     ///Maximum synthesis angle for new residues
     double max_synth_angle;
+
+    ///Fix residues after allowing them to reach equilibrium
+    bool fix;
 };
 
 struct model *model_alloc();

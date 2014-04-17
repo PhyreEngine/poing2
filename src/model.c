@@ -29,6 +29,7 @@ struct model *model_alloc(){
     m->steric_grid = NULL;
     m->use_sterics = false;
     m->max_synth_angle = DEFAULT_MAX_SYNTH_ANGLE;
+    m->fix = 0;
     return m;
 }
 
@@ -185,11 +186,11 @@ void model_synth(struct model *dst, const struct model *src){
         struct residue *prev2 = (i >= 2) ? &dst->residues[i-2] : NULL;
         if(!dst->residues[i].synthesised){
             residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle);
+            if(dst->fix && prev){
+                for(size_t j=0; j < prev->num_atoms; j++)
+                    prev->atoms[j].fixed = true;
+            }
         }
 
-        if(prev){
-            //for(size_t j=0; j < prev->num_atoms; j++)
-            //    prev->atoms[j].fixed = true;
-        }
     }
 }

@@ -82,6 +82,18 @@ Only place springs between atoms less than I<D> A apart. (Default: 20)
 
 Disable torsion springs.
 
+=item B<--no-sterics>
+
+Disable steric effects.
+
+=item B<--no-preamble>
+
+Disable writing the preamble.
+
+=item B<--fix>
+
+Fix residues after the next residue is synthesised.
+
 =back
 
 =cut
@@ -117,6 +129,9 @@ GetOptions(\%options,
     'torsion-sep=i',
     'cutoff|c=f',
     'max-dist=f',
+    'no-sterics',
+    'no-preamble',
+    'fix',
 ) or pod2usage(2);
 pod2usage(-verbose => 2, -noperldoc => 1, -exitval => 1) if $options{help};
 
@@ -158,9 +173,13 @@ while(<>){
 my $pairs = build_pairs(\@pdb_names, \%pdbs);
 my $torsion = build_torsion_springs(\@pdb_names, \%pdbs);
 
-print_query($options{query})                  if defined $options{query};
-print "timestep = $options{timestep}\n"       if defined $options{timestep};
-print "synth_time = $options{'synth-time'}\n" if defined $options{'synth-time'};
+if(not defined $options{'no-preamble'}){
+    print_query($options{query})                  if defined $options{query};
+    print "timestep = $options{timestep}\n"       if defined $options{timestep};
+    print "synth_time = $options{'synth-time'}\n" if defined $options{'synth-time'};
+    print "use_sterics = true\n"                 if !defined $options{'no-sterics'};
+    print "fix = true\n"                          if defined $options{'fix'};
+}
 
 print "[Linear]\n";
 for my $pair_id(keys %{$pairs}){
