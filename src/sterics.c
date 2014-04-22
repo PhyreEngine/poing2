@@ -8,7 +8,14 @@ static int max(int a, int b);
 
 //only needed because the generic callback passed to steric_grid_foreach_nearby
 //ought to take an extra parameter. This just calls steric_force.
-static void steric_force_lambda(struct atom *a, struct atom *b, void *na);
+static bool steric_force_lambda(struct atom *a, struct atom *b, void *na);
+
+static bool is_kick_good(struct atom *a, struct atom *b, void *data);
+struct is_kick_good_args {
+    bool *is_good;
+    struct vector *kick_point;
+};
+static bool should_apply_drag(struct atom *a, struct atom *b, void *data);
 
 struct steric_grid *steric_grid_alloc(size_t divisions){
     struct steric_grid *sg = malloc(sizeof(struct steric_grid));
@@ -127,7 +134,7 @@ void steric_grid_forces(struct steric_grid *grid, struct model *model){
 
 void steric_grid_foreach_nearby(
         struct steric_grid *grid, struct atom *a,
-        void (*lambda)(struct atom *a, struct atom *b, void *data),
+        bool (*lambda)(struct atom *a, struct atom *b, void *data),
         void *data){
     int x, y, z;
     steric_grid_coords(grid, a, &x, &y, &z);
@@ -150,7 +157,9 @@ void steric_grid_foreach_nearby(
                 size_t num_atoms    = grid->num_atoms[index];
                 for(size_t l=0; l < num_atoms; l++){
                     if(a != atoms[l]){
-                        (*lambda)(a, atoms[l], data);
+                        bool cont = (*lambda)(a, atoms[l], data);
+                        if(!cont)
+                            return;
                     }
                 }
             }
@@ -158,8 +167,9 @@ void steric_grid_foreach_nearby(
     }
 }
 
-static void steric_force_lambda(struct atom *a, struct atom *b, void *na){
+static bool steric_force_lambda(struct atom *a, struct atom *b, void *na){
     steric_force(a, b);
+    return true;
 }
 
 void steric_force(struct atom *a, struct atom *b){
@@ -179,6 +189,84 @@ void steric_force(struct atom *a, struct atom *b){
         vmul_by(&displacement, -1);
         vadd_to(&a->force, &displacement);
     }
+}
+
+#define POLAR_KICK_PROB 0.0001
+#define KICK_PROB 0.0003
+#define WATER_RADIUS 1.4
+#define DRAG_SHIELDING_DISTANCE 10.14
+#define COS_DRAG_BLOCK_ANGLE 0.80901699437494745
+#define KICK_VELOCITY 0.08
+
+void water_force(struct model *m, struct steric_grid *grid){
+    for(size_t i=0; i < m->num_residues; i++){
+        for(size_t j=0; j < m->residues[i].num_atoms; j++){
+            struct atom *a = &m->residues[i].atoms[j];
+            double sf_area = 4*M_PI*a->radius*a->radius;
+
+            double kick_prob = sf_area * (POLAR_KICK_PROB + (a->hydrophobicity
+                        * (KICK_PROB - POLAR_KICK_PROB)));
+
+            bool do_kick = kick_prob * RAND_MAX * m->timestep < rand();
+
+            struct vector kick, kick_point, drag;
+            vector_rand(&kick, 0, M_PI);
+
+            vector_copy_to(&kick_point, &kick);
+            vmul_by(&kick_point, a->radius);
+            vadd_to(&kick_point, &a->position);
+
+            vector_copy_to(&drag, &a->velocity);
+
+            if(do_kick){
+                bool good = true;
+                struct is_kick_good_args args = {&good, &kick_point};
+                steric_grid_foreach_nearby(grid, a, is_kick_good, &args);
+                if(good){
+                    vmul_by(&kick, KICK_VELOCITY);
+                    vadd_to(&a->force, &kick);
+                }
+            }
+
+            if(vmag(&drag) > 0){
+                bool apply_drag = true;
+                steric_grid_foreach_nearby(grid, a, should_apply_drag, &apply_drag);
+                if(apply_drag){
+                    vmul_by(&drag, m->drag_coefficient);
+                    vadd_to(&a->force, &drag);
+                }
+            }
+        }
+    }
+}
+
+bool is_kick_good(struct atom *a, struct atom *b, void *data){
+    struct is_kick_good_args *args = (struct is_kick_good_args *) data;
+
+    struct vector displ;
+    vsub(&displ, args->kick_point, &b->position);
+    if(vmag(&displ) < b->radius + WATER_RADIUS){
+        (*args->is_good) = false;
+        return false;
+    }
+    return true;
+}
+
+bool should_apply_drag(struct atom *a, struct atom *b, void *data){
+    bool *apply = (bool*) data;
+
+    struct vector displ;
+    vsub(&displ, &b->position, &a->position);
+    double dist = vmag(&displ);
+
+    if(dist < DRAG_SHIELDING_DISTANCE){
+        double dot = vdot(&displ, &a->velocity);
+        if(dot / (dist * vmag(&a->velocity)) > COS_DRAG_BLOCK_ANGLE){
+            (*apply) = false;
+            return false;
+        }
+    }
+    return true;
 }
 
 int min(int a, int b){

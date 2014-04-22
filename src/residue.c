@@ -33,11 +33,13 @@ void atom_init(struct atom *a, int id, const char *name){
     vector_zero(&a->position);
     vector_zero(&a->velocity);
     vector_zero(&a->force);
+    a->hydrophobicity = 0.0;
 }
 
 void atom_set_AA(struct atom *a, const struct AA *aa){
     a->radius = aa->sc_steric_radius;
     a->mass   = aa->mass;
+    a->hydrophobicity = aa->hydrophobicity;
 }
 
 /**

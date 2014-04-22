@@ -23,6 +23,7 @@ struct AA {
     bool has_sidechain;
     double sc_bond_len;
     double sc_steric_radius;
+    double hydrophobicity;
 };
 
 struct atom {
@@ -33,6 +34,7 @@ struct atom {
     double radius;
     double mass;
     bool fixed;
+    double hydrophobicity;
 };
 
 struct residue {

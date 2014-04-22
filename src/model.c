@@ -100,20 +100,11 @@ void model_accumulate_forces(struct model *m){
         }
     }
 
-    //Steric forces
+    //Steric, water and drag forces
     if(m->steric_grid){
         steric_grid_update(m->steric_grid, m);
         steric_grid_forces(m->steric_grid, m);
-    }
-
-    //Drag force
-    #pragma omp parallel for shared(residues)
-    for(size_t i=0; i < m->num_residues; i++){
-        for(size_t j=0; j < residues[i].num_atoms; j++){
-            vector_copy_to(&tmp, &residues[i].atoms[j].velocity);
-            vmul_by(&tmp, m->drag_coefficient);
-            vadd_to(&residues[i].atoms[j].force, &tmp);
-        }
+        water_force(m, m->steric_grid);
     }
 }
 

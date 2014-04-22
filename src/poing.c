@@ -82,7 +82,7 @@ int main(int argc, char **argv){
 
     struct steric_grid *steric_grid = NULL;
     if(model->use_sterics){
-         steric_grid_alloc(
+         steric_grid = steric_grid_alloc(
                 (int)ceil(cbrt(model->num_residues)));
         model->steric_grid = steric_grid;
     }

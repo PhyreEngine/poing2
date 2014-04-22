@@ -28,8 +28,10 @@ void steric_force(struct atom *a, struct atom *b);
 
 void steric_grid_foreach_nearby(
         struct steric_grid *grid, struct atom *a,
-        void (*lambda)(struct atom *a, struct atom *b, void *data),
+        bool (*lambda)(struct atom *a, struct atom *b, void *data),
         void *data);
+
+void water_force(struct model *m, struct steric_grid *grid);
 
 #endif /* STERICS_H_ */
 

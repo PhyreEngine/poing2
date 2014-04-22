@@ -32,13 +32,13 @@ void check_model(struct model *m){
         BAIL_OUT("Didn't read any residues: can't complete tests");
 
     is(m->residues[0].name, "PRO", "Residue 0 is P");
-    is(m->residues[1].name, "ALA", "Residue 0 is A");
-    is(m->residues[2].name, "PRO", "Residue 0 is P");
-    is(m->residues[3].name, "LEU", "Residue 0 is L");
-    is(m->residues[4].name, "GLU", "Residue 0 is E");
-    is(m->residues[5].name, "GLN", "Residue 0 is Q");
-    is(m->residues[6].name, "MET", "Residue 0 is M");
-    is(m->residues[7].name, "ARG", "Residue 0 is R");
+    is(m->residues[1].name, "ALA", "Residue 1 is A");
+    is(m->residues[2].name, "PRO", "Residue 2 is P");
+    is(m->residues[3].name, "LEU", "Residue 3 is L");
+    is(m->residues[4].name, "GLU", "Residue 4 is E");
+    is(m->residues[5].name, "GLN", "Residue 5 is Q");
+    is(m->residues[6].name, "MET", "Residue 6 is M");
+    is(m->residues[7].name, "ARG", "Residue 7 is R");
 
     ok(m->linear_springs[15].a->id == m->residues[0].atoms[0].id, "Spring 1 attached to residue 1");
     ok(m->linear_springs[15].b->id == m->residues[1].atoms[0].id, "Spring 1 attached to residue 2");
