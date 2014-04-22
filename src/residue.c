@@ -4,16 +4,15 @@
 #include <math.h>
 #include "residue.h"
 
-struct residue *residue_alloc(const struct AA *aa, int id){
+struct residue *residue_alloc(int id){
     struct residue *r = malloc(sizeof(struct residue));
     if(!r)
         return NULL;
-    residue_init(r, aa, id);
+    residue_init(r, id);
     return r;
 }
 
-void residue_init(struct residue *r, const struct AA *aa, int id){
-    r->aa = aa;
+void residue_init(struct residue *r, int id){
     r->id = id;
     r->synthesised = false;
     r->num_atoms = 0;
@@ -34,6 +33,11 @@ void atom_init(struct atom *a, int id, const char *name){
     vector_zero(&a->position);
     vector_zero(&a->velocity);
     vector_zero(&a->force);
+}
+
+void atom_set_AA(struct atom *a, const struct AA *aa){
+    a->radius = aa->sc_steric_radius;
+    a->mass   = aa->mass;
 }
 
 /**
@@ -68,8 +72,9 @@ void residue_synth(
     if(!prev2 && ! prev){
         for(size_t i=1; i < r->num_atoms; i++){
             if(!r->atoms[i].synthesised){
+                double dist = r->atoms[0].radius + r->atoms[i].radius;
                 vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
-                vmul_by(&r->atoms[i].position, r->aa->sc_bond_len);
+                vmul_by(&r->atoms[i].position, dist);
                 vadd_to(&r->atoms[i].position, &r->atoms[0].position);
             }
         }
@@ -83,8 +88,10 @@ void residue_synth(
         //Place any sidechains at a random angle close to the X-Y plane
         for(size_t i=1; i < r->num_atoms; i++){
             if(!r->atoms[i].synthesised){
+                double dist = r->atoms[0].radius + r->atoms[i].radius;
+
                 vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
-                vmul_by(&r->atoms[i].position, r->aa->sc_bond_len);
+                vmul_by(&r->atoms[i].position, dist);
                 vadd_to(&r->atoms[i].position, &r->atoms[0].position);
             }
         }
@@ -114,8 +121,10 @@ void residue_synth(
         //in the X-Y plane
         for(size_t i=1; i < r->num_atoms; i++){
             if(!r->atoms[i].synthesised){
+                double dist = r->atoms[0].radius + r->atoms[i].radius;
+
                 vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
-                vmul_by(&r->atoms[i].position, r->aa->sc_bond_len);
+                vmul_by(&r->atoms[i].position, dist);
                 vrot_axis(&r->atoms[i].position, &rot_axis, &r->atoms[i].position, angle);
                 vadd_to(&r->atoms[i].position, &r->atoms[0].position);
             }

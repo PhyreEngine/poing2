@@ -14,6 +14,8 @@
 ///Radius of steric sphere for CA atoms
 #define CA_STERIC_RADIUS 1.0
 
+///Structure defining an amino acid type. The definitions of this are supplied
+//in AA.gperf.
 struct AA {
     const char *oneletter;
     const char *threeletter;
@@ -29,22 +31,26 @@ struct atom {
     char name[MAX_ATOM_NAME_SZ];
     struct vector position, velocity, force;
     double radius;
+    double mass;
     bool fixed;
 };
 
 struct residue {
-    const struct AA *aa;
     int id;
+    char name[MAX_ATOM_NAME_SZ];
     bool synthesised;
     size_t num_atoms;
     struct atom *atoms;
 };
 
-struct residue *residue_alloc(const struct AA *aa, int id);
-void residue_init(struct residue *r, const struct AA *aa, int id);
+struct residue *residue_alloc(int id);
+void residue_init(struct residue *r, int id);
 void residue_free(struct residue *r);
-extern struct AA * AA_lookup (register const char *str, register unsigned int len);
+extern struct AA * AA_lookup (
+        register const char *str,
+        register unsigned int len);
 void atom_init(struct atom *a, int id, const char *name);
+void atom_set_AA(struct atom *a, const struct AA *aa);
 
 void residue_synth(
         struct residue *r,

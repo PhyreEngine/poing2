@@ -17,7 +17,7 @@ int main(int argc, char **argv){
     m->num_residues = 4;
     m->residues = residues;
     for(size_t i=0; i < m->num_residues; i++){
-        residue_init(&m->residues[i], AA_lookup("G", 1), i+1);
+        residue_init(&m->residues[i], i+1);
         m->residues[i].synthesised = true;
 
         m->residues[i].atoms = malloc(sizeof(struct atom));

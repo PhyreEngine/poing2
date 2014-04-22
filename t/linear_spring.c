@@ -19,8 +19,8 @@ int main(){
 
     struct atom a_atoms[1];
     struct atom b_atoms[1];
-    a = residue_alloc(AA_lookup("G", 1), 1);
-    b = residue_alloc(AA_lookup("G", 1), 2);
+    a = residue_alloc(1);
+    b = residue_alloc(2);
     a->num_atoms = b->num_atoms = 1;
     a->atoms = a_atoms;
     b->atoms = b_atoms;

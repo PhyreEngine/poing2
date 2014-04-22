@@ -18,10 +18,10 @@ int main(int argc, char **argv){
     struct torsion_spring *s;
 
     struct atom a1[1], a2[1], a3[1], a4[1];
-    r1 = residue_alloc(AA_lookup("G", 1), 1);
-    r2 = residue_alloc(AA_lookup("G", 1), 2);
-    r3 = residue_alloc(AA_lookup("G", 1), 3);
-    r4 = residue_alloc(AA_lookup("G", 1), 4);
+    r1 = residue_alloc(1);
+    r2 = residue_alloc(2);
+    r3 = residue_alloc(3);
+    r4 = residue_alloc(4);
     r1->num_atoms = r2->num_atoms = r3->num_atoms = r4->num_atoms = 1;
     r1->atoms = a1;
     r2->atoms = a2;

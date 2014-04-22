@@ -293,7 +293,8 @@ void parse_sequence(const char *seq, struct model *m){
     for(i = 0; seq[i]; i++){
         struct residue *r = &res[i];
         struct AA *aa = AA_lookup(&seq[i], 1);
-        residue_init(r, aa, i+1);
+        residue_init(r, i+1);
+        strncpy(r->name, aa->threeletter, 3);
 
         size_t num_atoms = (aa->has_sidechain) ? 2 : 1;
         if(aa->has_sidechain)
@@ -305,26 +306,30 @@ void parse_sequence(const char *seq, struct model *m){
         r->atoms[0].radius = CA_STERIC_RADIUS;
         if(aa->has_sidechain){
             atom_init(&r->atoms[1], ++k, "CB");
-            r->atoms[1].radius = aa->sc_steric_radius;
+            atom_set_AA(&r->atoms[1], aa);
         }
     }
 
+    //Need a spring to attach each CA to each sidechain and to attach each CA
+    //to each previous CA.
     struct linear_spring *ls = malloc((num_sc + i) * sizeof(struct linear_spring));
     k = 0;
     for(i=0; seq[i]; i++){
         struct residue *r = &res[i];
+        struct AA *aa = AA_lookup(&seq[i], 1);
 
-        if(r->aa->has_sidechain){
+        if(r->num_atoms > 1){
+
             for(size_t j=1; j < r->num_atoms; j++){
                 linear_spring_init(
                         &ls[k++],
-                        r->aa->sc_bond_len, .01,
+                        aa->sc_bond_len, SC_BB_SPRING_CONSTANT,
                         &r->atoms[0], &r->atoms[j]);
             }
         }
         if(i > 0){
             linear_spring_init(&ls[k++],
-                    CA_CA_LEN, .01,
+                    CA_CA_LEN, BB_BB_SPRING_CONSTANT,
                     &res[i-1].atoms[0], &res[i].atoms[0]);
         }
     }

@@ -131,7 +131,7 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
             struct atom a = r.atoms[j];
             if(a.synthesised){
                 int res = fprintf(out, atom_fmt, a.id, a.name,
-                        r.aa->threeletter,
+                        r.name,
                         r.id,
                         " ",
                         a.position.c[0],
