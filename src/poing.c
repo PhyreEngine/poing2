@@ -73,7 +73,7 @@ int main(int argc, char **argv){
 #if defined(_GNU_SOURCE) && !defined(__FAST_MATH__)
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
-    //srand(time(NULL) * getpid());
+    srand(time(NULL) * getpid());
 
     char * spec = get_options(argc, argv);
     struct model *model = springreader_parse_file(spec);
