@@ -3,9 +3,12 @@
 #include "sterics.h"
 
 unsigned long long called = 0;
-static void apply_forces_nearby(struct steric_grid *grid, struct atom *a);
 static int min(int a, int b);
 static int max(int a, int b);
+
+//only needed because the generic callback passed to steric_grid_foreach_nearby
+//ought to take an extra parameter. This just calls steric_force.
+static void steric_force_lambda(struct atom *a, struct atom *b, void *na);
 
 struct steric_grid *steric_grid_alloc(size_t divisions){
     struct steric_grid *sg = malloc(sizeof(struct steric_grid));
@@ -117,13 +120,15 @@ void steric_grid_forces(struct steric_grid *grid, struct model *model){
             //Get the list of nearby atoms; that is, all atoms in this cell or
             //the surrounding cells
             struct atom *a = &model->residues[i].atoms[j]; //grid->atom_grid[i][j];
-            apply_forces_nearby(grid, a);
+            steric_grid_foreach_nearby(grid, a, steric_force_lambda, NULL);
         }
     }
 }
 
-//Ugh, triangle code.
-void apply_forces_nearby(struct steric_grid *grid, struct atom *a){
+void steric_grid_foreach_nearby(
+        struct steric_grid *grid, struct atom *a,
+        void (*lambda)(struct atom *a, struct atom *b, void *data),
+        void *data){
     int x, y, z;
     steric_grid_coords(grid, a, &x, &y, &z);
 
@@ -135,7 +140,6 @@ void apply_forces_nearby(struct steric_grid *grid, struct atom *a){
     int dz = ceil(MAX_STERIC_DISTANCE * grid->divisions
             / (grid->max.c[2] - grid->min.c[2]));
 
-    called=0;
     for(int i=max(0, x-dx); i <= min(grid->divisions-1, x+dx); i++){
         for(int j=max(0, y-dy); j <= min(grid->divisions-1, y+dy); j++){
             for(int k=max(0, z-dz); k <= min(grid->divisions-1, z+dz); k++){
@@ -145,12 +149,17 @@ void apply_forces_nearby(struct steric_grid *grid, struct atom *a){
                 struct atom **atoms = grid->atom_grid[index];
                 size_t num_atoms    = grid->num_atoms[index];
                 for(size_t l=0; l < num_atoms; l++){
-                    if(a != atoms[l])
-                        steric_force(a, atoms[l]);
+                    if(a != atoms[l]){
+                        (*lambda)(a, atoms[l], data);
+                    }
                 }
             }
         }
     }
+}
+
+static void steric_force_lambda(struct atom *a, struct atom *b, void *na){
+    steric_force(a, b);
 }
 
 void steric_force(struct atom *a, struct atom *b){

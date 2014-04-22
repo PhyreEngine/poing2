@@ -26,5 +26,10 @@ void steric_grid_coords(struct steric_grid *grid, struct atom *a,
         int *x, int *y, int *z);
 void steric_force(struct atom *a, struct atom *b);
 
+void steric_grid_foreach_nearby(
+        struct steric_grid *grid, struct atom *a,
+        void (*lambda)(struct atom *a, struct atom *b, void *data),
+        void *data);
+
 #endif /* STERICS_H_ */
 

@@ -14,8 +14,13 @@ void is_vector(struct vector *v1, struct vector *v2,
         fis(v1->c[i], v2->c[i], epsilon, "%s: element %d", text, i);
 }
 
+void increment(struct atom *a, struct atom *b, void *data){
+    int *inc = (int*)data;
+    (*inc)++;
+}
+
 int main(){
-    plan(7);
+    plan(8);
 
     const char *springs =  "sequence = AA\n";
     struct model *m = springreader_parse_str(springs);
@@ -39,6 +44,11 @@ int main(){
 
     steric_grid_forces(&grid, m);
     ok(m->residues[0].atoms[0].force.c[0] < 0, "CA1 pushed in -x");
+
+    int num_nearby = 0;
+    steric_grid_foreach_nearby(&grid, &m->residues[0].atoms[0],
+            increment, &num_nearby);
+    cmp_ok(num_nearby, "==", 3, "Three nearby atoms");
 
     done_testing();
 }
