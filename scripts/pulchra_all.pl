@@ -4,6 +4,7 @@ use warnings;
 use Pod::Usage;
 use Getopt::Long;
 use File::Temp;
+use FindBin qw($Bin);
 use autodie;
 
 =head1 NAME
@@ -37,9 +38,26 @@ while(<>){
     next if $? != 0;
     my @rebuilt = do {
         local $/ = "\n";
-        open my $in, q{<}, "$tmp.rebuilt.pdb";
-        my @rebuilt = grep {/^ATOM/} <$in>;
+
+        #Pad rebuilt out to 80 chars so mkdssp doesn't crash
+        open my $rebuilt_in, q{<}, "$tmp.rebuilt.pdb";
+        open my $padded_out, q{>}, "$tmp.padded.pdb";
+        while(my $ln = <$rebuilt_in>){
+            chomp $ln;
+            $ln .= " " x (80 - length $ln);
+            print {$padded_out} $ln, "\n";
+        }
+        close $padded_out;
+        close $rebuilt_in;
+
+        system "mkdssp $tmp.padded.pdb > $tmp.dssp";
+        system "$Bin/dssp2pdb $tmp.dssp $tmp.rebuilt.pdb > $tmp.new.pdb";
+
+        open my $in, q{<}, "$tmp.new.pdb";
+        my @rebuilt = grep {/^(ATOM|HELIX|SHEET)/} <$in>;
         close $in;
+        unlink "$tmp.dssp", "$tmp.padded.pdb",
+               "$tmp.rebuilt.pdb", "$tmp.new.pdb";
         @rebuilt;
     };
 
