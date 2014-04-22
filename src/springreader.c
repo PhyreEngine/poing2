@@ -294,7 +294,7 @@ void parse_sequence(const char *seq, struct model *m){
         struct residue *r = &res[i];
         struct AA *aa = AA_lookup(&seq[i], 1);
         residue_init(r, i+1);
-        strncpy(r->name, aa->threeletter, 3);
+        strncpy(r->name, aa->threeletter, 4);
 
         size_t num_atoms = (aa->has_sidechain) ? 2 : 1;
         if(aa->has_sidechain)
