@@ -37,11 +37,15 @@ struct model {
     double synth_time;
     ///Drag coefficient
     double drag_coefficient;
+    ///Whether to use the shielded drag force
+    bool shield_drag;
 
     ///Grid from which steric forces are calculated
     struct steric_grid *steric_grid;
     ///Enable / disable steric grid
     bool use_sterics;
+    ///Enable / disable water effect
+    bool use_water;
 
     ///Maximum synthesis angle for new residues
     double max_synth_angle;

@@ -6,9 +6,9 @@
 
 #define DEFAULT_SPRING_CONSTANT 0.01
 
-#define SC_BB_SPRING_CONSTANT 0.01
+#define SC_BB_SPRING_CONSTANT 0.1
 
-#define BB_BB_SPRING_CONSTANT 0.01
+#define BB_BB_SPRING_CONSTANT 0.05
 
 struct linear_spring {
     double distance;

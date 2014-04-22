@@ -26,8 +26,10 @@ struct model *model_alloc(){
     m->timestep = 0.1;
     m->synth_time = 100;
     m->drag_coefficient = -0.1;
+    m->shield_drag = false;
     m->steric_grid = NULL;
     m->use_sterics = false;
+    m->use_water = false;
     m->max_synth_angle = DEFAULT_MAX_SYNTH_ANGLE;
     m->fix = 0;
     return m;
@@ -100,11 +102,27 @@ void model_accumulate_forces(struct model *m){
         }
     }
 
+    //If we're not using the fancy drag force, apply the drag force now.
+    if(!m->shield_drag){
+        for(size_t i=0; i < m->num_residues; i++){
+            for(size_t j=0; j < residues[i].num_atoms; j++){
+                vector_copy_to(&tmp, &residues[i].atoms[j].velocity);
+                vmul_by(&tmp, m->drag_coefficient);
+                vadd_to(&residues[i].atoms[j].force, &tmp);
+            }
+        }
+    }
+
     //Steric, water and drag forces
     if(m->steric_grid){
         steric_grid_update(m->steric_grid, m);
-        steric_grid_forces(m->steric_grid, m);
-        water_force(m, m->steric_grid);
+
+        if(m->use_sterics)
+            steric_grid_forces(m->steric_grid, m);
+        if(m->use_water)
+            water_force(m, m->steric_grid);
+        if(m->shield_drag)
+            drag_force(m, m->steric_grid);
     }
 }
 
@@ -178,8 +196,10 @@ void model_synth(struct model *dst, const struct model *src){
         if(!dst->residues[i].synthesised){
             residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle);
             if(dst->fix && prev){
-                for(size_t j=0; j < prev->num_atoms; j++)
+                for(size_t j=0; j < prev->num_atoms; j++){
                     prev->atoms[j].fixed = true;
+                    vector_zero(&prev->atoms[j].velocity);
+                }
             }
         }
 

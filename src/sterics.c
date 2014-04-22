@@ -127,6 +127,8 @@ void steric_grid_forces(struct steric_grid *grid, struct model *model){
             //Get the list of nearby atoms; that is, all atoms in this cell or
             //the surrounding cells
             struct atom *a = &model->residues[i].atoms[j]; //grid->atom_grid[i][j];
+            if(a->fixed)
+                continue;
             steric_grid_foreach_nearby(grid, a, steric_force_lambda, NULL);
         }
     }
@@ -202,6 +204,9 @@ void water_force(struct model *m, struct steric_grid *grid){
     for(size_t i=0; i < m->num_residues; i++){
         for(size_t j=0; j < m->residues[i].num_atoms; j++){
             struct atom *a = &m->residues[i].atoms[j];
+            if(a->fixed)
+                continue;
+
             double sf_area = 4*M_PI*a->radius*a->radius;
 
             double kick_prob = sf_area * (POLAR_KICK_PROB + (a->hydrophobicity
@@ -209,14 +214,12 @@ void water_force(struct model *m, struct steric_grid *grid){
 
             bool do_kick = kick_prob * RAND_MAX * m->timestep < rand();
 
-            struct vector kick, kick_point, drag;
+            struct vector kick, kick_point;
             vector_rand(&kick, 0, M_PI);
 
             vector_copy_to(&kick_point, &kick);
             vmul_by(&kick_point, a->radius);
             vadd_to(&kick_point, &a->position);
-
-            vector_copy_to(&drag, &a->velocity);
 
             if(do_kick){
                 bool good = true;
@@ -227,6 +230,19 @@ void water_force(struct model *m, struct steric_grid *grid){
                     vadd_to(&a->force, &kick);
                 }
             }
+        }
+    }
+}
+
+void drag_force(struct model *m, struct steric_grid *grid){
+    for(size_t i=0; i < m->num_residues; i++){
+        for(size_t j=0; j < m->residues[i].num_atoms; j++){
+            struct atom *a = &m->residues[i].atoms[j];
+            if(a->fixed)
+                continue;
+
+            struct vector drag;
+            vector_copy_to(&drag, &a->velocity);
 
             if(vmag(&drag) > 0){
                 bool apply_drag = true;

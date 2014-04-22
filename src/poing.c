@@ -81,7 +81,7 @@ int main(int argc, char **argv){
         return 2;
 
     struct steric_grid *steric_grid = NULL;
-    if(model->use_sterics){
+    if(model->use_sterics || model->use_water || model->shield_drag){
          steric_grid = steric_grid_alloc(
                 (int)ceil(cbrt(model->num_residues)));
         model->steric_grid = steric_grid;

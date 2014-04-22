@@ -32,6 +32,7 @@ void steric_grid_foreach_nearby(
         void *data);
 
 void water_force(struct model *m, struct steric_grid *grid);
+void drag_force(struct model *m, struct steric_grid *grid);
 
 #endif /* STERICS_H_ */
 
