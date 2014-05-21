@@ -82,9 +82,17 @@ Only place springs between atoms less than I<D> A apart. (Default: 20)
 
 Disable torsion springs.
 
+=item B<--no-linear>
+
+Disable linear springs.
+
 =item B<--no-sterics>
 
 Disable steric effects.
+
+=item B<--no-water>
+
+Disable water battering.
 
 =item B<--no-preamble>
 
@@ -93,6 +101,10 @@ Disable writing the preamble.
 =item B<--fix>
 
 Fix residues after the next residue is synthesised.
+
+=item B<--drag> I<Cd>
+
+Set drag coefficient to I<Cd>. This should be I<negative>. (Default: -0.1)
 
 =back
 
@@ -111,6 +123,7 @@ my %options = (
     'torsion-sep'         => 1,
     'cutoff'              => 10,
     'max-dist'            => 20,
+    'drag'                => -0.1,
 );
 Getopt::Long::Configure(qw(bundling no_ignore_case));
 GetOptions(\%options,
@@ -118,6 +131,7 @@ GetOptions(\%options,
     'min-seq-sep|m=i',
     'max-seq-sep|M=i',
     'no-torsion',
+    'no-linear',
     'overconstrain=i',
     'overconstrain-angle=i',
     'between=s',
@@ -130,6 +144,7 @@ GetOptions(\%options,
     'cutoff|c=f',
     'max-dist=f',
     'no-sterics',
+    'no-water',
     'no-preamble',
     'fix',
 ) or pod2usage(2);
@@ -177,17 +192,21 @@ if(not defined $options{'no-preamble'}){
     print_query($options{query})                  if defined $options{query};
     print "timestep = $options{timestep}\n"       if defined $options{timestep};
     print "synth_time = $options{'synth-time'}\n" if defined $options{'synth-time'};
-    print "use_sterics = true\n"                 if !defined $options{'no-sterics'};
+    print "use_sterics = true\n"                  if !defined $options{'no-sterics'};
+    print "use_water = true\n"                    if !defined $options{'no-sterics'};
+    print "drag_coefficient = $options{'drag'}\n" if defined $options{'drag'};
     print "fix = true\n"                          if defined $options{'fix'};
 }
 
-print "[Linear]\n";
-for my $pair_id(keys %{$pairs}){
-    for my $spring(@{$pairs->{$pair_id}}){
-        if($spring->{dist} < $options{'max-dist'}){
-            printf "% 4d % 4d %8.6f %8.6f %8.6f\n",
-                $spring->{ra}{id}, $spring->{rb}{id},
-                $spring->{dist}, $options{const}, $options{cutoff};
+if(!$options{'no-linear'}){
+    print "[Linear]\n";
+    for my $pair_id(keys %{$pairs}){
+        for my $spring(@{$pairs->{$pair_id}}){
+            if($spring->{dist} < $options{'max-dist'}){
+                printf "% 4d % 4d %8.6f %8.6f %8.6f\n",
+                    $spring->{ra}{id}, $spring->{rb}{id},
+                    $spring->{dist}, $options{const}, $options{cutoff};
+            }
         }
     }
 }
