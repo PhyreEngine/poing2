@@ -17,7 +17,6 @@
 
 static struct option opts[] = { {"help",     no_argument,       0, 'h'},
     {"snapshot",   required_argument, 0, 's'},
-    {"until",      required_argument, 0, 'u'},
     {"no-connect", no_argument,       0, 'c'},
     {0, 0, 0, 0}
 };
@@ -31,11 +30,9 @@ const char *usage_str =
 "Available options:\n"
 "  -h, --help         Display this help message.\n"
 "  -s, --snapshot=N   Write a PDB snapshot every N steps.\n"
-"  -u, --until=T      Run until time T.\n"
 "      --no-connect   Do not print CONECT records for each spring.\n"
 ;
 int snapshot = -1;
-int until = 100;
 bool print_connect = true;
 
 void usage(const char *msg, int exitval){
@@ -55,9 +52,6 @@ char * get_options(int argc, char **argv){
                 usage(NULL, 1);
             case 's':
                 snapshot = atoi(optarg);
-                break;
-            case 'u':
-                until = atof(optarg);
                 break;
             case 'c':
                 print_connect = false;
@@ -90,7 +84,7 @@ int main(int argc, char **argv){
 
     struct model state;
     unsigned long i=0;
-    while(model->time < until){
+    while(model->time < model->until){
         model_synth(&state, model);
         rk4_push(&state);
         if(snapshot > 0 &&

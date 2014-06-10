@@ -13,21 +13,20 @@ enum section {
     PREAMBLE,
     LINEAR_SPRINGS,
     TORSION_SPRINGS,
-    POSITIONS,
+    PDB,
     UNKNOWN
 };
 
 static enum section parse_section_header(
         const char *line);
-static void parse_position_line(
-        const char *line, struct model *m);
 static void parse_preamble_line(
         const char *line, struct model *m);
 static void parse_linear_spring_line(
         const char *line, struct model *m);
 static void parse_torsion_spring_line(
         const char *line, struct model *m);
-void parse_sequence(const char *seq, struct model *m);
+static void parse_pdb_line(
+        const char *line, struct model *m);
 static void parse_line(
         const char *line, struct model *m, enum section *section);
 static void scan_double(
@@ -100,30 +99,77 @@ enum section parse_section_header(const char *line){
         return LINEAR_SPRINGS;
     else if(strcmp(section_name, "torsion") == 0)
         return TORSION_SPRINGS;
-    else if(strcmp(section_name, "position") == 0)
-        return POSITIONS;
+    else if(strcmp(section_name, "pdb") == 0)
+        return PDB;
     return UNKNOWN;
 }
 
-void parse_position_line(const char *line, struct model *m){
-    int i;
+void parse_pdb_line(const char *line, struct model *m){
+    size_t len = strlen(line);
+    char buf[10];
+    buf[0] = '\0';
+
+    if(len < 54)
+        return;
+    if(strncmp(line, "ATOM", 4) != 0)
+        return;
+
+    char atom_name[5];
+    char res_name[4];
+    size_t atom_id, res_id;
+    char chain_id;
     double x, y, z;
-    int n = sscanf(line, "%d %lf %lf %lf", &i, &x, &y, &z);
 
-    if(n != 4){
-        fprintf(stderr, "I didn't understand the line `%s'", line);
-        return;
-    }
-    if(i < 1 || (unsigned int) i > m->num_residues){
-        fprintf(stderr, "%i is not a valid residue\n", i);
-        return;
-    }
+    strncat(buf, line + 6, 5);
+    sscanf(buf, "%lu", &atom_id);
+    buf[0] = '\0';
 
-    i--;
-    m->residues[i].atoms[0].position.c[0] = x;
-    m->residues[i].atoms[0].position.c[1] = y;
-    m->residues[i].atoms[0].position.c[2] = z;
-    m->residues[i].atoms[0].synthesised = true;
+    strncat(buf, line + 12, 4);
+    sscanf(buf, " %s ", atom_name);
+    buf[0] = '\0';
+
+    strncat(buf, line + 17, 3);
+    sscanf(buf, " %s ", res_name);
+    buf[0] = '\0';
+
+    strncat(buf, line + 21, 1);
+    sscanf(buf, "%c", &chain_id);
+    buf[0] = '\0';
+
+    strncat(buf, line + 22, 4);
+    sscanf(buf, "%lu", &res_id);
+    buf[0] = '\0';
+
+    strncat(buf, line + 30, 8);
+    sscanf(buf, "%lf", &x);
+    buf[0] = '\0';
+
+    strncat(buf, line + 38, 8);
+    sscanf(buf, "%lf", &y);
+    buf[0] = '\0';
+
+    strncat(buf, line + 46, 8);
+    sscanf(buf, "%lf", &z);
+    buf[0] = '\0';
+
+    if(res_id > m->num_residues){
+        struct residue *r = model_push_residue(m, res_id);
+        if(!m->do_synthesis)
+            r->synthesised = true;
+        strcpy(r->name, res_name);
+    }
+    struct residue *res = &m->residues[m->num_residues-1];
+
+    struct atom *atom = residue_push_atom(res, atom_id, atom_name);
+    if(!m->do_synthesis)
+        atom->synthesised = true;
+    atom->position.c[0] = x;
+    atom->position.c[1] = y;
+    atom->position.c[2] = z;
+
+    const struct atom_description *desc = atom_description_lookup(
+            atom_name, strlen(atom_name));
+    atom_set_atom_description(atom, desc);
 }
 
 void parse_preamble_line(const char *line, struct model *m){
@@ -134,9 +180,7 @@ void parse_preamble_line(const char *line, struct model *m){
     //Do case-insensitive comparisons of key name
     for(char *p = param; *p; p++) *p = tolower(*p);
 
-    if(strcmp(param, "sequence") == 0){
-        parse_sequence(value, m);
-    }else if(strcmp(param, "timestep") == 0){
+    if(strcmp(param, "timestep") == 0){
         scan_double(line, value, &m->timestep);
     }else if(strcmp(param, "synth_time") == 0){
         scan_double(line, value, &m->synth_time);
@@ -152,6 +196,10 @@ void parse_preamble_line(const char *line, struct model *m){
         m->use_water = scan_bool(line, value);
     }else if(strcmp(param, "shield_drag") == 0){
         m->shield_drag = scan_bool(line, value);
+    }else if(strcmp(param, "do_synthesis") == 0){
+        m->do_synthesis = scan_bool(line, value);
+    }else if(strcmp(param, "until") == 0){
+        scan_double(line, value, &m->until);
     }else{
         fprintf(stderr, "I don't understand the parameter: %s\n", param);
     }
@@ -222,16 +270,18 @@ void parse_torsion_spring_line(const char *line, struct model *m){
 
 void parse_linear_spring_line(const char *line, struct model *m){
     int i, j;
+    char i_name[5], j_name[5];
     double distance, constant, cutoff;
-    int num_matched = sscanf(line, "%d %d %lf %lf %lf",
-            &i, &j,
+    int num_matched = sscanf(line, "%d %4s %d %4s %lf %lf %lf",
+            &i, i_name,
+            &j, j_name,
             &distance, &constant, &cutoff);
     switch(num_matched){
-        case 3:
-            constant = DEFAULT_SPRING_CONSTANT;
-        case 4:
-            cutoff = -1;
         case 5:
+            constant = DEFAULT_SPRING_CONSTANT;
+        case 6:
+            cutoff = -1;
+        case 7:
             break;
         default:
             fprintf(stderr, "Couldn't interpret linear spring: %s\n", line);
@@ -249,6 +299,18 @@ void parse_linear_spring_line(const char *line, struct model *m){
     i--;
     j--;
 
+    struct atom *atom_i, *atom_j;
+    for(int k=0; k < m->residues[i].num_atoms; k++){
+        if(strcmp(i_name, m->residues[i].atoms[k].name) == 0){
+            atom_i = &m->residues[i].atoms[k];
+        }
+    }
+    for(int k=0; k < m->residues[j].num_atoms; k++){
+        if(strcmp(j_name, m->residues[j].atoms[k].name) == 0){
+            atom_j = &m->residues[j].atoms[k];
+        }
+    }
+
     m->num_linear_springs++;
     m->linear_springs = realloc(
             m->linear_springs,
@@ -257,7 +319,7 @@ void parse_linear_spring_line(const char *line, struct model *m){
     linear_spring_init(
             &m->linear_springs[m->num_linear_springs-1],
             distance, constant,
-            &m->residues[i].atoms[0], &m->residues[j].atoms[0]);
+            atom_i, atom_j);
 }
 
 void parse_line(const char *line, struct model *m, enum section *section){
@@ -278,69 +340,12 @@ void parse_line(const char *line, struct model *m, enum section *section){
             case TORSION_SPRINGS:
                 parse_torsion_spring_line(line, m);
                 break;
-            case POSITIONS:
-                parse_position_line(line, m);
+            case PDB:
+                parse_pdb_line(line, m);
                 break;
             case UNKNOWN:
                 //Ignore lines in unknown section
                 break;
         }
     }
-}
-
-void parse_sequence(const char *seq, struct model *m){
-
-    struct residue *res = malloc(strlen(seq) * sizeof(struct residue));
-
-    //Count sidechains (need to do this because GLY doesn't have one)
-    size_t k = 0;
-    size_t num_sc = 0;
-    size_t i;
-    for(i = 0; seq[i]; i++){
-        struct residue *r = &res[i];
-        struct AA *aa = AA_lookup(&seq[i], 1);
-        residue_init(r, i+1);
-        strncpy(r->name, aa->threeletter, 4);
-
-        size_t num_atoms = (aa->has_sidechain) ? 2 : 1;
-        if(aa->has_sidechain)
-            num_sc++;
-
-        r->atoms = malloc(num_atoms * sizeof(struct atom));
-        r->num_atoms = num_atoms;
-        atom_init(&r->atoms[0], ++k, "CA");
-        r->atoms[0].radius = CA_STERIC_RADIUS;
-        if(aa->has_sidechain){
-            atom_init(&r->atoms[1], ++k, "CB");
-            atom_set_AA(&r->atoms[1], aa);
-        }
-    }
-
-    //Need a spring to attach each CA to each sidechain and to attach each CA
-    //to each previous CA.
-    struct linear_spring *ls = malloc((num_sc + i) * sizeof(struct linear_spring));
-    k = 0;
-    for(i=0; seq[i]; i++){
-        struct residue *r = &res[i];
-        struct AA *aa = AA_lookup(&seq[i], 1);
-
-        if(r->num_atoms > 1){
-
-            for(size_t j=1; j < r->num_atoms; j++){
-                linear_spring_init(
-                        &ls[k++],
-                        aa->sc_bond_len, SC_BB_SPRING_CONSTANT,
-                        &r->atoms[0], &r->atoms[j]);
-            }
-        }
-        if(i > 0){
-            linear_spring_init(&ls[k++],
-                    CA_CA_LEN, BB_BB_SPRING_CONSTANT,
-                    &res[i-1].atoms[0], &res[i].atoms[0]);
-        }
-    }
-    m->residues = res;
-    m->linear_springs = ls;
-    m->num_residues = i;
-    m->num_linear_springs = k;
 }

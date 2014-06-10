@@ -50,14 +50,13 @@ while(<>){
         close $padded_out;
         close $rebuilt_in;
 
-        system "mkdssp $tmp.padded.pdb > $tmp.dssp";
-        system "$Bin/dssp2pdb $tmp.dssp $tmp.rebuilt.pdb > $tmp.new.pdb";
+        #system "mkdssp $tmp.padded.pdb > $tmp.dssp";
+        #system "$Bin/dssp2pdb $tmp.dssp $tmp.rebuilt.pdb > $tmp.new.pdb";
 
-        open my $in, q{<}, "$tmp.new.pdb";
+        open my $in, q{<}, "$tmp.padded.pdb";
         my @rebuilt = grep {/^(ATOM|HELIX|SHEET)/} <$in>;
         close $in;
-        unlink "$tmp.dssp", "$tmp.padded.pdb",
-               "$tmp.rebuilt.pdb", "$tmp.new.pdb";
+        unlink "$tmp.padded.pdb", "$tmp.rebuilt.pdb";
         @rebuilt;
     };
 

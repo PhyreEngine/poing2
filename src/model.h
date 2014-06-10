@@ -31,6 +31,8 @@ struct model {
 
     ///Current time
     double time;
+    ///Run until this time
+    double until;
     ///Timestep
     double timestep;
     ///Time between residues being synthesised
@@ -52,6 +54,9 @@ struct model {
 
     ///Fix residues after allowing them to reach equilibrium
     bool fix;
+
+    ///If this is false, all atoms are just dumped in with the default position
+    bool do_synthesis;
 };
 
 struct model *model_alloc();
@@ -60,7 +65,7 @@ void model_free(struct model *m);
 void model_accumulate_forces(struct model *m);
 int model_pdb(FILE *out, const struct model *m, bool conect);
 void model_synth(struct model *state, const struct model *m);
-
+struct residue * model_push_residue(struct model *m, int id);
 
 #endif /* MODEL_H_ */
 

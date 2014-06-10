@@ -18,6 +18,7 @@ int main(int argc, char **argv){
     m->residues = residues;
     for(size_t i=0; i < m->num_residues; i++){
         residue_init(&m->residues[i], i+1);
+        strcpy(m->residues[i].name, "GLY");
         m->residues[i].synthesised = true;
 
         m->residues[i].atoms = malloc(sizeof(struct atom));
@@ -37,10 +38,10 @@ int main(int argc, char **argv){
     fclose(pdb_buf);
 
     const char *correct =
-    "ATOM      1   CA GLY     1      -1.000   0.000   0.000\n"
-    "ATOM      2   CA GLY     2       0.000   0.000   0.000\n"
-    "ATOM      3   CA GLY     3       0.000   0.000   1.000\n"
-    "ATOM      4   CA GLY     4       0.000   1.000   1.000\n";
+    "ATOM      1  CA  GLY     1      -1.000   0.000   0.000\n"
+    "ATOM      2  CA  GLY     2       0.000   0.000   0.000\n"
+    "ATOM      3  CA  GLY     3       0.000   0.000   1.000\n"
+    "ATOM      4  CA  GLY     4       0.000   1.000   1.000\n";
 
     is(pdb_str, correct, "PDB correct");
 

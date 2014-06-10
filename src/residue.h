@@ -26,6 +26,18 @@ struct AA {
     double hydrophobicity;
 };
 
+struct atom_description {
+    const char *name;
+    double mass;
+    double steric_radius;
+    double hydrophobicity;
+};
+
+struct AA_name {
+    const char *oneletter;
+    const char *threeletter;
+};
+
 struct atom {
     int id;
     bool synthesised;
@@ -48,11 +60,16 @@ struct residue {
 struct residue *residue_alloc(int id);
 void residue_init(struct residue *r, int id);
 void residue_free(struct residue *r);
+struct atom * residue_push_atom(struct residue *r, int id, const char *name);
 extern struct AA * AA_lookup (
         register const char *str,
         register unsigned int len);
+extern struct atom_description * atom_description_lookup (
+        register const char *str,
+        register unsigned int len);
 void atom_init(struct atom *a, int id, const char *name);
-void atom_set_AA(struct atom *a, const struct AA *aa);
+void atom_set_atom_description(struct atom *a,
+        const struct atom_description *aa);
 
 void residue_synth(
         struct residue *r,

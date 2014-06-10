@@ -6,8 +6,13 @@
 #include "tap.h"
 
 const char *pdb =
-"#Sequence:\n"
-"sequence = PAPLEQMR\n";
+"[PDB]\n"
+"ATOM      1  CA  GLY A   1       0.000   0.000   0.000\n"
+"ATOM      2  CA  GLY A   2       0.000   0.000   0.000\n"
+"ATOM      3  CA  GLY A   3       0.000   0.000   0.000\n"
+"ATOM      4  CA  GLY A   4       0.000   0.000   0.000\n"
+"ATOM      5  CA  GLY A   5       0.000   0.000   0.000\n"
+;
 
 int main(){
     plan(10);

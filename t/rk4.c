@@ -52,13 +52,17 @@ int main(int argc, char **argv){
     */
 
     const char *spec = 
-        "sequence = GGGG\n"
         "timestep = 0.01\n"
         "synth_time = 1\n"
+        "[PDB]\n"
+        "ATOM      1  CA  GLU A   1       0.000   0.000   0.000\n"
+        "ATOM      2  CA  GLU A   2       0.000   0.000   0.000\n"
+        "ATOM      3  CA  GLU A   3       0.000   0.000   0.000\n"
+        "ATOM      4  CA  GLU A   4       0.000   0.000   0.000\n"
         "[Linear]\n"
-        "1 2 1.0 1.0\n"
-        "2 3 1.0 1.0\n"
-        "3 4 1.0 1.0\n"
+        "1 CA 2 CA 1.0 1.0\n"
+        "2 CA 3 CA 1.0 1.0\n"
+        "3 CA 4 CA 1.0 1.0\n"
         "[Torsion]\n"
         "1 2 3 4 -45 0.01\n"
         ;

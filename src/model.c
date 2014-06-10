@@ -23,6 +23,7 @@ struct model *model_alloc(){
     m->linear_springs = NULL;
     m->torsion_springs = NULL;
     m->time = 0;
+    m->until = 0;
     m->timestep = 0.1;
     m->synth_time = 100;
     m->drag_coefficient = -0.1;
@@ -32,6 +33,7 @@ struct model *model_alloc(){
     m->use_water = false;
     m->max_synth_angle = DEFAULT_MAX_SYNTH_ANGLE;
     m->fix = 0;
+    m->do_synthesis = true;
     return m;
 }
 
@@ -127,7 +129,7 @@ void model_accumulate_forces(struct model *m){
 }
 
 
-const char *atom_fmt   = "ATOM  %5d %3s  %-3s  %4d%1s   %8.3f%8.3f%8.3f\n";
+const char *atom_fmt   = "ATOM  %5d  %-3s %-3s  %4d%1s   %8.3f%8.3f%8.3f\n";
 const char *conect_fmt = "CONECT% 5d% 5d\n";
 
 int model_pdb(FILE *out, const struct model *m, bool conect){
@@ -204,4 +206,19 @@ void model_synth(struct model *dst, const struct model *src){
         }
 
     }
+}
+
+/**
+ * Add a residue to the model.
+ *
+ * This reallocates the residues array and increases num_residues.
+ *
+ * \param id ID of the residue to add.
+ */
+struct residue * model_push_residue(struct model *m, int id){
+    m->residues = realloc(m->residues,
+            sizeof(struct residue) * (m->num_residues + 1));
+    residue_init(&m->residues[m->num_residues], id);
+    m->num_residues++;
+    return &m->residues[m->num_residues - 1];
 }

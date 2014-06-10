@@ -36,10 +36,26 @@ void atom_init(struct atom *a, int id, const char *name){
     a->hydrophobicity = 0.0;
 }
 
-void atom_set_AA(struct atom *a, const struct AA *aa){
-    a->radius = aa->sc_steric_radius;
+void atom_set_atom_description(struct atom *a,
+        const struct atom_description *aa){
+    a->radius = aa->steric_radius;
     a->mass   = aa->mass;
     a->hydrophobicity = aa->hydrophobicity;
+}
+
+/**
+ * Push an atom onto a residue.
+ *
+ * This reallocates the atoms array.
+ *
+ * \param id    Atom ID, passed to atom_init
+ * \param name  Atom name, passed to atom_name
+ */
+struct atom * residue_push_atom(struct residue *r, int id, const char *name){
+    r->atoms = realloc(r->atoms, sizeof(struct atom) * (r->num_atoms+1));
+    atom_init(&r->atoms[r->num_atoms], id, name);
+    r->num_atoms++;
+    return &r->atoms[r->num_atoms - 1];
 }
 
 /**
@@ -123,12 +139,12 @@ void residue_synth(
         //in the X-Y plane
         for(size_t i=1; i < r->num_atoms; i++){
             if(!r->atoms[i].synthesised){
-                double dist = r->atoms[0].radius + r->atoms[i].radius;
+                double dist = r->atoms[i-1].radius + r->atoms[i].radius;
 
-                vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
+                vector_rand(&r->atoms[i].position, 0, max_angle / 180 * M_PI);//M_PI/2-0.1, M_PI/2+0.1);
                 vmul_by(&r->atoms[i].position, dist);
-                vrot_axis(&r->atoms[i].position, &rot_axis, &r->atoms[i].position, angle);
-                vadd_to(&r->atoms[i].position, &r->atoms[0].position);
+                vrot_axis(&r->atoms[i].position, &rot_axis, &r->atoms[i].position, -angle);
+                vadd_to(&r->atoms[i].position, &r->atoms[i-1].position);
             }
         }
     }
