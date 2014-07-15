@@ -18,6 +18,7 @@
 static struct option opts[] = { {"help",     no_argument,       0, 'h'},
     {"snapshot",   required_argument, 0, 's'},
     {"no-connect", no_argument,       0, 'c'},
+    {"seed",       required_argument, 0, 'r'},
     {0, 0, 0, 0}
 };
 const char *opt_str = "hs:u:";
@@ -30,10 +31,13 @@ const char *usage_str =
 "Available options:\n"
 "  -h, --help         Display this help message.\n"
 "  -s, --snapshot=N   Write a PDB snapshot every N steps.\n"
+"  -r, --seed=S       Use fixed random seed S.\n"
 "      --no-connect   Do not print CONECT records for each spring.\n"
 ;
 int snapshot = -1;
 bool print_connect = true;
+bool fixed_seed = false;
+int random_seed = 0;
 
 void usage(const char *msg, int exitval){
     FILE *out = (exitval < 2) ? stdout : stderr;
@@ -56,6 +60,10 @@ char * get_options(int argc, char **argv){
             case 'c':
                 print_connect = false;
                 break;
+            case 'r':
+                fixed_seed = true;
+                random_seed = atoi(optarg);
+                break;
         }
     }
     if(optind >= argc)
@@ -67,7 +75,11 @@ int main(int argc, char **argv){
 #if defined(_GNU_SOURCE) && !defined(__FAST_MATH__)
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
-    srand(time(NULL) * getpid());
+    if(!fixed_seed){
+        srand(time(NULL) * getpid());
+    }else{
+        srand(random_seed);
+    }
 
     char * spec = get_options(argc, argv);
     struct model *model = springreader_parse_file(spec);
