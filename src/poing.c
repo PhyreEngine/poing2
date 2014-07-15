@@ -21,7 +21,7 @@ static struct option opts[] = { {"help",     no_argument,       0, 'h'},
     {"seed",       required_argument, 0, 'r'},
     {0, 0, 0, 0}
 };
-const char *opt_str = "hs:u:";
+const char *opt_str = "hs:u:s:";
 
 const char *usage_str =
 "Usage: poing [OPTIONS] <SPEC>\n"
