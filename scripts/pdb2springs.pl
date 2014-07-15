@@ -8,118 +8,22 @@ use constant PI => 4 * atan2(1, 1);
 
 =head1 NAME
 
+pdb2springs.pl - Convert a bunch of PDB files to springs
+
 =head1 USAGE
 
-pdb2springs.pl [PDB] [PDB2]
-
-Generate a list of springs from the specified PDB files. If no PDB file is
-specified, then standard input is read.
-
-=head1 OPTIONS AND ARGUMENTS
-
-=over
-
-=item B<-h>, B<--help>
-
-Display this help message.
-
-=item B<--all-bb>
-
-Include all backbone atoms instead of just a CA-sphere model.
-
-=item B<-m>, B<--min-seq-sep> I<N>
-
-Only place springs between residues at least I<N> residues apart. (Default: 3)
-
-=item B<-M>, B<--max-seq-seqp> I<N>
-
-Only place springs between residues at most I<N> residues apart. (Default: 20)
-
-=item B<--overconstrain> I<N>
-
-Place a maximum of I<N> springs between each residue pair. (Default: no limit)
-
-=item B<--overconstrain-angle> I<N>
-
-Place a maximum of I<N> torsion springs constraining each 4 residues. (Default:
-no limit).
-
-=item B<--between> I<ATOM>
-
-Place springs between atom I<ATOM> of each residues. (Default: CA).
-
-=item B<--query> I<FASTA>
-
-FASTA file with the query.
-
-=item B<--synth-time> I<ST>
-
-Take I<ST> time units between synthesising each residue. (Default: 10)
-
-=item B<-t>, B<--timestep> I<DT>
-
-Each timestep is I<DT> time units. (Default: 0.1)
-
-=item B<--const> I<K>
-
-Use a spring constant of I<K>. (Default: 0.01)
-
-=item B<--torsion-const> I<Kt>
-
-Use a torsion spring constant of I<Kt>. (Default: 0.01)
-
-=item B<--torsion-sep> I<t>
-
-Form torsion springs betwee residues I<i>, I<i+t>, I<i+2t>, I<I+3t>. (Default:
-1)
-
-=item B<--cutoff> I<D>
-
-Only allow springs to operate when they are less than I<D> Angstroms from their
-equilibrium position. (Default: 10)
-
-=item B<--max-dist> I<D>
-
-Only place springs between atoms less than I<D> A apart. (Default: 20)
-
-=item B<--no-torsion>
-
-Disable torsion springs.
-
-=item B<--no-linear>
-
-Disable linear springs.
-
-=item B<--no-sterics>
-
-Disable steric effects.
-
-=item B<--no-water>
-
-Disable water battering.
-
-=item B<--no-preamble>
-
-Disable writing the preamble.
-
-=item B<--fix>
-
-Fix residues after the next residue is synthesised.
-
-=item B<--drag> I<Cd>
-
-Set drag coefficient to I<Cd>. This should be I<negative>. (Default: -0.1)
-
-=back
+pdb2ssprings.pl B<FASTA> [B<PDB>] [B<PDB>...]
 
 =cut
 
-our $atom_rec = "ATOM  % 5d %s %s A% 4d    %8.3f%8.3f%8.3f\n";
+our $atom_rec = "ATOM  % 5d  %s %s A% 4d    %8.3f%8.3f%8.3f\n";
 my %one2three = (
 A=>'ALA', C=>'CYS', D=>'ASP', E=>'GLU', F=>'PHE', G=>'GLY', H=>'HIS', I=>'ILE',
 K=>'LYS', L=>'LEU', M=>'MET', N=>'ASN', P=>'PRO', Q=>'GLN', R=>'ARG', S=>'SER',
 T=>'THR', V=>'VAL', W=>'TRP', Y=>'TYR', Z=>'GLX', B=>'ASX',
 );
+my %three2one = ();
+@three2one{values %one2three} = keys %one2three;
 
 my %bond_lens = (
 ALA => 1.52370477561,
@@ -143,51 +47,179 @@ TRP => 3.86897045069,
 TYR => 3.40900993765,
 );
 
+my %bb_len = (
+    C  => {N => 1.3298236446806, O => 1.23203299355537},
+    N  => {CA => 1.45999906298163},
+    CA => {C => 1.53135743668343, CA => 3.8},
+);
+
+my %rama_phi_angles = (
+    E => -90,
+    H => -90,
+    C =>  45,
+);
+my %rama_psi_angles = (
+    E => 170,
+    H => -20,
+    C => 45,
+);
+
+my %rama_omega_angles = (
+    E => 180,
+    H => 180,
+    C => 180,
+);
 
 my %options = (
-    overconstrain         => undef,
-    'overconstrain-angle' => undef,
-    'min-seq-sep'         => 0,
-    'max-seq-sep'         => 20,
-    'between'             => 'CA',
-    'synth-time'          => 10,
-    'timestep'            => 0.1,
-    'const'               => 0.01,
-    'torsion-const'       => 0.01,
-    'torsion-sep'         => 1,
-    'cutoff'              => 10,
-    'max-dist'            => 20,
-    'drag'                => -0.1,
+    'min-seq-sep'   => 1,
+    'max-seq-sep'   => 100,
+    'bb-atom'       => 'CA',
+    'timestep'      => 0.1,
+    'synth-time'    => 10,
+    'drag'          => -0.1,
+    'post-time'     => 50,
+    'const'         => 0.01,
+    'cutoff'        => 10,
+    'torsion-const' => 0.001,
 );
 Getopt::Long::Configure(qw(bundling no_ignore_case));
 GetOptions(\%options,
     'help|h',
+    'min-seq-sep=i',
+    'max-seq-sep=i',
+    'bb-atom=s',
     'all-bb',
-    'min-seq-sep|m=i',
-    'max-seq-sep|M=i',
-    'no-torsion',
-    'no-linear',
-    'overconstrain=i',
-    'overconstrain-angle=i',
-    'between=s',
-    'query|q=s',
-    'synth-time=f',
     'timestep|t=f',
-    'const|k=f',
-    'torsion-const=f',
-    'torsion-sep=i',
-    'cutoff|c=f',
-    'max-dist=f',
+    'synth-time|T=f',
     'no-sterics',
     'no-water',
-    'no-preamble',
-    'add-bb',
+    'drag=f',
+    'until|u=f',
+    'timestep|d=f',
     'fix',
+    'post-time=f',
+    'no-sidechains',
+    'const=f',
+    'cutoff=f',
+    'torsion-const=f',
+    'no-preamble',
+    'no-query',
+    'no-linear',
+    'no-torsion',
+    'max-dist=f',
+    'no-add-bb',
+    'no-sc',
+    'ss=s',
 ) or pod2usage(2);
 pod2usage(-verbose => 2, -noperldoc => 1, -exitval => 1) if $options{help};
 
-my @pdb_names = ();
-my %pdbs = ();
+my $backbone = ($options{'all-bb'})
+    ? {CA => 1, C => 1, O => 1, N => 1}
+    : {CA => 1};
+
+my $backbone_linkage_prev = ($options{'all-bb'})
+    ? {C => ['N' ]}
+    : {$options{'bb-atom'} => [$options{'bb-atom'}]};
+
+my $backbone_linkage_cur  = ($options{'all-bb'})
+    ? {N => ['CA'], CA => ['C'], C => ['O']}
+    : {};
+
+my @phi = (
+   {increment => -1, atom => 'C'},
+   {increment =>  0, atom => 'N'},
+   {increment =>  0, atom => 'CA'},
+   {increment =>  0, atom => 'C'},
+);
+
+my @psi = (
+   {increment => -1, atom => 'N'},
+   {increment => -1, atom => 'CA'},
+   {increment => -1, atom => 'C'},
+   {increment =>  0, atom => 'N'},
+);
+
+my @omega = (
+   {increment => -1, atom => 'CA'},
+   {increment => -1, atom => 'C'},
+   {increment =>  0, atom => 'N'},
+   {increment =>  0, atom => 'CA'},
+);
+
+my @ca_ca_torsion = (
+    {increment => -3, atom => 'CA'},
+    {increment => -2, atom => 'CA'},
+    {increment => -1, atom => 'CA'},
+    {increment =>  0, atom => 'CA'},
+);
+my @ca_cb_torsion = (
+    {increment => -1, atom => 'CA'},
+    {increment => -1, atom => 'CB'},
+    {increment =>  0, atom => 'CA'},
+    {increment =>  0, atom => 'CB'},
+);
+
+my $fasta = shift || pod2usage('No fasta file supplied.');
+my $query = load_query($fasta);
+my $ss    = load_ss($options{ss}) if $options{ss};
+my @pdbs  = @ARGV;
+my %pdb_atoms = map {$_ => get_atoms($_)} @pdbs;
+my $pairs = build_pairs(\%pdb_atoms);
+
+#Set final time to a reasonable value if supplied
+$options{until} ||= @{$query} * $options{'synth-time'} + $options{'post-time'};
+
+$pairs = filter_by_backbone($pairs, $backbone);
+
+
+$pairs = filter_by_seq_sep($pairs,
+    $options{'min-seq-sep'}, $options{'max-seq-sep'});
+
+$pairs = filter_by_dist($pairs, $options{'max-dist'}) if $options{'max-dist'};
+
+$pairs = add_sidechains($pairs, $query) unless $options{'all-bb'} || $options{'no-sc'};
+
+$pairs = add_bb_springs($pairs, scalar(@{$query}),
+    $backbone_linkage_prev, $backbone_linkage_cur) unless $options{'no-add-bb'};
+
+
+#Begin printing output
+print_preamble(\%options)                   unless $options{'no-preamble'};
+print_query($query, $backbone, \%options)   unless $options{'no-query'};
+print_linear_springs($pairs, \%options)     unless $options{'no-linear'};
+
+if(!$options{'no-torsion'}){
+    if($options{'all-bb'}){
+        my $phi = build_dihedral_sets(\%pdb_atoms, scalar(@{$query}), \@phi);
+        my $psi = build_dihedral_sets(\%pdb_atoms, scalar(@{$query}), \@psi);
+        my $omega = build_dihedral_sets(\%pdb_atoms, scalar(@{$query}), \@omega);
+
+        if($options{'ss'}){
+            $phi = add_missing_dihedrals(
+                $phi, scalar(@{$query}), \@phi, $ss, \%rama_phi_angles);
+            $psi = add_missing_dihedrals(
+                $psi, scalar(@{$query}), \@psi, $ss, \%rama_psi_angles);
+            $omega = add_missing_dihedrals(
+                $omega, scalar(@{$query}), \@omega, $ss, \%rama_omega_angles);
+        }
+
+        my $fourmers = [@{$phi}, @{$psi}, @{$omega}];
+        print_torsion_springs($fourmers, \%options);
+    }else{
+        my $torsion = build_dihedral_sets(\%pdb_atoms, scalar(@{$query}), \@ca_ca_torsion);
+
+        #Build angles for sidechains. Do that by working with CB atoms and then
+        #rename them appropriately.
+        my $sc = build_dihedral_sets(\%pdb_atoms, scalar(@{$query}), \@ca_cb_torsion);
+        for my $fourmer(@{$sc}){
+            my $cb1 = $fourmer->{fourmer}[1];
+            my $cb3 = $fourmer->{fourmer}[3];
+            $cb1->{atom} = $one2three{$query->[$cb1->{res} - 1]};
+            $cb3->{atom} = $one2three{$query->[$cb3->{res} - 1]};
+        }
+        print_torsion_springs([@{$torsion}, @{$sc}], \%options);
+    }
+}
 
 =begin comment
 
@@ -211,287 +243,225 @@ my %pdbs = ();
 
 =cut
 
-my %residues = ();
-while(<>){
-    parse_atom(\%residues, $_) if /^ATOM/;
-    if(eof(ARGV)){
-        push @pdb_names, $ARGV;
-        $pdbs{$ARGV} = {%residues};
-        %residues = ();
-    }
-}
+#Print the preamble
+sub print_preamble {
+    my ($options) = @_;
 
-my $pairs = build_pairs(\@pdb_names, \%pdbs);
-my $torsion = build_torsion_springs(\@pdb_names, \%pdbs);
+    my %opt_map = (
+        timestep         => 'timestep',
+        synth_time       => 'synth-time',
+        use_sterics      => '!no-sterics',
+        use_water        => '!no-sterics',
+        drag_coefficient => 'drag',
+        fix              => 'fix',
+        until            => 'until',
+    );
 
-if(not defined $options{'no-preamble'}){
-    print "timestep = $options{timestep}\n"       if defined $options{timestep};
-    print "synth_time = $options{'synth-time'}\n" if defined $options{'synth-time'};
-    print "use_sterics = true\n"                  if !defined $options{'no-sterics'};
-    print "use_water = true\n"                    if !defined $options{'no-sterics'};
-    print "drag_coefficient = $options{'drag'}\n" if defined $options{'drag'};
-    print "fix = true\n"                          if defined $options{'fix'};
-    if(defined $options{'synth-time'} and defined $options{'query'}){
-        printf "until = %d\n",
-            (query_len($options{query}) + 5) * $options{'synth-time'};
-    }
-}
+    my %boolean = map {$_ => 1} qw(no-sterics fix);
+    while(my ($param, $opt_param) = each %opt_map){
+        my ($op) = $opt_param =~ /^!?(.*)$/;
 
-if(!$options{'no-pdb'} && $options{'query'}){
-    if(!$options{'all-bb'}){
-        print_pdb_ca_only($options{'query'});
-    }else{
-        print_pdb_all_bb($options{'query'});
-    }
-}
+        my $bool = exists $options->{$op};
+        #Invert if necessary
+        $bool = !$bool if $opt_param =~ /^!/;
 
-if(!$options{'no-linear'}){
-    print "[Linear]\n";
-    for my $pair_id(keys %{$pairs}){
-        for my $spring(@{$pairs->{$pair_id}}){
-            if($spring->{dist} < $options{'max-dist'}){
-                printf "% 4d % 4s % 4d % 4s %8.6f %8.6f %8.6f\n",
-                    $spring->{ra}{id}, $spring->{aa}{name},
-                    $spring->{rb}{id}, $spring->{ab}{name},
-                    $spring->{dist}, $options{const}, $options{cutoff};
-            }
+        #The value is the value in $options if it is not boolean. Otherwise it
+        #must be "true" or "false".
+        my $val;
+        if($boolean{$op}){
+            $val = $bool ? 'true' : 'false';
+        }else{
+            $val = $options{$op};
         }
-    }
-    #Print sidechain springs if possible
-    if(!$options{'all-bb'} && $options{query}){
-        open my $q_in, q{<}, $options{query};
-        my $i = 1;
-        while(<$q_in>){
-            next if /^>/;
-            chomp;
-            for my $aa(split //){
-                #Print backbone springs
-                if($options{'add-bb'} && $i > 1){
-                    printf "% 4d % 4s % 4d % 4s %8.6f %8.6f\n",
-                        $i-1, 'CA', $i, 'CA', 3.8, 0.1;
-                }
-                next if $aa eq 'G';
-                printf "% 4d % 4s % 4d % 4s %8.6f %8.6f\n",
-                    $i, 'CA', $i, $one2three{$aa},
-                    $bond_lens{$one2three{$aa}}, 0.1;
-
-            }continue{$i++}
-        }
-        close $q_in;
-    }
-
-}
-
-if(!$options{'no-torsion'}){
-    print "[Torsion]\n";
-    for my $id(sort {$a <=> $b} keys %{$torsion}){
-        for my $spring(@{$torsion->{$id}}){
-            printf "% 4d % 4d % 4d % 4d %8.5f %8.6f\n",
-                $spring->{r1}{id},
-                $spring->{r2}{id},
-                $spring->{r3}{id},
-                $spring->{r4}{id},
-                $spring->{angle},
-                $options{'torsion-const'};
-        }
+        print "$param = $val\n" if $bool;
     }
 }
 
-sub print_pdb_ca_only {
-    my ($query_file) = @_;
-    print "[PDB]\n";
-    open my $q_in, q{<}, $query_file;
+#Add sidechain atom to each residue
+sub add_sidechains {
+    my ($pairs, $seq) = @_;
 
-    my $res = 0;
-    while(<$q_in>){
-        next if /^>/;
-        chomp;
+    my @sc = ();
+    my $i = 1;
+    for my $aa(@{$seq}){
+        next if $aa eq 'G';
+        push @sc, {
+            i => $i,
+            j => $i,
+            atom_i => 'CA',
+            atom_j => $one2three{$aa},
+            dist => $bond_lens{$one2three{$aa}},
+        };
+    }continue{ $i++ }
 
-        for my $q(split //){
-            printf $atom_rec,
-                $res * 2 + 1, q{ CA }, $one2three{$q},
-                $res + 1, 0, 0, 0;
-            printf $atom_rec,
-                $res * 2 + 2,
-                qq{$one2three{$q} }, $one2three{$q},
-                $res + 1, 0, 0, 0;
-        }continue{$res++}
-    }
-    close $q_in;
+    push @{$pairs}, @sc;
+    return $pairs;
 }
 
-sub print_pdb_all_bb {
-    my ($query_file) = @_;
-    print "[PDB]\n";
-    open my $q_in, q{<}, $query_file;
-
-    my @bb_atoms = (q{ N  }, q{ CA }, q{ C  }, q{ O  });
-    my $res = 0;
-    while(<$q_in>){
-        next if /^>/;
-        chomp;
-
-        for my $q(split //){
-            my $i = 1;
-            for my $bb_atom(@bb_atoms){
-                printf $atom_rec,
-                    $res * 4 + $i, $bb_atom, $one2three{$q},
-                    $res + 1, 0, 0, 0;
-            }continue{ $i++ }
-        }continue{$res++}
-    }
-    close $q_in;
-}
-
+#Print query in PDB-ish format
 sub print_query {
-    my ($filename) = @_;
+    #$query:    arrayref of single character AAs
+    #$backbone: hashref with the keys as atom times
+    my ($query, $backbone, $options) = @_;
 
-    print 'Sequence = ';
-    open my $in, q{<}, $filename;
-    while(<$in>){
-        chomp;
-        print unless /^>/;
-    }
-    close $in;
-    print "\n";
+    my $atoms_per_res = keys %{$backbone};
+    $atoms_per_res++ unless $options{'all-bb'} || $options{'no-sidechains'};
+
+    print "[PDB]\n";
+    my $res = 0;
+    for my $aa(@{$query}){
+        my $i = 1;
+        for my $atom(keys %{$backbone}){
+            printf $atom_rec,
+                $res * $atoms_per_res + $i,
+                sprintf('%-3s', $atom),
+                $one2three{$aa},
+                $res + 1,
+                0, 0, 0;
+        }continue{ $i++ }
+
+        #Print sidechain
+        if($aa ne 'G' && (!$options{'all-bb'} && !$options{'no-sidechains'})){
+            printf $atom_rec,
+                $res * $atoms_per_res + $i,
+                sprintf('%-3s', $one2three{$aa}),
+                $one2three{$aa},
+                $res + 1,
+                0, 0, 0;
+        }
+    }continue{ $res++ }
 }
 
-sub build_pairs {
-    my ($pdb_names, $pdbs) = @_;
-    my @backbone = qw(N CA C O);
+#Print linear springs
+sub print_linear_springs {
+    #pairs:   Arrayref of pairs
+    #options: Hashref of options
+    my ($pairs, $options) = @_;
+    print "[Linear]\n";
+    for my $pair(@{$pairs}){
+        printf "% 4d % 4s % 4d % 4s %8.6f %8.6f %8.6f\n",
+            $pair->{i}, $pair->{atom_i},
+            $pair->{j}, $pair->{atom_j},
+            $pair->{dist}, $options->{const}, $options->{cutoff};
+    }
+}
 
-    my %pairs = ();
-    for my $pdb_name(@{$pdb_names}){
-        my $pdb = $pdbs->{$pdb_name};
-
-        for my $i(sort {$a<=>$b} keys %{$pdb}){
-            for my $j(sort {$a<=>$b} keys %{$pdb}){
-                last if $j > $i;
-                last if $i == $j && !$options{'all-bb'};
-                #Only add pairs within the given bounds
-                next if $i - $j > $options{'max-seq-sep'};
-                next if $i - $j < $options{'min-seq-sep'};
-
-                my $pair_id = "$i-$j";
-                $pairs{$pair_id} ||= [];
-
-                #Don't add another pair if we already have the required number
-                #of constraints
-                next if $options{overconstrain} &&
-                        @{$pairs{$pair_id}} >= $options{overconstrain};
-
-                if($options{'all-bb'}){
-                    for my $k(0 .. $#backbone){
-                        my $atom1 = $pdb->{$i}{atoms}{$backbone[$k]};
-                        next unless $atom1;
-
-                        for my $l(0 .. $#backbone){
-                            next if $l >= $k && $i == $j;
-
-                            my $atom2 = $pdb->{$j}{atoms}{$backbone[$l]};
-                            next unless $atom2;
-
-                            push @{$pairs{$pair_id}}, {
-                                ra => $pdb->{$i},
-                                rb => $pdb->{$j},
-                                aa => $atom1,
-                                ab => $atom2,
-                                dist => dist($atom1, $atom2),
-                            };
-                        }
-                    }
-                }else{
-                    my $atom1 = $pdb->{$i}{atoms}{$options{between}}
-                        || $pairs{$pair_id}->{atoms}{'CA'};
-
-                    my $atom2 = $pdb->{$j}{atoms}{$options{between}}
-                        || $pairs{$pair_id}->{atoms}{'CA'};
+#Print torsion springs
+sub print_torsion_springs {
+    my ($fourmers, $options) = @_;
+    print "[Torsion]\n";
+    for my $fourmer(@{$fourmers}){
+        printf "% 4d % 4s % 4d % 4s % 4d % 4s % 4d % 4s %8.5f %8.6f\n",
+            $fourmer->{fourmer}[0]{res}, $fourmer->{fourmer}[0]{atom},
+            $fourmer->{fourmer}[1]{res}, $fourmer->{fourmer}[1]{atom},
+            $fourmer->{fourmer}[2]{res}, $fourmer->{fourmer}[2]{atom},
+            $fourmer->{fourmer}[3]{res}, $fourmer->{fourmer}[3]{atom},
+            $fourmer->{angle},
+            $options{'torsion-const'};
+    }
+}
 
 
-                    push @{$pairs{$pair_id}}, {
-                        ra => $pdb->{$i},
-                        rb => $pdb->{$j},
-                        aa => $atom1,
-                        ab => $atom2,
-                        dist => dist($atom1, $atom2),
-                    };
-                }
+#Add missing dihedral angles from Ramachandran space using the (possibly
+#estimated) estimated secondary structure of each residue. This should be
+#called immediately after build_dihedral_sets with the same link argument,
+#because it will not check to see which atoms are actually in the fourmer.
+#
+#The first argument must be a list of fourmers.
+#
+#The second argument is the query length.
+#
+#The third argument should describe all atoms between which to add atoms,
+#similarly to build_dihedral_sets.
+#
+#The fourth argument is an arrayref of secondary structure states.
+#
+#The fifth argument is a hashref of SS state mapping to dihedral angles, e.g.
+#from a Ramachandran plot.
+
+sub add_missing_dihedrals {
+    my ($fourmers, $query_length, $link, $ss, $rama_angles) = @_;
+    my %unconnected = ();
+
+    #Map ss to residue numbers
+    my %ss = ();
+    @ss{1 .. $query_length} = @{$ss};
+
+    #Find out where we need to start. That is, if we need to look back 3 spaces
+    #we should start at residue 3.
+
+    for my $i(2 .. $query_length){
+        $unconnected{$i} = 1;
+    }
+    for my $fourmer(@{$fourmers}){
+        my ($ca) = grep {$_->{atom} eq 'CA'} @{$fourmer->{fourmer}};
+        delete $unconnected{$ca->{res}};
+    }
+
+    for my $res(keys %unconnected){
+        my %dihedral = (angle => $rama_angles->{$ss{$res}});
+        my @fourmer = map {
+            {res => $res + $_->{increment}, atom => $_->{atom}}
+        } @{$link};
+        $dihedral{fourmer} = \@fourmer;
+        push @{$fourmers}, \%dihedral;
+    }
+    return $fourmers;
+}
+
+#Scan through the atoms and get dihedral angles for each.
+#
+#The first argument should be a hashref of pdbs and arrayrefs of atoms, as
+#returned by get_atoms.
+#
+#The second argument is the query length.
+#
+#The third argument describes which atoms should be linked. This must be an
+#arrayref of hashrefs describing an increment to be added to the current
+#residue number and the atom name. For example (phi):
+#
+# [
+#   {increment => -1, atom => 'C'},
+#   {increment =>  0, atom => 'N'},
+#   {increment =>  0, atom => 'CA'},
+#   {increment =>  0, atom => 'C'},
+# ]
+#
+#The return value is an arrayref of hashrefs, each containing the keys "angle"
+#and "fourmer". The "fourmer" key is an arrayref of the atoms in the fourmer.
+
+sub build_dihedral_sets {
+    my ($pdb_atoms, $query_length, $links) = @_;
+
+    my @fourmers = ();
+    while(my ($pdb, $atoms) = each %{$pdb_atoms}){
+        #Generate list of atoms
+        my %all_atoms = ();
+        for my $atom(@{$atoms}){
+            $all_atoms{$atom->{res}} ||= {};
+            $all_atoms{$atom->{res}}->{$atom->{atom}} = $atom;
+        }
+
+        #Go over all the atoms and build the 4mers
+        RESIDUE: for my $i(1 .. $query_length){
+            my @in_fourmer = ();
+            for my $desc(@{$links}){
+                my $inc = $desc->{increment};
+                my $atom = $all_atoms{$i + $inc}->{$desc->{atom}};
+                next RESIDUE if !$atom;
+                push @in_fourmer, $atom;
             }
+            my $angle = dihedral_angle(map {$_->{coords}} @in_fourmer);
+            push @fourmers, {fourmer => \@in_fourmer, angle => $angle};
         }
     }
-    return \%pairs;
+    return \@fourmers;
 }
 
-sub build_torsion_springs {
-    my ($pdb_names, $pdbs) = @_;
+#Get dihedral angle of four atoms
+sub dihedral_angle {
+    my ($a1, $a2, $a3, $a4) = @_;
 
-    my $sep = $options{'torsion-sep'};
-    my %springs = ();
-    for my $pdb_name(@{$pdb_names}){
-        my $pdb = $pdbs->{$pdb_name};
-
-        for(my $i=1; $i<keys(%{$pdb}) - 2; $i++){
-            next if !$pdb->{$i}        || !$pdb->{$i+1*$sep}
-                 || !$pdb->{$i+2*$sep} || !$pdb->{$i+3*$sep};
-
-            $springs{$i} ||= [];
-            next if $options{'overconstrain-angle'} &&
-                    @{$springs{$i}} >= $options{'overconstrain-angle'};
-
-            my $spring = torsion_spring(
-                $pdb->{$i},        $pdb->{$i+1*$sep},
-                $pdb->{$i+2*$sep}, $pdb->{$i+3*$sep},
-            );
-            push @{$springs{$i}}, $spring;
-        }
-    }
-    return \%springs;
-}
-
-sub dist {
-    my ($a1, $a2) = @_;
-    return sqrt(
-        ($a1->{x} - $a2->{x})**2
-        + ($a1->{y} - $a2->{y})**2
-        + ($a1->{z} - $a2->{z})**2
-    );
-}
-
-sub parse_atom {
-    my ($residues, $line) = @_;
-
-    my %atom = (
-        id           => substr($line, 6, 5),
-        name         => substr($line, 12, 4),
-        conformation => substr($line, 16, 1),
-        x            => substr($line, 30, 8),
-        y            => substr($line, 38, 8),
-        z            => substr($line, 46, 8),
-    );
-    s/ //g for values %atom;
-
-    my %residue = (
-        name     => substr($line, 17, 3),
-        chain_id => substr($line, 21, 1),
-        id       => substr($line, 22, 4),
-        icode    => substr($line, 26, 1),
-    );
-    s/ //g for values %residue;
-
-    $residues->{$residue{id}} ||= {
-        %residue,
-        atoms => {},
-    };
-    $residues->{$residue{id}}->{atoms}{$atom{name}} = \%atom;
-
-}
-
-sub torsion_spring {
-    my ($r1, $r2, $r3, $r4) = @_;
-    my $a1 = $r1->{atoms}{$options{between}};
-    my $a2 = $r2->{atoms}{$options{between}};
-    my $a3 = $r3->{atoms}{$options{between}};
-    my $a4 = $r4->{atoms}{$options{between}};
     my $b1 = displacement($a2, $a1);
     my $b2 = displacement($a3, $a2);
     my $b3 = displacement($a4, $a3);
@@ -505,36 +475,30 @@ sub torsion_spring {
     my $x = dot($cross_b1_b2, $cross_b2_b3);
 
     my $angle = atan2($y, $x) * 180 / PI;
-    return {
-        r1    => $r1,
-        r2    => $r2,
-        r3    => $r3,
-        r4    => $r4,
-        angle => $angle
-    };
+    return $angle;
 }
 
 sub displacement {
     my ($a1, $a2) = @_;
-    return {
-        x => $a1->{x} - $a2->{x},
-        y => $a1->{y} - $a2->{y},
-        z => $a1->{z} - $a2->{z},
-    };
+    return [
+        $a1->[0] - $a2->[0],
+        $a1->[1] - $a2->[1],
+        $a1->[2] - $a2->[2],
+    ];
 }
 
 sub cross {
     my ($a1, $a2) = @_;
-    return {
-        x => $a1->{y}*$a2->{z} - $a1->{z}*$a2->{y},
-        y => $a1->{z}*$a2->{x} - $a1->{x}*$a2->{z},
-        z => $a1->{x}*$a2->{y} - $a1->{y}*$a2->{x},
-    };
+    return [
+        $a1->[1]*$a2->[2] - $a1->[2]*$a2->[1],
+        $a1->[2]*$a2->[0] - $a1->[0]*$a2->[2],
+        $a1->[0]*$a2->[1] - $a1->[1]*$a2->[0],
+    ];
 }
 
 sub dot {
     my ($a1, $a2) = @_;
-    return $a1->{x}*$a2->{x} + $a1->{y}*$a2->{y} + $a1->{z}*$a2->{z};
+    return $a1->[0]*$a2->[0] + $a1->[1]*$a2->[1] + $a1->[2]*$a2->[2];
 }
 
 sub mag {
@@ -544,22 +508,228 @@ sub mag {
 
 sub div {
     my ($a, $s) = @_;
-    return {
-        x => $a->{x} / $s,
-        y => $a->{y} / $s,
-        z => $a->{z} / $s,
-    };
+    return [
+        $a->[0] / $s,
+        $a->[1] / $s,
+        $a->[2] / $s,
+    ];
 }
 
-sub query_len {
-    my ($query) = @_;
-    my $len = 0;
-    open my $in, q{<}, $query;
+
+#Add springs between adjacent backbone atoms if they are not actually
+#connected.
+#
+#The first argument is the arrayref of pairs.
+#
+#The second argument is the query length.
+#
+#The third argument describes which atoms from i-1th residue will be linked to
+#the ith residue; for example, {CA => ['CA']}.
+#
+#The fourth argument describes which atoms from the ith residue will be linked
+#to the ith residue; for example, {N => ['CA'], CA => ['C'], C => ['O']}
+
+sub add_bb_springs {
+    my ($pairs, $query_len, $prev_con, $curr_con) = @_;
+
+    #Begin by assuming all are unconnected
+    my %unconnected = ();
+    for my $i(1 .. $query_len){
+        #Intra-residue
+        for my $start_atom(keys %{$curr_con}){
+            for my $end_atom(@{$curr_con->{$start_atom}}){
+                $unconnected{"$i-$start_atom:$i-$end_atom"} = 1;
+            }
+        }
+
+        #To previous residue
+        next if $i == 1;
+        for my $start_atom(keys %{$prev_con}){
+            my $prev_res = $i-1;
+            for my $end_atom(@{$prev_con->{$start_atom}}){
+                $unconnected{"$prev_res-$start_atom:$i-$end_atom"} = 1;
+            }
+        }
+    }
+
+    for my $pair(@{$pairs}){
+        my $ai = $pair->{atom_i};
+        my $aj = $pair->{atom_j};
+        delete $unconnected{"$pair->{i}-$ai:$pair->{j}-$aj"};
+    }
+
+    for my $con(keys %unconnected){
+        my ($i, $atom_i, $j, $atom_j) = $con =~ /^(\d+)-(\w+):(\d+)-(\w+)$/;
+        my $len = $bb_len{$atom_i}->{$atom_j};
+        push @{$pairs}, {
+            i => $i,
+            j => $j,
+            atom_i => $atom_i,
+            atom_j => $atom_j,
+            dist   => $len,
+        };
+    }
+    return $pairs;
+}
+
+#Filter by sequence separation
+sub filter_by_seq_sep {
+    my ($pairs, $min, $max) = @_;
+    my @new_pairs = ();
+    for my $pair(@{$pairs}){
+        next if abs($pair->{i} - $pair->{j}) < $min;
+        next if abs($pair->{i} - $pair->{j}) > $max;
+        push @new_pairs, $pair;
+    }
+    return \@new_pairs;
+}
+
+#Filter by maximum distance
+sub filter_by_dist {
+    #$pairs: Arrayref of pairs
+    #$bb:    Hashref of atoms
+    my ($pairs, $max) = @_;
+    return [grep {$_->{dist} <= $max} @{$pairs}];
+}
+
+#Filter the list of pairs by the backbone atoms required.
+sub filter_by_backbone {
+    #$pairs: Arrayref of pairs
+    #$bb:    Hashref of atoms
+    my ($pairs, $bb) = @_;
+    my @new_pairs = ();
+    for my $pair(@{$pairs}){
+        next if !$bb->{$pair->{atom_i}} || !$bb->{$pair->{atom_j}};
+        push @new_pairs, $pair;
+    }
+    return \@new_pairs;
+}
+
+#Read a query sequence from a FASTA file. This function returns an arrayref of
+#letters.
+sub load_query {
+    my ($fasta) = @_;
+
+    my @seq = ();
+    open my $in, q{<}, $fasta;
     while(<$in>){
         next if /^>/;
         chomp;
-        $len += length;
+        push @seq, split //;
     }
     close $in;
-    return $len;
+    return \@seq;
 }
+
+#Load a psipred ss2-style secondary structure file and return an arrayref of
+#single-letter codes representing the secondary structure at each residue. It
+#is assumed that all residues appear in the file and that all residues appear
+#in order.
+sub load_ss {
+    my ($ss) = @_;
+    my @secondary_structure = ();
+    open my $in, q{<}, $ss;
+    while(my $ln = <$in>){
+        chomp $ln;
+        next if $ln =~ /^#/;
+        next if $ln =~ /^\s*$/;
+        my $state = substr $ln, 7, 1;
+        push @secondary_structure, $state;
+    }
+    close $in;
+    return \@secondary_structure;
+}
+
+
+#Get all pairs from all PDB files. The argument should be a hashref of
+#{$pdb_name => $atoms_arrayref}.
+#
+#The return value looks like:
+#
+# [
+#   {
+#       i => 1,         j => 2,
+#       atom_i => 'CA', atom_j => 'CA',
+#       dist => 3.0,    pdb => 'foo.pdb'
+#   },
+#   ...
+# ]
+sub build_pairs {
+    my ($pdb_atoms) = @_;
+
+    my @pairs = ();
+
+    while(my ($pdb, $atoms) = each %{$pdb_atoms}){
+        for my $a_i(@{$atoms}){
+            for my $a_j(@{$atoms}){
+                next if $a_j == $a_i;
+                push @pairs, {
+                    i      => $a_i->{res},
+                    j      => $a_j->{res},
+                    atom_i => $a_i->{atom},
+                    atom_j => $a_j->{atom},
+                    dist   => dist($a_i->{coords}, $a_j->{coords}),
+                    pdb    => $pdb,
+                };
+            }
+        }
+    }
+    return \@pairs;
+}
+
+#Get atoms from PDB file
+sub get_atoms {
+    my ($pdb) = @_;
+    my @atoms = ();
+
+    open my $in, q{<}, $pdb;
+    while(my $ln = <$in>){
+        next unless $ln =~ /^ATOM/;
+        my $atom = substr $ln, 12, 4;
+        my $res  = substr $ln, 22, 4;
+        my $x    = substr $ln, 30, 8;
+        my $y    = substr $ln, 38, 8;
+        my $z    = substr $ln, 46, 8;
+        $atom =~ s/ //g;
+        push @atoms, {res => int($res), atom => $atom, coords => [$x, $y, $z]};
+    }
+    close $in;
+    return \@atoms;
+}
+
+#Get the list of pairs from a PDB. This includes all pairs; filtering should be
+#applied later;
+
+#Get distance between two coords
+sub dist {
+    my ($a, $b) = @_;
+    return sqrt(
+        ($a->[0] - $b->[0]) ** 2 +
+        ($a->[1] - $b->[1]) ** 2 +
+        ($a->[2] - $b->[2]) ** 2
+    );
+}
+
+sub print_rama_plot {
+    my ($pdb_atoms, $query) = @_;
+    my $psi = build_dihedral_sets($pdb_atoms, scalar(@{$query}), \@psi);
+    my $phi = build_dihedral_sets($pdb_atoms, scalar(@{$query}), \@phi);
+
+    my %phi_psi_map = ();
+    for my $fourmer(@{$psi}){
+        my ($ca) = grep {$_->{atom} eq 'CA'} @{$fourmer->{fourmer}};
+        $phi_psi_map{$ca->{res}} ||= {};
+        $phi_psi_map{$ca->{res}}->{psi} = $fourmer->{angle};
+    }
+    for my $fourmer(@{$phi}){
+        my ($ca) = grep {$_->{atom} eq 'CA'} @{$fourmer->{fourmer}};
+        $phi_psi_map{$ca->{res}} ||= {};
+        $phi_psi_map{$ca->{res}}->{phi} = $fourmer->{angle};
+    }
+    print "phi\tpsi\n";
+    for(values %phi_psi_map){
+        next unless $_->{phi} && $_->{psi};
+        print "$_->{phi}\t$_->{psi}\n";
+    }
+}
+
