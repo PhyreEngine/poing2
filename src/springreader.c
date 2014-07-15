@@ -225,15 +225,19 @@ bool scan_bool(const char *line, const char *value){
 }
 
 void parse_torsion_spring_line(const char *line, struct model *m){
+    //Residue numbers
     int r1, r2, r3, r4;
+    //Atom names
+    char na1[4], na2[4], na3[4], na4[4];
     double angle, constant, cutoff;
-    int num_matched = sscanf(line, "%d %d %d %d %lf %lf %lf",
-            &r1, &r2, &r3, &r4,
+
+    int num_matched = sscanf(line, "%d %s %d %s %d %s %d %s %lf %lf %lf",
+            &r1, na1, &r2, na2, &r3, na3, &r4, na4,
             &angle, &constant, &cutoff);
     switch(num_matched){
-        case 6:
+        case 10:
             cutoff = -1;
-        case 7:
+        case 11:
             break;
         default:
             fprintf(stderr, "Couldn't interpret torsion spring: %s\n", line);
@@ -260,11 +264,37 @@ void parse_torsion_spring_line(const char *line, struct model *m){
             m->torsion_springs,
             m->num_torsion_springs
             * sizeof(*m->torsion_springs));
+    struct atom *a1, *a2, *a3, *a4;
+    a1 = a2 = a3 = a4 = NULL;
 
-    torsion_spring_init(&m->torsion_springs[m->num_torsion_springs-1],
-            &m->residues[r1].atoms[0], &m->residues[r2].atoms[0],
-            &m->residues[r3].atoms[0], &m->residues[r4].atoms[0],
-            angle, constant);
+    for(size_t i=0; i < m->residues[r1].num_atoms; i++)
+        if(strcmp(m->residues[r1].atoms[i].name, na1) == 0)
+            a1 = &m->residues[r1].atoms[i];
+
+    for(size_t i=0; i < m->residues[r2].num_atoms; i++)
+        if(strcmp(m->residues[r2].atoms[i].name, na2) == 0)
+            a2 = &m->residues[r2].atoms[i];
+
+    for(size_t i=0; i < m->residues[r3].num_atoms; i++)
+        if(strcmp(m->residues[r3].atoms[i].name, na3) == 0)
+            a3 = &m->residues[r3].atoms[i];
+
+    for(size_t i=0; i < m->residues[r4].num_atoms; i++)
+        if(strcmp(m->residues[r4].atoms[i].name, na4) == 0)
+            a4 = &m->residues[r4].atoms[i];
+
+    if(a1 == NULL || a2 == NULL || a3 == NULL || a4 == NULL){
+        fprintf(stderr,
+                "Error reading line. "
+                "I'm continuing, but this is probably very bad. "
+                "Fix your springs file. Offending line:\n"
+                "%s",
+                line);
+    }else{
+        torsion_spring_init(&m->torsion_springs[m->num_torsion_springs-1],
+                a1, a2, a3, a4,
+                angle, constant);
+    }
 
 }
 
@@ -320,6 +350,7 @@ void parse_linear_spring_line(const char *line, struct model *m){
             &m->linear_springs[m->num_linear_springs-1],
             distance, constant,
             atom_i, atom_j);
+    m->linear_springs[m->num_linear_springs-1].cutoff = cutoff;
 }
 
 void parse_line(const char *line, struct model *m, enum section *section){
