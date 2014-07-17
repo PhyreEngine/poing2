@@ -71,16 +71,18 @@ my %rama_omega_angles = (
 );
 
 my %options = (
-    'min-seq-sep'   => 1,
-    'max-seq-sep'   => 100,
-    'bb-atom'       => 'CA',
-    'timestep'      => 0.1,
-    'synth-time'    => 10,
-    'drag'          => -0.1,
-    'post-time'     => 50,
-    'const'         => 0.01,
-    'cutoff'        => 10,
-    'torsion-const' => 0.001,
+    'min-seq-sep'     => 2,
+    'max-seq-sep'     => 100,
+    'bb-atom'         => 'CA',
+    'timestep'        => 0.1,
+    'synth-time'      => 10,
+    'drag'            => -0.1,
+    'post-time'       => 5,
+    'const'           => 0.01,
+    'cutoff'          => 10,
+    'torsion-const'   => 0.001,
+    'sidechain-const' => 0.1,
+    'bb-const'        => 0.1,
 );
 Getopt::Long::Configure(qw(bundling no_ignore_case));
 GetOptions(\%options,
@@ -167,7 +169,7 @@ my %pdb_atoms = map {$_ => get_atoms($_)} @pdbs;
 my $pairs = build_pairs(\%pdb_atoms);
 
 #Set final time to a reasonable value if supplied
-$options{until} ||= @{$query} * $options{'synth-time'} + $options{'post-time'};
+$options{until} ||= (@{$query} + $options{'post-time'})*$options{'synth-time'};
 
 $pairs = filter_by_backbone($pairs, $backbone);
 
@@ -291,6 +293,7 @@ sub add_sidechains {
             atom_i => 'CA',
             atom_j => $one2three{$aa},
             dist => $bond_lens{$one2three{$aa}},
+            const => $options{'sidechain-const'},
         };
     }continue{ $i++ }
 
@@ -342,7 +345,9 @@ sub print_linear_springs {
         printf "% 4d % 4s % 4d % 4s %8.6f %8.6f %8.6f\n",
             $pair->{i}, $pair->{atom_i},
             $pair->{j}, $pair->{atom_j},
-            $pair->{dist}, $options->{const}, $options->{cutoff};
+            $pair->{dist},
+            ($pair->{const} // $options->{const}),
+            $options->{cutoff};
     }
 }
 
@@ -567,6 +572,7 @@ sub add_bb_springs {
             atom_i => $atom_i,
             atom_j => $atom_j,
             dist   => $len,
+            const  => $options{'bb-const'},
         };
     }
     return $pairs;
@@ -662,7 +668,7 @@ sub build_pairs {
     while(my ($pdb, $atoms) = each %{$pdb_atoms}){
         for my $a_i(@{$atoms}){
             for my $a_j(@{$atoms}){
-                next if $a_j == $a_i;
+                next if $a_j >= $a_i;
                 push @pairs, {
                     i      => $a_i->{res},
                     j      => $a_j->{res},
