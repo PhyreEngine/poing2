@@ -118,9 +118,97 @@ int main(int argc, char **argv){
     struct model state;
     unsigned long i=0;
     while(model->time < model->until){
+
         /* Do synth steps */
         model_synth(&state, model);
         rk4_push(&state);
+
+        /* If we're doing a three-state synthesis then fix/unfix residues
+         * and enable/disable torsion springs. */
+        if(model->threestate && state.num_residues > 0){
+            int num_syn  = state.time / state.synth_time;
+            double dt    = state.timestep;
+            double since = state.time - (num_syn * state.synth_time);
+            struct residue *res  = &state.residues[state.num_residues - 1];
+            struct residue *prev = NULL;
+            if(state.num_residues > 1)
+                prev = &state.residues[state.num_residues - 2];
+
+            /* Fix all atoms for the first 2/3 synth_time. For the first
+             * synth_time / 3 use linear springs and not torsion springs.
+             * Then, for the next synth_time / 3 use torsional springs
+             * only. Then enable them all and unfix atoms.
+             *
+             * This should get the correct distances but not necessarily
+             * the correct handedness. Then we fix the handedness with the
+             * linear springs turned off so that the torsion spring does
+             * not have to overcome the linear springs. All atoms except
+             * the curent one are fixed so that effects don't carry on to
+             * the rest of the atoms.*/
+
+            double off_lin = 1 * state.synth_time / 3;
+            double unfix   = 2 * state.synth_time / 3;
+
+            /* Fix all residues. */
+            if(since - dt <= dt){
+                fprintf(stderr, "Fixing previous residues and disabling torsion springs\n");
+
+                for(size_t j=0; j < state.num_residues - 1; j++)
+                    for(size_t k=0; k < state.residues[j].num_atoms; k++){
+                        state.residues[j].atoms[k].fixed = true;
+                        vector_zero(&state.residues[j].atoms[k].velocity);
+                    }
+
+                for(size_t j=0; j < state.num_torsion_springs; j++)
+                    state.torsion_springs[j].enabled = false;
+
+            }else if(since - dt < off_lin && since >= off_lin){
+                fprintf(stderr, "Enabling torsion springs, disabling linear springs\n");
+
+                for(size_t j=0; j < state.num_torsion_springs; j++)
+                    state.torsion_springs[j].enabled = true;
+
+                for(size_t j=0; j < state.num_linear_springs; j++)
+                    state.linear_springs[j].enabled = false;
+
+                if(prev){
+                    for(size_t j = 0; j < state.num_linear_springs; j++){
+                        //Check if the spring links this residue with the
+                        //previous residue.
+                        struct linear_spring *spr = &state.linear_springs[j];
+                        bool use = false;
+                        for(size_t k=0; k < res->num_atoms; k++){
+                            for(size_t l=0; l < prev->num_atoms; l++){
+                                struct atom *a1 = &res->atoms[k];
+                                struct atom *a2 = &prev->atoms[l];
+                                if(spr->a->id == a1->id && spr->b->id == a2->id){
+                                    use = true;
+                                    break;
+                                }
+                            }
+                            if(use)
+                                break;
+                        }
+                        if(use)
+                            spr->enabled = true;
+                    }
+                }
+
+            }else if(since - dt < unfix && since >= unfix){
+                fprintf(stderr, "Unfixing atoms, enabling linear springs\n");
+
+                for(size_t j=0; j < state.num_residues; j++)
+                    for(size_t k=0; k < state.residues[j].num_atoms; k++)
+                        state.residues[j].atoms[k].fixed = false;
+
+                for(size_t j=0; j < state.num_linear_springs; j++)
+                    state.linear_springs[j].enabled = true;
+
+            }
+        }
+
+
+
         /* Print snapshot at the correct times. */
         if(snapshot > 0 &&
                 (int)(state.time / snapshot) > (int)(model->time / snapshot)){

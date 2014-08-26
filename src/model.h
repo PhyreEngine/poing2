@@ -55,6 +55,19 @@ struct model {
     ///Fix residues after allowing them to reach equilibrium
     bool fix;
 
+    /** Fix all atoms for the first 2/3 synth_time. For the first
+     * synth_time / 3 use linear springs and not torsion springs.
+     * Then, for the next synth_time / 3 use torsional springs
+     * only. Then enable them all and unfix atoms.
+     *
+     * This should get the correct distances but not necessarily
+     * the correct handedness. Then we fix the handedness with the
+     * linear springs turned off so that the torsion spring does
+     * not have to overcome the linear springs. All atoms except
+     * the curent one are fixed so that effects don't carry on to
+     * the rest of the atoms.*/
+    bool threestate;
+
     ///If this is false, all atoms are just dumped in with the default position
     bool do_synthesis;
 };

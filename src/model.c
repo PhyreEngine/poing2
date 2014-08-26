@@ -32,7 +32,8 @@ struct model *model_alloc(){
     m->use_sterics = false;
     m->use_water = false;
     m->max_synth_angle = DEFAULT_MAX_SYNTH_ANGLE;
-    m->fix = 0;
+    m->fix = false;
+    m->threestate = false;
     m->do_synthesis = true;
     return m;
 }

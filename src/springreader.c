@@ -192,6 +192,8 @@ void parse_preamble_line(const char *line, struct model *m){
         m->use_sterics = scan_bool(line, value);
     }else if(strcmp(param, "fix") == 0){
         m->fix = scan_bool(line, value);
+    }else if(strcmp(param, "threestate") == 0){
+        m->threestate = scan_bool(line, value);
     }else if(strcmp(param, "use_water") == 0){
         m->use_water = scan_bool(line, value);
     }else if(strcmp(param, "shield_drag") == 0){
