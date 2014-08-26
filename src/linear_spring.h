@@ -1,6 +1,7 @@
 #ifndef LINEAR_SPRING_H_
 #define LINEAR_SPRING_H_
 
+#include <stdbool.h>
 #include "residue.h"
 #include "vector.h"
 
@@ -14,6 +15,7 @@ struct linear_spring {
     double distance;
     double constant;
     double cutoff;
+    bool enabled;
     struct atom *a, *b;
 };
 

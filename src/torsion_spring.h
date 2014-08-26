@@ -11,6 +11,7 @@ struct torsion_spring {
     double angle;
     double constant;
     double cutoff;
+    bool enabled;
 };
 
 struct torsion_spring * torsion_spring_alloc(

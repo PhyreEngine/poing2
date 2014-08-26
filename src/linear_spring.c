@@ -19,6 +19,7 @@ void linear_spring_init(struct linear_spring *s,
     s->constant = constant;
     s->a = a;
     s->b = b;
+    s->enabled = true;
     s->cutoff = -1;
 }
 
@@ -31,6 +32,8 @@ bool linear_spring_active(struct linear_spring *s){
     vsub(&displacement, &s->b->position, &s->a->position);
     double distance = vmag(&displacement);
 
+    if(!s->enabled)
+        return false;
     if(s->cutoff < 0 || fabs(distance - s->distance) < s->cutoff)
         return true;
     return false;

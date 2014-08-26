@@ -22,6 +22,7 @@ void torsion_spring_init(struct torsion_spring *s,
     s->a2 = a2;
     s->a3 = a3;
     s->a4 = a4;
+    s->enabled = true;
     s->angle = angle;
     s->constant = constant;
     s->cutoff = -1;
@@ -83,7 +84,7 @@ void torsion_spring_force(struct vector *dst, struct torsion_spring *s,
         enum torsion_unit on){
 
     double angle = torsion_spring_angle(s);
-    if(s->cutoff > 0 && fabs(angle - s->angle) > s->cutoff){
+    if(!s->enabled || (s->cutoff > 0 && fabs(angle - s->angle) > s->cutoff)){
         vector_zero(dst);
         return;
     }
