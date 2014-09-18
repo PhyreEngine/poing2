@@ -5,6 +5,11 @@ use utf8;
 use Carp;
 use Bio::Protein::Poing2::Data;
 
+use Bio::Protein::Poing2::Class;
+use if $^V gt v5.10.1, parent => 'Bio::Protein::Poing2::Class';
+use if $^V le v5.10.1, base   => 'Bio::Protein::Poing2::Class';
+
+
 #Allow overloading to string
 use overload q{""} => 'threeletter';
 
@@ -25,28 +30,17 @@ Bio::Protein::Poing2::Residue - Class representing a residue
 
 =over
 
-=item C<new($type)> Instantiate a new class of type C<$type>.
+=item C<new(type => $type)> Instantiate a new class of type C<$type>.
 
 =cut
 
-sub new {
-    my ($class, $type) = @_;
+has type => (is => 'ro', required => 1);
 
-    croak "No residue type supplied" unless $type;
-    my $aa = undef;
-    if(length $type == 1){
-        $aa = $Bio::Protein::Poing2::Data::one2three{$type};
-    }elsif(length $type == 3){
-        $aa = $type;
-    }else{
-        croak "Unknown amino acid code '$type': Must be one or three letters.";
-    }
+=item C<atoms()>: Returns an arrayref of L<Bio::Protein::Poing2::Atom> objects.
 
-    return bless {
-        type  => $aa,
-        atoms => [],
-    }, $class;
-}
+=cut
+
+has atoms => (is => 'ro', default => sub{[]});
 
 =item C<oneletter()>: Returns the one-letter code for this residue.
 
@@ -54,7 +48,9 @@ sub new {
 
 sub oneletter {
     my ($self) = @_;
-    return $Bio::Protein::Poing2::Data::three2one{$self->threeletter};
+    my $aa = $self->type;
+    $aa = $Bio::Protein::Poing2::Data::three2one{$aa} if length $aa == 3;
+    return $aa;
 }
 
 =item C<threeletter()>: Returns the three-letter code for this residue.
@@ -63,16 +59,9 @@ sub oneletter {
 
 sub threeletter {
     my ($self) = @_;
-    return $self->{type};
-}
-
-=item C<atoms()>: Returns an arrayref of L<Bio::Protein::Poing2::Atom> objects.
-
-=cut
-
-sub atoms {
-    my ($self) = @_;
-    return $self->{atoms};
+    my $aa = $self->type;
+    $aa = $Bio::Protein::Poing2::Data::one2three{$aa} if length $aa == 1;
+    return $aa;
 }
 
 =back

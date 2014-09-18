@@ -12,7 +12,7 @@ Bio::Protein::Poing2::IO::Fasta - Read FASTA files
 =head1 SYNOPSIS
 
     use Bio::Protein::Poing2::IO::Fasta;
-    my @residues = @{ Bio::Protein::Poing2::IO::Fasta::read('query.fasta') };
+    my @residues = @{Bio::Protein::Poing2::IO::Fasta::read_fasta('query.fasta')};
 
 =head1 DESCRIPTION
 
@@ -23,31 +23,37 @@ returning a list of residues;
 
 =over
 
-=item C<read($file)>: Read sequence from file C<$file>. C<$file> may either be
-a filehandle or a file name.
+=item C<read_fasta($file)>: Read sequence from file C<$file>. C<$file> may
+either be a filehandle or a file name.
 
 =cut
 
-sub read {
+sub read_fasta {
     my ($file) = @_;
     my $fh = undef;
     if(ref $file eq 'GLOB'){
         $fh = $file;
     }else{
+        #We're not going to forget to destroy this
+        ##no critic (InputOutput::RequireBriefOpen)
         open $fh, q{<}, $file;
+        ##use critic
     }
 
-    my @residues = ();
+    my $res_num = 1;
+    my %residues = ();
     while(my $ln = <$fh>){
         next if $ln =~ /^>/;
         chomp $ln;
-        push @residues, map {Bio::Protein::Poing2::Residue->new($_)}
-                        split //, $ln;
+        for(split //, $ln){
+            $residues{$res_num++} =
+                Bio::Protein::Poing2::Residue->new(type => $_)
+        }
     }
 
     #Close filehandle if we opened it
     close $fh if ref $file ne 'GLOB';
-    return \@residues;
+    return \%residues;
 }
 
 =back

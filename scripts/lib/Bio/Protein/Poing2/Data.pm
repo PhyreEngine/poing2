@@ -5,7 +5,7 @@ use utf8;
 
 #Allow import of symbols
 require Exporter;
-our @ISA = qw(Exporter);
+use base 'Exporter';
 
 =head1 NAME
 
