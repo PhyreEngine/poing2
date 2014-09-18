@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Test::More tests => 7;
+use Test::More tests => 9;
 use Test::Exception;
 
 BEGIN {use_ok 'Bio::Protein::Poing2::Class'}
@@ -15,6 +15,20 @@ BEGIN {use_ok 'Bio::Protein::Poing2::Class'}
     has opt  => (is => 'rw', default  => sub {[0, 1, 2]});
 }
 
+throws_ok {
+    package Bar;
+    use Bio::Protein::Poing2::Class;
+    my $a = has(mand => (is => 'ro', required => 1));
+} qr/Only call `has' in void context/,
+'Void context required';
+
+throws_ok {
+    package Bar;
+    use Bio::Protein::Poing2::Class;
+    has(mand => (is => 'ro', required => 1));
+    has(mand => (is => 'ro', required => 1));
+} qr/Attribute `mand' already defined/,
+'Only define attributes once';
 
 throws_ok { Foo->new() }
     qr/^Mandatory argument `mand' not supplied/m,
