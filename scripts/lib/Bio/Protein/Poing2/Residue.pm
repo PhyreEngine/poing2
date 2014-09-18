@@ -42,6 +42,13 @@ has type => (is => 'ro', required => 1);
 
 has atoms => (is => 'ro', default => sub{[]});
 
+=item C<ss_state()>: Returns a single-letter code for the
+secondary structure state.
+
+=cut
+
+has ss_state => (is => 'ro');
+
 =item C<oneletter()>: Returns the one-letter code for this residue.
 
 =cut
