@@ -49,8 +49,9 @@ purposes.
 =head2 C<has($attr, %list)>
 
 This method behaves similarly to Moose method with the same name. That is, it
-creates getters (and optionally setters) for the attribute C<$attr>. The heavy
-lifting is actually done by the AUTOLOAD method.
+creates getters (and optionally setters) for the attribute C<$attr>. The
+attribute definition is stored in the package variable C<$meta> of the calling
+package.
 
 =cut
 
@@ -67,8 +68,8 @@ sub has(@) {
     my $meta = do {
         ##no critic (TestingAndDebugging::ProhibitNoStrict)
         no strict 'refs';
-        $pkg->{meta} ||= {};
-        $pkg->{meta};
+        $$pkg::meta ||= {};
+        $$pkg::meta
         ##use critic
     };
     $meta->{attributes} ||= {};
@@ -77,29 +78,29 @@ sub has(@) {
             if exists $meta->{attributes}{$attr};
 
     $meta->{attributes}{$attr} = \%list;
+
+    if($list{is} eq 'rw'){
+        ##no critic (TestingAndDebugging::ProhibitNoStrict)
+        no strict 'refs';
+        *{"$pkg::$attr"} = sub {
+            my ($self, $value) = @_;
+            $self->{$attr} = $value if @_ == 2;
+            return $self->{$attr};
+        };
+        ##use critic
+    }else{
+        ##no critic (TestingAndDebugging::ProhibitNoStrict)
+        no strict 'refs';
+        *{"$pkg::$attr"} = sub {
+            my ($self, $value) = @_;
+            croak "Attribute `$attr' is read-only." if @_ > 1;
+            return $self->{$attr};
+        };
+        ##use critic
+    }
     return;
 }
 
-our $AUTOLOAD;
-sub AUTOLOAD {
-    my ($self, $value) = @_;
-
-    my $attr = $AUTOLOAD =~ s/.*:://r;
-    my $spec = do {
-        ##no critic (TestingAndDebugging::ProhibitNoStrict)
-        no strict 'refs';
-        ref($self)->{meta}{attributes}{$attr}
-        ##use critic
-    };
-    croak "Unknown attribute `$attr'" if not defined $spec;
-
-    if(@_ > 1){
-        croak "Attribute `$attr' is read-only." if $spec->{is} ne 'rw';
-        $self->{$attr} = $value;
-    }
-    return $self->{$attr};
-
-}
 
 =head2 C<new(%list)>
 
@@ -116,7 +117,7 @@ sub new {
     my $meta = do {
         ##no critic (TestingAndDebugging::ProhibitNoStrict)
         no strict 'refs';
-        $pkg->{meta}
+        $$pkg::meta
         ##use critic
     };
 
