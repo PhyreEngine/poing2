@@ -12,12 +12,13 @@ Bio::Protein::Poing2::IO::Fasta - Read FASTA files
 =head1 SYNOPSIS
 
     use Bio::Protein::Poing2::IO::Fasta;
-    my @residues = @{Bio::Protein::Poing2::IO::Fasta::read_fasta('query.fasta')};
+    my %residues = %{Bio::Protein::Poing2::IO::Fasta::read_fasta('query.fasta')};
 
 =head1 DESCRIPTION
 
 This module provides a function for reading in a FASTA-formatted file and
-returning a list of residues;
+returning a hash of residues. The hash keys range from 1-I<L>, where I<L> is
+the sequence length.
 
 =head1 FUNCTIONS
 

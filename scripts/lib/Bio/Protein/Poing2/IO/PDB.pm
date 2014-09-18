@@ -13,12 +13,13 @@ Bio::Protein::Poing2::IO::PDB - Read PDB files
 =head1 SYNOPSIS
 
     use Bio::Protein::Poing2::IO::PDB;
-    my @residues = @{ Bio::Protein::Poing2::IO::PDB::read_pdb('template.pdb')};
+    my %residues = %{ Bio::Protein::Poing2::IO::PDB::read_pdb('template.pdb')};
 
 =head1 DESCRIPTION
 
 C<Bio::Protein::Poing2::IO::PDB> provides the function C<read_pdb> for reading
-a PDB file into a list of residues.
+a PDB file into a list of residues. Residues numbering is preserved as the keys
+of the returned hashref.
 
 =head1 FUNCTIONS
 
