@@ -40,7 +40,7 @@ has type => (is => 'ro', required => 1);
 
 =cut
 
-has atoms => (is => 'ro', default => sub{[]});
+has atoms => (is => 'rw', default => sub{[]});
 
 =item C<ss_state()>: Returns a single-letter code for the
 secondary structure state.
