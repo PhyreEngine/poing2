@@ -68,8 +68,8 @@ sub has(@) {
     my $meta = do {
         ##no critic (TestingAndDebugging::ProhibitNoStrict)
         no strict 'refs';
-        $$pkg::meta ||= {};
-        $$pkg::meta
+        ${"${pkg}::meta"} ||= {};
+        ${"${pkg}::meta"}
         ##use critic
     };
     $meta->{attributes} ||= {};
@@ -82,7 +82,7 @@ sub has(@) {
     if($list{is} eq 'rw'){
         ##no critic (TestingAndDebugging::ProhibitNoStrict)
         no strict 'refs';
-        *{"$pkg::$attr"} = sub {
+        *{"${pkg}::$attr"} = sub {
             my ($self, $value) = @_;
             $self->{$attr} = $value if @_ == 2;
             return $self->{$attr};
@@ -91,7 +91,7 @@ sub has(@) {
     }else{
         ##no critic (TestingAndDebugging::ProhibitNoStrict)
         no strict 'refs';
-        *{"$pkg::$attr"} = sub {
+        *{"${pkg}::$attr"} = sub {
             my ($self, $value) = @_;
             croak "Attribute `$attr' is read-only." if @_ > 1;
             return $self->{$attr};
@@ -117,7 +117,7 @@ sub new {
     my $meta = do {
         ##no critic (TestingAndDebugging::ProhibitNoStrict)
         no strict 'refs';
-        $$pkg::meta
+        ${"${pkg}::meta"}
         ##use critic
     };
 
