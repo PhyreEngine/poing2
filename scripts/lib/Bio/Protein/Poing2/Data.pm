@@ -64,7 +64,7 @@ three-letter AA code.
 
 =cut
 
-my %CA_SC_len = (
+our %CA_SC_len = (
     ALA => 1.52370477561,
     CYS => 2.06811484067,
     ASP => 2.47099367559,
@@ -86,6 +86,17 @@ my %CA_SC_len = (
     TYR => 3.40900993765,
 );
 
+=item B<%backbone>: Atoms in the backbone.
+
+=cut
+
+our %backbone = (
+    C  => 2,
+    CA => 1,
+    N  => 1,
+    O  => 1,
+);
+
 =item C<%BB_BB_len>: Backbone-backbone distances, stored as a hashref of
 distances.
 
@@ -95,7 +106,7 @@ and CA.
 
 =cut
 
-my %BB_BB_len = (
+our %BB_BB_len = (
     C  => {N  => 1.3298236446806,  O  => 1.23203299355537},
     N  => {CA => 1.45999906298163                         },
     CA => {C  => 1.53135743668343, CA => 3.8              },
@@ -106,7 +117,7 @@ reference build_dihedral_sets).
 
 =cut
 
-my @phi_links = (
+our @phi_links = (
    {increment => -1, atom => 'C'},
    {increment =>  0, atom => 'N'},
    {increment =>  0, atom => 'CA'},
@@ -118,7 +129,7 @@ reference build_dihedral_sets).
 
 =cut
 
-my @psi_links = (
+our @psi_links = (
    {increment => -1, atom => 'N'},
    {increment => -1, atom => 'CA'},
    {increment => -1, atom => 'C'},
@@ -130,7 +141,7 @@ reference build_dihedral_sets).
 
 =cut
 
-my @omega_links = (
+our @omega_links = (
    {increment => -1, atom => 'CA'},
    {increment => -1, atom => 'C'},
    {increment =>  0, atom => 'N'},
@@ -142,7 +153,7 @@ CA atoms of four residues. (TODO: reference build_dihedral_sets).
 
 =cut
 
-my @CA_links = (
+our @CA_links = (
     {increment => -3, atom => 'CA'},
     {increment => -2, atom => 'CA'},
     {increment => -1, atom => 'CA'},
