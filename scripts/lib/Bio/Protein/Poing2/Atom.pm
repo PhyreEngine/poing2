@@ -4,6 +4,7 @@ use warnings;
 use utf8;
 use Carp;
 use Bio::Protein::Poing2::Data;
+use Bio::Protein::Poing2::Vector;
 
 use Bio::Protein::Poing2::Class;
 use if $^V gt '5.10.1', parent => 'Bio::Protein::Poing2::Class';
@@ -38,7 +39,10 @@ values or set them to the values in C<$coords> if supplied.
 
 =cut
 
-has coords => (is => 'rw', default => sub{[0, 0, 0]});
+has coords => (is => 'rw', default => sub {
+            Bio::Protein::Poing2::Vector->new(coords => [0, 0, 0]),
+        }
+);
 
 =item C<x([$x])>: Get the x coordinate, or set the x coordinate to C<$x> if
 supplied.
@@ -50,8 +54,8 @@ supplied.
 sub x{
 ##use critic
     my ($self, $x) = @_;
-    $self->{coords}[0] = $x if defined $x;
-    return $self->{coords}[0];
+    $self->coords->coords->[0] = $x if defined $x;
+    return $self->coords->coords->[0];
 }
 
 =item C<y([$y])>: Get the y coordinate, or set the y coordinate to C<$y> if
@@ -64,8 +68,8 @@ supplied.
 sub y{
 ##use critic
     my ($self, $y) = @_;
-    $self->{coords}[1] = $y if defined $y;
-    return $self->{coords}[1];
+    $self->coords->coords->[1] = $y if defined $y;
+    return $self->coords->coords->[1];
 }
 
 =item C<z([$z])>: Get the z coordinate, or set the z coordinate to C<$z> if
@@ -75,8 +79,8 @@ supplied.
 
 sub z{
     my ($self, $z) = @_;
-    $self->{coords}[2] = $z if defined $z;
-    return $self->{coords}[2];
+    $self->coords->coords->[2] = $z if defined $z;
+    return $self->coords->coords->[2];
 }
 
 =back
