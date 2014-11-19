@@ -25,7 +25,7 @@ of the returned hashref.
 
 =over
 
-=item C<read_pdb($file)>: Read a PDB file from the file C<$file> C<$file> may
+=item C<read_pdb($file)>: Read a PDB file from the file C<$file>. C<$file> may
 be a filehandle or a file name.
 
 =back
@@ -65,7 +65,7 @@ sub read_pdb {
         );
         push @{$residues{$res_num}->atoms}, $atom;
     }
-    close $fh if ref $file eq 'GLOB';
+    close $fh if ref $file ne 'GLOB';
 
     return \%residues;
 }
