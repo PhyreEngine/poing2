@@ -5,6 +5,7 @@ use utf8;
 use autodie;
 use Bio::Protein::Poing2::Residue;
 use Bio::Protein::Poing2::Atom;
+use Bio::Protein::Poing2::Vector;
 
 =head1 NAME
 
@@ -58,7 +59,7 @@ sub read_pdb {
 
         my $atom = Bio::Protein::Poing2::Atom->new(
             name   => $atom_name,
-            coords => [$x, $y, $z],
+            coords => Bio::Protein::Poing2::Vector->new(coords => [$x, $y, $z]),
         );
         $residues{$res_num} ||= Bio::Protein::Poing2::Residue->new(
             type => $res_type,
