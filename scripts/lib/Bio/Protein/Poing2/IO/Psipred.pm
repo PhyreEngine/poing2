@@ -53,6 +53,7 @@ sub read_psipred {
         my $res = Bio::Protein::Poing2::Residue->new(
             type     => $res_type,
             ss_state => $state,
+            index    => $index,
         );
         $residues{$index} = $res;
     }

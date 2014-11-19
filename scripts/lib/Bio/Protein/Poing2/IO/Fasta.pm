@@ -47,8 +47,12 @@ sub read_fasta {
         next if $ln =~ /^>/;
         chomp $ln;
         for(split //, $ln){
-            $residues{$res_num++} =
-                Bio::Protein::Poing2::Residue->new(type => $_)
+            $residues{$res_num} =
+                Bio::Protein::Poing2::Residue->new(
+                    index => $res_num,
+                    type => $_,
+            );
+            $res_num++;
         }
     }
 

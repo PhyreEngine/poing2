@@ -11,6 +11,7 @@ my $filter = Bio::Protein::Poing2::Filter::Atom::Backbone->new;
 
 my %residues = (
     1 => Bio::Protein::Poing2::Residue->new(
+        index => 1,
         type => 'ALA',
         atoms => [
             Bio::Protein::Poing2::Atom->new(name => 'C'),
@@ -18,6 +19,7 @@ my %residues = (
         ],
     ),
     2 => Bio::Protein::Poing2::Residue->new(
+        index => 2,
         type => 'GLY',
         atoms => [
             Bio::Protein::Poing2::Atom->new(name => 'CA'),

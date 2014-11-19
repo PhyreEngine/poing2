@@ -49,6 +49,12 @@ secondary structure state.
 
 has ss_state => (is => 'ro');
 
+=item C<index()>: The index of the residue in the sequence.
+
+=cut
+
+has index => (is => 'ro', required => 1);
+
 =item C<oneletter()>: Returns the one-letter code for this residue.
 
 =cut

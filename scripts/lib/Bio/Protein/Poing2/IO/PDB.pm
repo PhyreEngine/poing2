@@ -62,7 +62,8 @@ sub read_pdb {
             coords => Bio::Protein::Poing2::Vector->new(coords => [$x, $y, $z]),
         );
         $residues{$res_num} ||= Bio::Protein::Poing2::Residue->new(
-            type => $res_type,
+            index => $res_num,
+            type  => $res_type,
         );
         push @{$residues{$res_num}->atoms}, $atom;
     }
