@@ -141,11 +141,11 @@ sub new {
             my $default = $atts->{$att}{default};
             if($default && ref($default) eq 'CODE'){
                 $default = eval {&$default};
-                if(!$default){
+                if(not defined $default){
                     croak "Error evaluating default value for attribute `$att': $@";
                 }
             }
-            $to_bless{$att} = $default || undef;
+            $to_bless{$att} = $default;
         }
 
         #Go through the supplied arguments and make sure they are allowed,
