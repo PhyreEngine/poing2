@@ -57,13 +57,14 @@ sub read_pdb {
         $res_num   =~ s/ //g;
         $atom_name =~ s/ //g;
 
-        my $atom = Bio::Protein::Poing2::Atom->new(
-            name   => $atom_name,
-            coords => Bio::Protein::Poing2::Vector->new(coords => [$x, $y, $z]),
-        );
         $residues{$res_num} ||= Bio::Protein::Poing2::Residue->new(
             index => $res_num,
             type  => $res_type,
+        );
+        my $atom = Bio::Protein::Poing2::Atom->new(
+            name   => $atom_name,
+            coords => Bio::Protein::Poing2::Vector->new(coords => [$x, $y, $z]),
+            residue => $residues{$res_num},
         );
         push @{$residues{$res_num}->atoms}, $atom;
     }

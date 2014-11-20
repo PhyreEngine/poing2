@@ -44,6 +44,13 @@ has coords => (is => 'rw', default => sub {
         }
 );
 
+=item C<residue([$res]): Get/set the residue of the atom. This is optional,
+because an atom does not necessarily belong to a residue.
+
+=cut
+
+has residue => (is => 'ro', default => undef);
+
 =item C<x([$x])>: Get the x coordinate, or set the x coordinate to C<$x> if
 supplied.
 

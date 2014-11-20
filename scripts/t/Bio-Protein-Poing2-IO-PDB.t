@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Test::More tests => 4;
+use Test::More tests => 5;
 
 BEGIN {use_ok 'Bio::Protein::Poing2::IO::PDB'}
 
@@ -45,3 +45,5 @@ close $pdb_in;
 is(keys %res, 5, 'Read 5 residues');
 is(@{$res{5}->atoms}, 9, '9 atoms in residue 5');
 is(@{$res{9}->atoms}, 1, '1 atom in residue 9');
+
+is($res{9}->atoms->[0]->residue->index, $res{9}->index, 'Atom residue set');
