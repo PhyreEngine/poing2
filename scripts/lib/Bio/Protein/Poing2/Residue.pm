@@ -4,6 +4,7 @@ use warnings;
 use utf8;
 use Carp;
 use Bio::Protein::Poing2::Data;
+use Bio::Protein::Poing2::Atom;
 
 use Bio::Protein::Poing2::Class;
 use if $^V gt v5.10.1, parent => 'Bio::Protein::Poing2::Class';
@@ -75,6 +76,20 @@ sub threeletter {
     my $aa = $self->type;
     $aa = $Bio::Protein::Poing2::Data::one2three{$aa} if length $aa == 1;
     return $aa;
+}
+
+=item C<add_sidechain()>: Add a sidechain atom to this residue.
+
+=cut
+
+sub add_sidechain {
+    my ($self) = @_;
+    return if $self->threeletter eq 'GLY';
+
+    push @{$self->atoms}, Bio::Protein::Poing2::Atom->new(
+        name    => $self->threeletter,
+        residue => $self,
+    );
 }
 
 =back
