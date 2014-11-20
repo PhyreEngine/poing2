@@ -15,5 +15,6 @@ my $spring = Bio::Protein::Poing2::LinearSpring->new(
         name => 'C',
         coords => Bio::Protein::Poing2::Vector->new(coords => [0, 1, 0]),
     ),
+    distance => 1.0,
 );
 cmp_ok($spring->distance, '==', 1.0, 'Distance correct');

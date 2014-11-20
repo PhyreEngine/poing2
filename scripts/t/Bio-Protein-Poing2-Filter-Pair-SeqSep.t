@@ -22,6 +22,7 @@ my $a2 = Bio::Protein::Poing2::Atom->new(name => 'CA', residue => $r2);
 my $pair = Bio::Protein::Poing2::LinearSpring->new(
     atom_1 => $a1,
     atom_2 => $a2,
+    distance => 1.0,
 );
 
 is(@{$filt->filter([$pair])}, 0, 'Removed all springs');
