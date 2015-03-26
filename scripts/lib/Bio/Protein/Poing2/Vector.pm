@@ -109,4 +109,35 @@ sub mag {
     return sqrt($self . $self);
 }
 
+#Rotate self around a given axis
+sub vrot_axis {
+    my ($self, $axis, $theta) = @_;
+
+    my $ux = $axis->coords->[0];
+    my $uy = $axis->coords->[1];
+    my $uz = $axis->coords->[2];
+
+    my $vx = $self->coords->[0];
+    my $vy = $self->coords->[1];
+    my $vz = $self->coords->[2];
+
+    my $ct = cos($theta);
+    my $st = sin($theta);
+
+    my $coords = [0, 0, 0];
+    $coords->[0] = $vx * ($ct + $ux*$ux*(1-$ct))
+        + $vy * ($ux*$uy*(1-$ct) - $uz*$st)
+        + $vz * ($ux*$uz*(1-$ct) + $uy*$st);
+
+    $coords->[1] = $vx * ($uy*$ux*(1-$ct) + $uz*$st)
+        + $vy * ($ct + $uy*$uy*(1-$ct))
+        + $vz * ($uy*$uz*(1-$ct) - $ux*$st);
+
+    $coords->[2] = $vx * ($uz*$ux*(1-$ct) - $uy*$st)
+        + $vy * ($uz*$uy*(1-$ct) + $ux*$st)
+        + $vz * ($ct + $uz*$uz*(1-$ct));
+
+    return ref($self)->new(coords => $coords);
+}
+
 1;
