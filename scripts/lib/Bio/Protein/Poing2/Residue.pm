@@ -3,8 +3,9 @@ use strict;
 use warnings;
 use utf8;
 use Carp;
-use Bio::Protein::Poing2::Data;
+use Bio::Protein::Poing2::Data qw(%CA_SC_len %BB_BB_len);
 use Bio::Protein::Poing2::Atom;
+use Bio::Protein::Poing2::LinearSpring;
 
 use Bio::Protein::Poing2::Class;
 use if $^V gt v5.10.1, parent => 'Bio::Protein::Poing2::Class';
@@ -90,6 +91,50 @@ sub add_sidechain {
         name    => $self->threeletter,
         residue => $self,
     );
+}
+
+=item C<internal_springs()>: Get internal springs for this residue.
+
+This includes springs between CA and sidechain atoms, and springs connecting
+backbone atoms.
+
+=cut
+
+sub internal_springs {
+    my ($self) = @_;
+
+    my @springs = ();
+    for my $a1(@{$self->atoms}){
+        for my $a2(@{$self->atoms}){
+            last if $a1 == $a2;
+
+            if($a1->name eq 'CA' && $CA_SC_len{$a2->name}){
+                push @springs, Bio::Protein::Poing2::LinearSpring->new(
+                    atom_1 => $a1,
+                    atom_2 => $a2,
+                    distance => $CA_SC_len{$a2->name}
+                );
+            }elsif($a2->name eq 'CA' && $CA_SC_len{$a1->name}){
+                push @springs, Bio::Protein::Poing2::LinearSpring->new(
+                    atom_1 => $a1,
+                    atom_2 => $a2,
+                    distance => $CA_SC_len{$a1->name}
+                );
+            }elsif($BB_BB_len{$a1->name} && $BB_BB_len{$a1->name}->{$a2->name}){
+                push @springs, Bio::Protein::Poing2::LinearSpring->new(
+                    atom_1 => $a1,
+                    atom_2 => $a2,
+                    distance => $BB_BB_len{$a1->name}->{$a2->name}
+                );
+            }elsif($BB_BB_len{$a2->name} && $BB_BB_len{$a2->name}->{$a1->name}){
+                push @springs, Bio::Protein::Poing2::LinearSpring->new(
+                    atom_1 => $a1,
+                    atom_2 => $a2,
+                    distance => $BB_BB_len{$a2->name}->{$a1->name}
+                );
+            }
+        }
+    }
 }
 
 =back
