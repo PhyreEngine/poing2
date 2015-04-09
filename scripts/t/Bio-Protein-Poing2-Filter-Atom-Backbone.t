@@ -14,16 +14,16 @@ my %residues = (
         index => 1,
         type => 'ALA',
         atoms => [
-            Bio::Protein::Poing2::Atom->new(name => 'C'),
-            Bio::Protein::Poing2::Atom->new(name => 'K'),
+            Bio::Protein::Poing2::Atom->new(name => 'C', index => 1),
+            Bio::Protein::Poing2::Atom->new(name => 'K', index => 2),
         ],
     ),
     2 => Bio::Protein::Poing2::Residue->new(
         index => 2,
         type => 'GLY',
         atoms => [
-            Bio::Protein::Poing2::Atom->new(name => 'CA'),
-            Bio::Protein::Poing2::Atom->new(name => 'U'),
+            Bio::Protein::Poing2::Atom->new(name => 'CA', index => 1),
+            Bio::Protein::Poing2::Atom->new(name => 'U',  index => 2),
         ],
     ),
 );

@@ -16,8 +16,10 @@ my $filt = Bio::Protein::Poing2::Filter::Pair::SeqSep->new(
 my $r1 = Bio::Protein::Poing2::Residue->new(index => 1,  type => 'A');
 my $r2 = Bio::Protein::Poing2::Residue->new(index => 20, type => 'G');
 
-my $a1 = Bio::Protein::Poing2::Atom->new(name => 'CA', residue => $r1);
-my $a2 = Bio::Protein::Poing2::Atom->new(name => 'CA', residue => $r2);
+my $a1 = Bio::Protein::Poing2::Atom->new(
+    index => 1, name => 'CA', residue => $r1);
+my $a2 = Bio::Protein::Poing2::Atom->new(
+    index => 2, name => 'CA', residue => $r2);
 
 my $pair = Bio::Protein::Poing2::LinearSpring->new(
     atom_1 => $a1,

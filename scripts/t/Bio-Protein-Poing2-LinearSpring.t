@@ -8,10 +8,12 @@ BEGIN {use_ok 'Bio::Protein::Poing2::LinearSpring'}
 
 my $spring = Bio::Protein::Poing2::LinearSpring->new(
     atom_1 => Bio::Protein::Poing2::Atom->new(
+        index => 1,
         name => 'C',
         coords => Bio::Protein::Poing2::Vector->new(coords => [0, 0, 0]),
     ),
     atom_2 => Bio::Protein::Poing2::Atom->new(
+        index => 2,
         name => 'C',
         coords => Bio::Protein::Poing2::Vector->new(coords => [0, 1, 0]),
     ),

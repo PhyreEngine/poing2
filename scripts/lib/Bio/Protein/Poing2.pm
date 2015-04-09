@@ -230,4 +230,15 @@ sub build_fourmer {
     return undef;
 }
 
+sub string_repr {
+    my ($self) = @_;
+
+    my @lines = ("[PDB]\n");
+    for my $i(sort {$a <=> $b} keys %{$self->residues}){
+        push @lines, $self->residues->{$i}->string_repr;
+    }
+    return join q{}, @lines;
+}
+
+
 1;

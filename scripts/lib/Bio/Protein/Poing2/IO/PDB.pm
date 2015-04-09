@@ -48,12 +48,14 @@ sub read_pdb {
     my %residues = ();
     while(my $ln = <$fh>){
         next unless $ln =~ /^ATOM/;
+        my $atom_id   = substr $ln, 6,  5;
         my $atom_name = substr $ln, 12, 4;
         my $res_num   = substr $ln, 22, 4;
         my $res_type  = substr $ln, 17, 3;
         my $x         = substr $ln, 30, 8;
         my $y         = substr $ln, 38, 8;
         my $z         = substr $ln, 46, 8;
+        $atom_id   =~ s/ //g;
         $res_num   =~ s/ //g;
         $atom_name =~ s/ //g;
 
@@ -62,6 +64,7 @@ sub read_pdb {
             type  => $res_type,
         );
         my $atom = Bio::Protein::Poing2::Atom->new(
+            index  => $atom_id,
             name   => $atom_name,
             coords => Bio::Protein::Poing2::Vector->new(coords => [$x, $y, $z]),
             residue => $residues{$res_num},
