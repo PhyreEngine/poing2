@@ -34,6 +34,13 @@ C, CA, N, O, CB, etc.
 
 has name   => (is => 'ro', required => 1);
 
+=item C<index(): The ID of the atom.
+
+=cut
+
+has index => (is => 'ro', required => 1);
+
+
 =item C<coords([$coords])>: Get the coordinates as an arrayref of (x, y, z)
 values or set them to the values in C<$coords> if supplied.
 
@@ -88,6 +95,20 @@ sub z{
     my ($self, $z) = @_;
     $self->coords->coords->[2] = $z if defined $z;
     return $self->coords->coords->[2];
+}
+
+=item C<string_repr()>: Get a string representation for the config file.
+
+=cut
+
+our $atom_rec = "ATOM  % 5d  %s %s A% 4d    %8.3f%8.3f%8.3f\n";
+sub string_repr {
+    my ($self) = @_;
+    return sprintf $atom_rec,
+        $self->index,
+        sprintf("%-3s", $self->name),
+        $self->residue->threeletter, $self->residue->index,
+        $self->x, $self->y, $self->z;
 }
 
 =back

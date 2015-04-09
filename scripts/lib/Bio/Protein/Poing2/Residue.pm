@@ -15,6 +15,17 @@ use if $^V le v5.10.1, base   => 'Bio::Protein::Poing2::Class';
 #Allow overloading to string
 use overload q{""} => 'threeletter';
 
+#Atoms for a course representation
+our %coarse_atoms = (
+    A => [qw(CA ALA)], C => [qw(CA CYS)], D => [qw(CA ASP)], E => [qw(CA GLU)],
+    F => [qw(CA PHE)], G => [qw(CA    )], H => [qw(CA HIS)], I => [qw(CA ILE)],
+    K => [qw(CA LYS)], L => [qw(CA LEU)], M => [qw(CA MET)], N => [qw(CA ASN)],
+    P => [qw(CA PRO)], Q => [qw(CA GLN)], R => [qw(CA ARG)], S => [qw(CA SER)],
+    T => [qw(CA THR)], V => [qw(CA VAL)], W => [qw(CA TRP)], Y => [qw(CA TYR)],
+    Z => [qw(CA GLX)], B => [qw(CA ASX)],
+);
+
+
 =head1 NAME
 
 Bio::Protein::Poing2::Residue - Class representing a residue
@@ -79,18 +90,56 @@ sub threeletter {
     return $aa;
 }
 
-=item C<add_sidechain()>: Add a sidechain atom to this residue.
+=item C<add_sidechain([$index])>: Add a sidechain atom to this residue.
+
+If C<$index> is supplied, the added atoms will have the index starting at
+C<$index>.
 
 =cut
 
 sub add_sidechain {
-    my ($self) = @_;
+    my ($self, $index) = @_;
+    $index //= 1;
     return if $self->threeletter eq 'GLY';
 
     push @{$self->atoms}, Bio::Protein::Poing2::Atom->new(
         name    => $self->threeletter,
         residue => $self,
+        index => $index,
     );
+}
+
+=item C<add_atom($atom)>: Add C<$atom> to the residue.
+
+=cut
+
+sub add_atom {
+    my ($self, $atom) = @_;
+    push @{$self->atoms}, $atom;
+}
+
+=item C<init_coarse([$start])>: Add atoms for a coarse representation.
+
+If C<$start> is supplied, the index of the added atoms begins at C<$start>.
+
+=cut
+
+sub init_coarse {
+    my ($self, $start) = @_;
+    $start //= 1;
+
+    #Get current atoms so we don't duplicate anything
+    my %current = map {$_->name => $_} @{$self->atoms};
+
+    #Add atoms
+    for my $name(@{$coarse_atoms{$self->oneletter}}){
+        next if $current{$name};
+
+        $self->add_atom(Bio::Protein::Poing2::Atom->new(
+            name => $name,
+            index => $start++,
+        ));
+    }
 }
 
 =item C<internal_springs()>: Get internal springs for this residue.
@@ -135,6 +184,15 @@ sub internal_springs {
             }
         }
     }
+}
+
+=item C<string_repr()>: Get a string representation for the config file.
+
+=cut
+
+sub string_repr {
+    my ($self) = @_;
+    return join q{}, map {$_->string_repr()} @{$self->atoms};
 }
 
 =back

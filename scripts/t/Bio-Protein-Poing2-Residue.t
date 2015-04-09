@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Test::More tests => 8;
+use Test::More tests => 10;
 
 BEGIN {use_ok 'Bio::Protein::Poing2::Residue'}
 
@@ -17,6 +17,13 @@ is_deeply($res1->atoms, [],   'Defaults with no atoms');
 $res1->add_sidechain();
 is($res1->atoms->[0]->name, 'ALA', 'Added sidechain atom');
 
+$res2->init_coarse();
+my %r2_atms = map {$_->name => $_} @{$res2->atoms};
+ok($r2_atms{CA}, 'Added CA atom');
+ok($r2_atms{ALA}, 'Added ALA atom');
+
+
 my $gly = Bio::Protein::Poing2::Residue->new(index => 2, type => 'GLY');
 $gly->add_sidechain();
 is(@{$gly->atoms}, 0, 'No sidechain for glycine');
+
