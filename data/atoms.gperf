@@ -1,0 +1,45 @@
+%{
+#include <stdbool.h>
+%}
+
+%language=ANSI-C
+%compare-strncmp
+%includes
+%struct-type
+%define lookup-function-name atom_description_lookup
+%define hash-function-name atom_description_hash
+%define slot-name name
+struct atom_description {
+    const char *name;
+    double mass;
+    double steric_radius;
+    double hydrophobicity;
+};
+%%
+"C",   12,    0.750, 0.0
+"CA",  12,    0.750, 0.0
+"N",   15,    0.684, 0.0
+"O",   16,    0.457, 0.0
+"ALA", 15.0,  1.6,               0.0
+"CYS", 31.0,  2.3,               0.0
+"ASP", 42.0,  2.5,               0.0
+"GLU", 56.0,  2.8,               0.0
+"PHE", 91.0,  3.0,               1.0
+"GLY", 0.0,   0.0,               0.0
+"HIS", 81.0,  2.8,               0.0
+"ILE", 57.0,  2.7,               1.0
+"LYS", 73.0,  3.1,               0.0
+"LEU", 57.0,  2.7,               1.0
+"MET", 59.0,  2.8,               1.0
+"ASN", 58.0,  2.5,               0.0
+"PRO", 42.0,  2.4,               0.0
+"GLN", 64.0,  2.8,               0.0
+"ARG", 101.0, 3.4,               0.0
+"SER", 23.0,  2.0,               0.0
+"THR", 37.0,  2.4,               0.0
+"VAL", 43.0,  2.5,               1.0
+"TRP", 126.0, 3.5,               1.0
+"TYR", 99.0,  3.0,               1.0
+"GLX", 0.0,   0.0,               0.0
+"ASX", 0.0,   0.0,               0.0
+"UNK", 0.0,   0.0,               0.0
