@@ -43,6 +43,17 @@ sub dihedral {
     return $angle;
 }
 
+sub string_repr {
+    my ($self) = @_;
+    my $line = "%d %s %d %s %d %s %d %s %f %f %f\n";
+    return sprintf $line,
+        $self->atoms->[0]->residue->index, $self->atoms->[0]->name,
+        $self->atoms->[1]->residue->index, $self->atoms->[1]->name,
+        $self->atoms->[2]->residue->index, $self->atoms->[2]->name,
+        $self->atoms->[3]->residue->index, $self->atoms->[3]->name,
+        $self->dihedral;
+}
+
 if(defined __PACKAGE__->meta){
     __PACKAGE__->meta->make_immutable;
 }

@@ -152,6 +152,7 @@ sub pairs {
                         push @{$pairs}, Bio::Protein::Poing2::LinearSpring->new(
                             atom_1 => $a1,
                             atom_2 => $a2,
+                            distance => ($a1->coords - $a2->coords)->mag,
                         );
                     }
                 }
@@ -249,6 +250,11 @@ sub string_repr {
     push @lines, "[Linear]\n";
     for my $pair(@{$self->pairs}){
         push @lines, $pair->string_repr;
+    }
+
+    push @lines, "[Torsion]\n";
+    for my $torsion(@{$self->fourmers}){
+        push @lines, $torsion->string_repr;
     }
     return join q{}, @lines;
 }
