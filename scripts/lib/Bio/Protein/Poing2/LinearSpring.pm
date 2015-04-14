@@ -35,6 +35,17 @@ Requires the arguments C<atom_1>, C<atom_2> and C<distance>.
 has atom_1 => (is => 'ro', required => 1);
 has atom_2 => (is => 'ro', required => 1);
 has distance => (is => 'ro', required => 1);
+has constant => (is => 'rw', default => undef);
+has cutoff => (is => 'rw', default => undef);
+
+sub string_repr {
+    my ($self) = @_;
+    return sprintf "% 4d % 4s % 4d % 4s %8.6f\n",# %8.6f %8.6f\n",
+        $self->atom_1->residue->index, $self->atom_1->name,
+        $self->atom_2->residue->index, $self->atom_2->name,
+        $self->distance;
+}
+
 
 =back
 

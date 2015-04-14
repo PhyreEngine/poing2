@@ -6,6 +6,7 @@ use Bio::Protein::Poing2::LinearSpring;
 use Bio::Protein::Poing2::Fourmer;
 use Bio::Protein::Poing2::IO::Fasta;
 use Bio::Protein::Poing2::IO::PDB;
+use Bio::Protein::Poing2::Data qw(%BB_BB_len);
 use base qw(Bio::Protein::Poing2::Class);
 
 =head1 NAME
@@ -233,11 +234,72 @@ sub build_fourmer {
 sub string_repr {
     my ($self) = @_;
 
-    my @lines = ("[PDB]\n");
+    my @lines;
+    push @lines, "[PDB]\n";
     for my $i(sort {$a <=> $b} keys %{$self->residues}){
         push @lines, $self->residues->{$i}->string_repr;
     }
+
+    push @lines, "[Linear]\n";
+    for my $pair(@{$self->pairs}){
+        push @lines, $pair->string_repr;
+    }
     return join q{}, @lines;
+}
+
+=item C<renumber_atoms()>:
+
+Fix atom numbers to be consecutive.
+
+=cut
+
+sub renumber_atoms {
+    my ($self) = @_;
+
+    my $i = 1;
+    for(sort {$a <=> $b} keys %{$self->residues}){
+        my $res = $self->residues->{$_};
+        $_->index($i++) for @{$res->atoms};
+    }
+}
+
+=item C<init_coarse_bb()>:
+
+Initialise residues with coarse backbone representation.
+
+=cut
+
+sub init_coarse_bb {
+    my ($self) = @_;
+
+    for my $resi(sort {$a <=> $b} keys %{$self->residues}){
+        my $res = $self->residues->{$resi};
+        $res->init_coarse_bb;
+        if($self->residues->{$resi - 1}){
+            my $prev = $self->residues->{$resi - 1};
+            push @{$self->pairs}, Bio::Protein::Poing2::LinearSpring->new(
+                atom_1 => $prev->atom_by_name('CA'),
+                atom_2 => $res->atom_by_name('CA'),
+                distance => $BB_BB_len{CA}->{CA},
+            );
+        }
+    }
+
+    $_->init_coarse_bb for values %{$self->residues};
+}
+
+=item C<init_coarse_sc()>:
+
+Initialise residues with coarse sidechain representation.
+
+=cut
+
+sub init_coarse_sc {
+    my ($self) = @_;
+    for(values %{$self->residues}){
+        $_->init_coarse_sc;
+        push @{$self->pairs}, @{$_->internal_springs};
+    }
 }
 
 

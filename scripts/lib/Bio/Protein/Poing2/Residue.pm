@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use utf8;
 use Carp;
-use Bio::Protein::Poing2::Data qw(%CA_SC_len %BB_BB_len);
+use Bio::Protein::Poing2::Data qw(%CA_SC_len %BB_BB_len @AA1);
 use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::LinearSpring;
 
@@ -16,15 +16,15 @@ use if $^V le v5.10.1, base   => 'Bio::Protein::Poing2::Class';
 use overload q{""} => 'threeletter';
 
 #Atoms for a course representation
-our %coarse_atoms = (
-    A => [qw(CA ALA)], C => [qw(CA CYS)], D => [qw(CA ASP)], E => [qw(CA GLU)],
-    F => [qw(CA PHE)], G => [qw(CA    )], H => [qw(CA HIS)], I => [qw(CA ILE)],
-    K => [qw(CA LYS)], L => [qw(CA LEU)], M => [qw(CA MET)], N => [qw(CA ASN)],
-    P => [qw(CA PRO)], Q => [qw(CA GLN)], R => [qw(CA ARG)], S => [qw(CA SER)],
-    T => [qw(CA THR)], V => [qw(CA VAL)], W => [qw(CA TRP)], Y => [qw(CA TYR)],
-    Z => [qw(CA GLX)], B => [qw(CA ASX)],
+our %coarse_sidechain = (
+    A => [qw(ALA)], C => [qw(CYS)], D => [qw(ASP)], E => [qw(GLU)],
+    F => [qw(PHE)], G => [qw(   )], H => [qw(HIS)], I => [qw(ILE)],
+    K => [qw(LYS)], L => [qw(LEU)], M => [qw(MET)], N => [qw(ASN)],
+    P => [qw(PRO)], Q => [qw(GLN)], R => [qw(ARG)], S => [qw(SER)],
+    T => [qw(THR)], V => [qw(VAL)], W => [qw(TRP)], Y => [qw(TYR)],
+    Z => [qw(GLX)], B => [qw(ASX)],
 );
-
+our %coarse_bb = map {$_ => ['CA']} @AA1;
 
 =head1 NAME
 
@@ -66,7 +66,7 @@ has ss_state => (is => 'ro');
 
 =cut
 
-has index => (is => 'ro', required => 1);
+has index => (is => 'rw', required => 1);
 
 =item C<oneletter()>: Returns the one-letter code for this residue.
 
@@ -88,6 +88,16 @@ sub threeletter {
     my $aa = $self->type;
     $aa = $Bio::Protein::Poing2::Data::one2three{$aa} if length $aa == 1;
     return $aa;
+}
+
+=item C<atom_by_name($name)>: Get atom by name.
+
+=cut
+
+sub atom_by_name {
+    my ($self, $name) = @_;
+    my @matching = grep {$_->name eq $name} @{$self->atoms};
+    return @matching;
 }
 
 =item C<add_sidechain([$index])>: Add a sidechain atom to this residue.
@@ -118,24 +128,45 @@ sub add_atom {
     push @{$self->atoms}, $atom;
 }
 
-=item C<init_coarse([$start])>: Add atoms for a coarse representation.
+=item C<init_coarse_bb([$start])>: Add coarse backbone atoms.
 
 If C<$start> is supplied, the index of the added atoms begins at C<$start>.
 
 =cut
 
-sub init_coarse {
+sub init_coarse_bb {
     my ($self, $start) = @_;
+    $self->init_atoms(['CA'], $start);
+}
+
+=item C<init_coarse_sc([$start])>: Add coarse sidechain atoms.
+
+If C<$start> is supplied, the index of the added atoms begins at C<$start>.
+
+=cut
+
+sub init_coarse_sc {
+    my ($self, $start) = @_;
+    $self->init_atoms($coarse_sidechain{$self->oneletter}, $start);
+}
+
+=item C<init_atoms($list, [$start]): Add atoms in C<$list>.
+
+=cut
+
+sub init_atoms {
+    my ($self, $atom_names, $start) = @_;
     $start //= 1;
 
     #Get current atoms so we don't duplicate anything
     my %current = map {$_->name => $_} @{$self->atoms};
 
     #Add atoms
-    for my $name(@{$coarse_atoms{$self->oneletter}}){
+    for my $name(@{$atom_names}){
         next if $current{$name};
 
         $self->add_atom(Bio::Protein::Poing2::Atom->new(
+            residue => $self,
             name => $name,
             index => $start++,
         ));
@@ -184,6 +215,7 @@ sub internal_springs {
             }
         }
     }
+    return \@springs;
 }
 
 =item C<string_repr()>: Get a string representation for the config file.

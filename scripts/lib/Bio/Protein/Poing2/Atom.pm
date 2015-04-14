@@ -38,7 +38,7 @@ has name   => (is => 'ro', required => 1);
 
 =cut
 
-has index => (is => 'ro', required => 1);
+has index => (is => 'rw', required => 1);
 
 
 =item C<coords([$coords])>: Get the coordinates as an arrayref of (x, y, z)

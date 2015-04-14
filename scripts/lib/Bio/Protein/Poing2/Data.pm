@@ -6,7 +6,7 @@ use utf8;
 #Allow import of symbols
 require Exporter;
 use base 'Exporter';
-our @EXPORT_OK = qw(%CA_SC_len %BB_BB_len $PI);
+our @EXPORT_OK = qw(%CA_SC_len %BB_BB_len $PI @AA1 @AA3);
 
 =head1 NAME
 
