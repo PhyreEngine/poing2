@@ -1,13 +1,19 @@
 package Bio::Protein::Poing2;
 use strict;
 use warnings;
-use Bio::Protein::Poing2::Class;
 use Bio::Protein::Poing2::LinearSpring;
 use Bio::Protein::Poing2::Fourmer;
 use Bio::Protein::Poing2::IO::Fasta;
 use Bio::Protein::Poing2::IO::PDB;
 use Bio::Protein::Poing2::Data qw(%BB_BB_len);
-use base qw(Bio::Protein::Poing2::Class);
+
+#Load class syntax sugar
+BEGIN {
+    if   (require Moose){ Moose->import }
+    elsif(require Mouse){ Mouse->import }
+    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
+};
+
 
 =head1 NAME
 
@@ -302,5 +308,7 @@ sub init_coarse_sc {
     }
 }
 
-
+if(defined __PACKAGE__->meta){
+    __PACKAGE__->meta->make_immutable;
+}
 1;

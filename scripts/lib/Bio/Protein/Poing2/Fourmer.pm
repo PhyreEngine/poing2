@@ -5,9 +5,14 @@ use utf8;
 use Carp;
 use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::Vector;
-use Bio::Protein::Poing2::Class;
 use Bio::Protein::Poing2::Data qw($PI);
-use base qw(Bio::Protein::Poing2::Class);
+
+#Load class syntax sugar
+BEGIN {
+    if   (require Moose){ Moose->import }
+    elsif(require Mouse){ Mouse->import }
+    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
+};
 
 =head1 NAME
 
@@ -36,6 +41,10 @@ sub dihedral {
         ($b1 x $b2) . ($b2 x $b3)
     ) * 180 / $PI;
     return $angle;
+}
+
+if(defined __PACKAGE__->meta){
+    __PACKAGE__->meta->make_immutable;
 }
 
 1;

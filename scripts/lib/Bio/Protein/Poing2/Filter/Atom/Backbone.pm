@@ -2,7 +2,13 @@ package Bio::Protein::Poing2::Filter::Atom::Backbone;
 use strict;
 use warnings;
 use Bio::Protein::Poing2::Data;
-use base qw(Bio::Protein::Poing2::Class);
+
+#Load class syntax sugar
+BEGIN {
+    if   (require Moose){ Moose->import }
+    elsif(require Mouse){ Mouse->import }
+    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
+};
 
 =head1 NAME
 
@@ -24,5 +30,9 @@ sub filter {
         } @{$res->atoms}]);
     }
     return $residues;
+}
+
+if(defined __PACKAGE__->meta){
+    __PACKAGE__->meta->make_immutable;
 }
 1;

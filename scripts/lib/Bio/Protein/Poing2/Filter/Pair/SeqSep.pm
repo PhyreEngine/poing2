@@ -1,8 +1,13 @@
 package Bio::Protein::Poing2::Filter::Pair::SeqSep;
 use strict;
 use warnings;
-use Bio::Protein::Poing2::Class;
-use base qw(Bio::Protein::Poing2::Class);
+
+#Load class syntax sugar
+BEGIN {
+    if   (require Moose){ Moose->import }
+    elsif(require Mouse){ Mouse->import }
+    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
+};
 
 =head1 NAME
 
@@ -52,6 +57,10 @@ sub filter {
         (!defined($self->{max_sep}) || $sep <= $self->{max_sep})
     } @{$pairs};
     return \@new_pairs;
+}
+
+if(defined __PACKAGE__->meta){
+    __PACKAGE__->meta->make_immutable;
 }
 
 1;

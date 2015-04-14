@@ -6,9 +6,12 @@ use Carp;
 use Bio::Protein::Poing2::Data;
 use Bio::Protein::Poing2::Vector;
 
-use Bio::Protein::Poing2::Class;
-use if $^V gt '5.10.1', parent => 'Bio::Protein::Poing2::Class';
-use if $^V le 'v5.10.1', base   => 'Bio::Protein::Poing2::Class';
+#Load class syntax sugar
+BEGIN {
+    if   (require Moose){ Moose->import }
+    elsif(require Mouse){ Mouse->import }
+    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
+};
 
 =head1 NAME
 
@@ -114,4 +117,8 @@ sub string_repr {
 =back
 
 =cut
+
+if(defined __PACKAGE__->meta){
+    __PACKAGE__->meta->make_immutable;
+}
 1;

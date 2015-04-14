@@ -7,10 +7,12 @@ use Bio::Protein::Poing2::Data qw(%CA_SC_len %BB_BB_len @AA1);
 use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::LinearSpring;
 
-use Bio::Protein::Poing2::Class;
-use if $^V gt v5.10.1, parent => 'Bio::Protein::Poing2::Class';
-use if $^V le v5.10.1, base   => 'Bio::Protein::Poing2::Class';
-
+#Load class syntax sugar
+BEGIN {
+    if   (require Moose){ Moose->import }
+    elsif(require Mouse){ Mouse->import }
+    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
+};
 
 #Allow overloading to string
 use overload q{""} => 'threeletter';
@@ -230,4 +232,8 @@ sub string_repr {
 =back
 
 =cut
+
+if(defined __PACKAGE__->meta){
+    __PACKAGE__->meta->make_immutable;
+}
 1;

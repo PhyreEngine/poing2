@@ -2,8 +2,13 @@ package Bio::Protein::Poing2::Vector;
 use strict;
 use warnings;
 use Carp;
-use Bio::Protein::Poing2::Class;
-use base 'Bio::Protein::Poing2::Class';
+
+#Load class syntax sugar
+BEGIN {
+    if   (require Moose){ Moose->import }
+    elsif(require Mouse){ Mouse->import }
+    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
+};
 
 has coords => (is => 'ro', default => sub{[0,0,0]});
 
@@ -138,6 +143,10 @@ sub vrot_axis {
         + $vz * ($ct + $uz*$uz*(1-$ct));
 
     return ref($self)->new(coords => $coords);
+}
+
+if(defined __PACKAGE__->meta){
+    __PACKAGE__->meta->make_immutable;
 }
 
 1;
