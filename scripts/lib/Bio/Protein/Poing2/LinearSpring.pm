@@ -4,14 +4,7 @@ use warnings;
 use utf8;
 use Carp;
 use Bio::Protein::Poing2::Atom;
-use Bio::Protein::Poing2::Vector;
-
-#Load class syntax sugar
-BEGIN {
-    if   (require Moose){ Moose->import }
-    elsif(require Mouse){ Mouse->import }
-    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
-};
+use Moose;
 
 =head1 NAME
 
@@ -56,7 +49,5 @@ sub string_repr {
 
 =cut
 
-if(defined __PACKAGE__->meta){
-    __PACKAGE__->meta->make_immutable;
-}
+__PACKAGE__->meta->make_immutable;
 1;

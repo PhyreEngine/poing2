@@ -1,13 +1,8 @@
 package Bio::Protein::Poing2::Filter::Pair::SeqSep;
 use strict;
 use warnings;
-
-#Load class syntax sugar
-BEGIN {
-    if   (require Moose){ Moose->import }
-    elsif(require Mouse){ Mouse->import }
-    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
-};
+use Bio::Protein::Poing2;
+use Moose;
 
 =head1 NAME
 
@@ -59,8 +54,6 @@ sub filter {
     return \@new_pairs;
 }
 
-if(defined __PACKAGE__->meta){
-    __PACKAGE__->meta->make_immutable;
-}
+__PACKAGE__->meta->make_immutable;
 
 1;

@@ -3,12 +3,10 @@ use strict;
 use warnings;
 use Carp;
 
-#Load class syntax sugar
-BEGIN {
-    if   (require Moose){ Moose->import }
-    elsif(require Mouse){ Mouse->import }
-    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
-};
+use Moose;
+use Exporter qw(import);
+our @EXPORT = qw(V);
+
 
 has coords => (is => 'ro', default => sub{[0,0,0]});
 
@@ -19,8 +17,13 @@ use overload
     '/'   => 'divide',
     '=='  => 'equals',
     'neg' => 'unary_minus',
-    '.'   => 'dot',
-    'x'   => 'cross';
+    'x'   => 'cross',
+    'abs' => 'mag';
+
+sub V {
+    my @coords = @_;
+    return __PACKAGE__->new(coords => \@coords);
+}
 
 sub _verify_dimensions {
     my ($a, $b) = @_;
@@ -54,7 +57,7 @@ sub multiply {
     if(!ref($other)){
         return $self->_multiply_scalar($other);
     }else{
-        croak "Vector multiplication not implemented.";
+        return $self->dot($other);
     }
 }
 
@@ -111,7 +114,7 @@ sub cross {
 
 sub mag {
     my ($self) = @_;
-    return sqrt($self . $self);
+    return sqrt($self * $self);
 }
 
 #Rotate self around a given axis
@@ -145,8 +148,6 @@ sub vrot_axis {
     return ref($self)->new(coords => $coords);
 }
 
-if(defined __PACKAGE__->meta){
-    __PACKAGE__->meta->make_immutable;
-}
+__PACKAGE__->meta->make_immutable;
 
 1;

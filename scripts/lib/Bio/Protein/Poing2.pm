@@ -6,14 +6,7 @@ use Bio::Protein::Poing2::Fourmer;
 use Bio::Protein::Poing2::IO::Fasta;
 use Bio::Protein::Poing2::IO::PDB;
 use Bio::Protein::Poing2::Data qw(%BB_BB_len);
-
-#Load class syntax sugar
-BEGIN {
-    if   (require Moose){ Moose->import }
-    elsif(require Mouse){ Mouse->import }
-    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
-};
-
+use Moose;
 
 =head1 NAME
 
@@ -152,13 +145,13 @@ sub pairs {
                         push @{$pairs}, Bio::Protein::Poing2::LinearSpring->new(
                             atom_1 => $a1,
                             atom_2 => $a2,
-                            distance => ($a1->coords - $a2->coords)->mag,
+                            distance => abs($a1->coords - $a2->coords),
                         );
                     }
                 }
             }
         }
-        print "\n";
+        print STDERR "\n" if $self->verbose;
     }
 
     for my $filter(@{$self->pair_filters}){
@@ -196,11 +189,19 @@ sub all_fourmers {
         my $template = $self->template_residues->{$template_id};
 
 
+        my $done = 0;
+        my $nres = keys %{$template};
         for my $residue_idx(keys %{$template}){
+            if($self->verbose){
+                printf STDERR "\rBuilding fourmers for %s: %2.1f%%",
+                    $template_id,
+                    (++$done) / $nres * 100;
+            }
             #See if we can add a phi fourmer.
             my $fourmer = $self->build_fourmer($template, $residue_idx, $spec);
             push @fourmers, $fourmer if defined $fourmer;
         }
+        print STDERR "\n" if $self->verbose;
     }
     return @fourmers;
 }
@@ -314,7 +315,5 @@ sub init_coarse_sc {
     }
 }
 
-if(defined __PACKAGE__->meta){
-    __PACKAGE__->meta->make_immutable;
-}
+__PACKAGE__->meta->make_immutable;
 1;

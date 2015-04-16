@@ -6,13 +6,8 @@ use Carp;
 use Bio::Protein::Poing2::Data qw(%CA_SC_len %BB_BB_len @AA1);
 use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::LinearSpring;
-
-#Load class syntax sugar
-BEGIN {
-    if   (require Moose){ Moose->import }
-    elsif(require Mouse){ Mouse->import }
-    else {require parent; parent->import('Bio::Protein::Poing2::Class') }
-};
+use Bio::Protein::Poing2;
+use Moose;
 
 #Allow overloading to string
 use overload q{""} => 'threeletter';
@@ -233,7 +228,5 @@ sub string_repr {
 
 =cut
 
-if(defined __PACKAGE__->meta){
-    __PACKAGE__->meta->make_immutable;
-}
+__PACKAGE__->meta->make_immutable;
 1;
