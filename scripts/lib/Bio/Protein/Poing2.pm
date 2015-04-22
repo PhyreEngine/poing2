@@ -113,6 +113,33 @@ sub template_residues {
     return $self->{template_residues};
 }
 
+=item C<set_positions()>
+
+Set positions of atoms from templates.
+
+=cut
+
+sub set_positions {
+    my ($self) = @_;
+
+    my $residues = $self->residues;
+    for my $t1(@{$self->pdbs}){
+        my $res_list = $self->template_residues->{$t1};
+
+        for my $r1(sort {$a <=> $b} keys %{$res_list}){
+            my $template_res = $res_list->{$r1};
+            my $set_res = $residues->{$r1};
+            next unless defined $set_res;
+
+            for my $template_atom(@{$template_res->atoms}){
+                #Atom to set coords of
+                my $to_set = $set_res->atom_by_name($template_atom->name);
+                $to_set->coords($template_atom->coords) if $to_set;
+            }
+        }
+    }
+}
+
 =item C<pairs()>
 
 Get an arrayref of residue pairs, represented by
