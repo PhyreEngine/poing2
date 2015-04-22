@@ -68,17 +68,17 @@ void model_accumulate_forces(struct model *m){
     //Then go through all springs and accumulate forces on the residues
     #pragma omp parallel for shared(linear_springs)
     for(size_t i=0; i < m->num_linear_springs; i++){
-        struct linear_spring s = linear_springs[i];
+        struct linear_spring *s = &linear_springs[i];
 
-        if(s.a->synthesised && s.b->synthesised){
-            if(!s.a->fixed){
-                linear_spring_force(&force, &s, A);
-                vadd_to(&s.a->force, &force);
+        if(s->a->synthesised && s->b->synthesised){
+            if(!s->a->fixed){
+                linear_spring_force(&force, s, A);
+                vadd_to(&s->a->force, &force);
             }
 
-            if(!s.b->fixed){
-                linear_spring_force(&force, &s, B);
-                vadd_to(&s.b->force, &force);
+            if(!s->b->fixed){
+                linear_spring_force(&force, s, B);
+                vadd_to(&s->b->force, &force);
             }
         }
     }
@@ -86,21 +86,21 @@ void model_accumulate_forces(struct model *m){
     //Torsion springs
     #pragma omp parallel for shared(torsion_springs)
     for(size_t i=0; i < m->num_torsion_springs; i++){
-        struct torsion_spring s = torsion_springs[i];
+        struct torsion_spring *s = &torsion_springs[i];
 
-        if(s.a1->synthesised
-                && s.a2->synthesised
-                && s.a3->synthesised
-                && s.a4->synthesised){
+        if(s->a1->synthesised
+                && s->a2->synthesised
+                && s->a3->synthesised
+                && s->a4->synthesised){
 
-            if(!s.a1->fixed){
-                torsion_spring_force(&force, &s, R1);
-                vadd_to(&s.a1->force, &force);
+            if(!s->a1->fixed){
+                torsion_spring_force(&force, s, R1);
+                vadd_to(&s->a1->force, &force);
             }
 
-            if(!s.a4->fixed){
-                torsion_spring_force(&force, &s, R4);
-                vadd_to(&s.a4->force, &force);
+            if(!s->a4->fixed){
+                torsion_spring_force(&force, s, R4);
+                vadd_to(&s->a4->force, &force);
             }
         }
     }
