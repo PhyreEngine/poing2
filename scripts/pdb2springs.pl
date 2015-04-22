@@ -179,7 +179,7 @@ $pairs = filter_by_seq_sep($pairs,
 
 $pairs = filter_by_dist($pairs, $options{'max-dist'}) if $options{'max-dist'};
 
-$pairs = add_sidechains($pairs, $query) unless $options{'all-bb'} || $options{'no-sc'};
+$pairs = add_sidechains($pairs, $query) unless $options{'no-sc'};
 
 $pairs = add_bb_springs($pairs, scalar(@{$query}),
     $backbone_linkage_prev, $backbone_linkage_cur) unless $options{'no-add-bb'};
@@ -324,7 +324,7 @@ sub print_query {
         }continue{ $i++ }
 
         #Print sidechain
-        if($aa ne 'G' && (!$options{'all-bb'} && !$options{'no-sidechains'})){
+        if($aa ne 'G' && (!$options{'no-sidechains'})){
             printf $atom_rec,
                 $res * $atoms_per_res + $i,
                 sprintf('%-3s', $one2three{$aa}),
