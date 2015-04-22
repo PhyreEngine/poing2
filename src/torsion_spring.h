@@ -28,8 +28,13 @@ void torsion_spring_free(struct torsion_spring *s);
 void torsion_spring_axis(struct vector *dst, struct torsion_spring *s);
 void torsion_spring_torque(struct vector *dst, struct torsion_spring *s);
 double torsion_spring_angle(struct torsion_spring *s);
-void torsion_spring_force(struct vector *dst, struct torsion_spring *s,
-        enum torsion_unit on);
+
+void torsion_spring_force(
+        struct vector *f1,
+        struct vector *f2,
+        struct vector *f3,
+        struct vector *f4,
+        struct torsion_spring *s);
 
 #endif /* TORSION_SPRING_H_ */
 

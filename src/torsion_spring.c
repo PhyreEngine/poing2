@@ -2,6 +2,9 @@
 #include <math.h>
 #include "torsion_spring.h"
 
+static void torsion_spring_force_single(struct vector *dst, struct
+        torsion_spring *s, enum torsion_unit on);
+
 struct torsion_spring * torsion_spring_alloc(
         struct atom *a1, struct atom *a2,
         struct atom *a3, struct atom *a4,
@@ -80,7 +83,19 @@ void torsion_spring_torque(struct vector *dst, struct torsion_spring *s){
     vmul(dst, &axis, torque_mag);
 }
 
-void torsion_spring_force(struct vector *dst, struct torsion_spring *s,
+void torsion_spring_force(
+        struct vector *f1,
+        struct vector *f2,
+        struct vector *f3,
+        struct vector *f4,
+        struct torsion_spring *s){
+    vector_zero(f2);
+    vector_zero(f3);
+    torsion_spring_force_single(f1, s, R1);
+    torsion_spring_force_single(f4, s, R4);
+}
+
+void torsion_spring_force_single(struct vector *dst, struct torsion_spring *s,
         enum torsion_unit on){
 
     double angle = torsion_spring_angle(s);
@@ -138,4 +153,100 @@ void torsion_spring_force(struct vector *dst, struct torsion_spring *s,
     vcross(dst, &torque, &rej);
     //Correct magnitude by arm length
     vmul_by(dst, (on == R1) ? -tau/r : tau/r);
+}
+
+/**
+ * Here, we calculate the force on each atom of a torsion spring from a
+ * potential energy function.  We use the CHARMM method (Blondel & Karplus
+ * 1995: Noew Formulation for Derivatives of Torsion Angles and Improper
+ * Torsion Angles in Molecular Mechanics: Elimination of Singularities) rather
+ * than the GROMACS method (GROMACS manual, sec 4.2.13 and Allen & Tildesley
+ * (pp. 330-332)).
+ *
+ * The force \f$\vec{F}_i\f$ on particle \f$i\f$ at coordinates \f$\vec{r_i}\f$
+ * is given by
+ * \f{eqnarray*}
+ *      \vec{F}_i &=& -\vec_{\vec{r}}\nabla U(\phi)
+ *                &=& -\frac{\partial U(\phi)}{\partial x}\vec{i}
+ *                    -\frac{\partial U(\phi)}{\partial y}\vec{j}
+ *                    -\frac{\partial U(\phi)}{\partial j}\vec{z}
+ * \f}
+ * where \f$\vec{\vec{r_i}}\f$ indicates the gradient in cartesian coordinates,
+ * \f$\phi\f$ is the dihedral angle and \f$U(\phi\f$ is the potential function.
+ *
+ * From the chain rule,
+ * \f[
+ *      \frac{\partial U(\phi)}{\partial x} =
+ *          \frac{\partial U(\phi)}{\partial \phi} \cdot
+ *          \frac{\partial \phi}{\partial x}.
+ * \f]
+
+ * The partial derivatives \f$ \partial \phi / \partial \vec{r}_i \f$ are given
+ * by Blondel and Karplus (eqns 27).
+ */
+
+void torsion_spring_force_new(
+        struct vector *f1,
+        struct vector *f2,
+        struct vector *f3,
+        struct vector *f4,
+        struct torsion_spring *s){
+
+    struct vector tmp;
+    double angle = torsion_spring_angle(s);
+
+    //Get the dE/dphi part.  As a quick test, let's just use
+    //-cos(phi-phi0) as the potential well. That gives us a force of
+    //+sin(phi-phi0).
+    double force = sin(angle - s->angle);
+
+    //Bond vectors according to naming in Blondel & Karplus
+    struct vector F, G, H;
+    vsub(&F, &s->a1->position, &s->a2->position);
+    vsub(&G, &s->a2->position, &s->a3->position);
+    vsub(&H, &s->a4->position, &s->a3->position);
+
+    //Intermediate vectors, again named according to B&K
+    struct vector A, B;
+    vcross(&A, &F, &G);
+    vcross(&B, &H, &G);
+
+    //d \phi / d r_i (i.e. for first atom)
+    vector_copy_to(f1, &A);
+    vmul_by(f1, - force * vmag(&G) / (vmag(&A) * vmag(&A)));
+
+    //d \phi / d r_j (i.e. for second atom)
+    vector_zero(f2);
+    //First term
+    vector_copy_to(&tmp, &A);
+    vmul_by(&tmp, force * vmag(&G) / (vmag(&A) * vmag(&A)));
+    vadd_to(f2, &tmp);
+    //Second term
+    vector_copy_to(&tmp, &A);
+    vmul_by(&tmp, force * vdot(&F, &G) / (vmag(&A) * vmag(&A) *  vmag(&G)));
+    vadd_to(f2, &tmp);
+    //third term
+    vector_copy_to(&tmp, &B);
+    vmul_by(&tmp, -force * vdot(&H, &G) / (vmag(&B) * vmag(&B) *  vmag(&G)));
+    vadd_to(f2, &tmp);
+
+
+    //d \phi / d r_k (i.e. for third atom)
+    vector_zero(f3);
+    //First term
+    vector_copy_to(&tmp, &B);
+    vmul_by(&tmp, force * vdot(&H, &G) / (vmag(&B) * vmag(&B) * vmag(&G)));
+    vadd_to(f3, &tmp);
+    //Second term
+    vector_copy_to(&tmp, &A);
+    vmul_by(&tmp, -force * vdot(&F, &G) / (vmag(&A) * vmag(&A) * vmag(&G)));
+    vadd_to(f3, &tmp);
+    //Third term
+    vector_copy_to(&tmp, &B);
+    vmul_by(&tmp, -force * vmag(&G) / (vmag(&B) * vmag(&B)));
+    vadd_to(f3, &tmp);
+
+    //Fourth atom
+    vector_copy_to(f4, &B);
+    vmul_by(f4, force * vmag(&G) / (vmag(&B) * vmag(&B)));
 }

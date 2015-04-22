@@ -73,32 +73,44 @@ int main(int argc, char **argv){
     is_vector(&torque, &result, 1e-10, "Torque at -45 degrees (angle=45)");
 
     //Calculate the force applied to the atom to supply this torque
+    struct vector null1, null2, null3; //vectors to ignore
     s->angle = 0;
     s->constant = 1;
     vector_fill(&a4[0].position, 2, 2, 1);
     vector_fill(&result, -3*M_PI/16, 3*M_PI/16, 0);
-    torsion_spring_force(&force, s, R4);
+    torsion_spring_force(&null1, &null2, &null3, &force, s);
     is_vector(&force, &result, 1e-10, "Force test 1 (on R4)");
 
     vector_fill(&result, 0, 3*M_PI/4, 0);
-    torsion_spring_force(&force, s, R1);
+    torsion_spring_force(&force, &null1, &null2, &null3, s);
     is_vector(&force, &result, 1e-10, "Force test 1 (on R1)");
 
     //Move R4 around to check signs
     vector_fill(&a4[0].position, 2, -2, 1);
     vector_fill(&result, -3*M_PI/16, -3*M_PI/16, 0);
-    torsion_spring_force(&force, s, R4);
+    torsion_spring_force(&null1, &null2, &null3, &force, s);
     is_vector(&force, &result, 1e-10, "Force test 2 (on R4)");
 
     vector_fill(&result, 0, -3*M_PI/4, 0);
-    torsion_spring_force(&force, s, R1);
+    torsion_spring_force(&force, &null1, &null2, &null3, s);
     is_vector(&force, &result, 1e-10, "Force test 2 (on R1)");
 
     //Force should only depend on the perpendicular distance from the axis
     vector_fill(&a4[0].position, 2, -2, 2);
     vector_fill(&result, -3*M_PI/16, -3*M_PI/16, 0);
-    torsion_spring_force(&force, s, R4);
+    torsion_spring_force(&null1, &null2, &null3, &force, s);
     is_vector(&force, &result, 1e-10, "Force test 3 (on R4)");
+
+    //Try the new force method
+    struct vector f1, f2, f3, f4;
+    vector_zero(&f1);
+    vector_zero(&f2);
+    vector_zero(&f3);
+    vector_zero(&f4);
+
+    s->angle = 45;
+    vector_fill(&a4[0].position, 0, 1, 1);
+    torsion_spring_force_new(&f1, &f2, &f3, &f4, s);
 
     done_testing();
 }
