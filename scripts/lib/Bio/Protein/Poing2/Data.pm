@@ -6,7 +6,7 @@ use utf8;
 #Allow import of symbols
 require Exporter;
 use base 'Exporter';
-our @EXPORT_OK = qw(%CA_SC_len %BB_BB_len $PI @AA1 @AA3);
+our @EXPORT_OK = qw(%CA_SC_len %BB_BB_len $PI @AA1 @AA3 %fine_bb_links);
 
 =head1 NAME
 
@@ -111,6 +111,51 @@ our %BB_BB_len = (
     C  => {N  => 1.3298236446806,  O  => 1.23203299355537},
     N  => {CA => 1.45999906298163                         },
     CA => {C  => 1.53135743668343, CA => 3.8              },
+);
+
+=item C<%fine_bb_links>: Links between atoms in a fine backbone.
+
+For example, to initialise springs between atoms of a set of residues:
+
+    for my $res_i_idx(keys %residues){
+        my $res_i = $residues{$res_i_idx};
+
+        # $atom_i will be the atom name in $res_i
+        for my $atom_i_name(keys %Bio::Protein::Poing2::fine_bb_links){
+            for my $link(@{$Bio::Protein::Poing2::fine_bb_links{$atom_i_name}}){
+                my $atom_i = $res_i->atom_by_name($atom_i_name);
+
+                #Get connected residue
+                my $res_j = $residues{$res_i_idx + $link->{increment}};
+
+                #Residue might not exist
+                next if !$res_j;
+
+                #Add spring between atoms i and j
+                my $atom_j = $res_j->atom_by_name($link->{atom});
+                push @springs, Bio::Protein::Poing2::LinearSpring->new(
+                    atom_1 => $atom_i,
+                    atom_2 => $atom_2,
+                    distance => $Bio::Protein::Poing2::BB_BB_len{$atom_i_name}->{$link->{atom}};
+                );
+            }
+        }
+    }
+
+=cut
+
+our %fine_bb_links = (
+    C  => [{increment => +1, atom => 'N'}, {increment => 0, atom => 'O'}],
+    N  => [{increment =>  0, atom => 'CA'}],
+    CA => [{increment =>  0, atom => 'C'}],
+);
+
+=item C<%coarse_bb_links>: Coarse backbone links. See C<$fine_bb_links>.
+
+=cut
+
+our %coarse_bb_links = (
+    CA => [{increment => +1, atom => 'CA'}],
 );
 
 =item C<@phi_links>: Links used when calculating the φ dihedral angle (TODO:
