@@ -94,7 +94,7 @@ sub threeletter {
 sub atom_by_name {
     my ($self, $name) = @_;
     my @matching = grep {$_->name eq $name} @{$self->atoms};
-    return @matching;
+    return @matching > 0 ? $matching[0] : undef;
 }
 
 =item C<add_sidechain([$index])>: Add a sidechain atom to this residue.
@@ -134,6 +134,17 @@ If C<$start> is supplied, the index of the added atoms begins at C<$start>.
 sub init_coarse_bb {
     my ($self, $start) = @_;
     $self->init_atoms(['CA'], $start);
+}
+
+=item C<init_fine_bb([$start])>: Add fine backbone atoms.
+
+If C<$start> is supplied, the index of the added atoms begins at C<$start>.
+
+=cut
+
+sub init_fine_bb {
+    my ($self, $start) = @_;
+    $self->init_atoms([keys %Bio::Protein::Poing2::Data::backbone], $start);
 }
 
 =item C<init_coarse_sc([$start])>: Add coarse sidechain atoms.

@@ -285,20 +285,62 @@ Initialise residues with coarse backbone representation.
 sub init_coarse_bb {
     my ($self) = @_;
 
-    for my $resi(sort {$a <=> $b} keys %{$self->residues}){
-        my $res = $self->residues->{$resi};
-        $res->init_coarse_bb;
-        if($self->residues->{$resi - 1}){
-            my $prev = $self->residues->{$resi - 1};
-            push @{$self->pairs}, Bio::Protein::Poing2::LinearSpring->new(
-                atom_1 => $prev->atom_by_name('CA'),
-                atom_2 => $res->atom_by_name('CA'),
-                distance => $BB_BB_len{CA}->{CA},
-            );
+    #Add atoms to BB
+    $_->init_coarse_bb for values %{$self->residues};
+
+    #Add springs
+    $self->init_bb_springs(\%Bio::Protein::Poing2::Data::coarse_bb_links);
+}
+
+=item C<init_fine_bb()>:
+
+Initialise residues with fine backbone representation.
+
+=cut
+
+sub init_fine_bb {
+    my ($self) = @_;
+
+    #Add atoms to BB
+    $_->init_fine_bb for values %{$self->residues};
+
+    #Add springs
+    $self->init_bb_springs(\%Bio::Protein::Poing2::Data::fine_bb_links);
+}
+
+=item C<init_bb_springs($links)>:
+
+Initialise backbone springs according to some link specification. See, for
+example, C<%Bio::Protein::Poing2::Data::fine_bb_links>.
+
+=cut
+
+sub init_bb_springs {
+    my ($self, $links) = @_;
+
+    for my $res_i_idx(sort {$a <=> $b} keys %{$self->residues}){
+        my $res_i = $self->residues->{$res_i_idx};
+
+        # $atom_i will be the atom name in $res_i
+        for my $atom_i_name(keys %{$links}){
+            for my $link(@{$links->{$atom_i_name}}){
+                my $atom_i = $res_i->atom_by_name($atom_i_name);
+
+                #Get connected residue
+                my $res_j = $self->residues->{$res_i_idx + $link->{increment}};
+                #Residue might not exist
+                next if !$res_j;
+
+                #Add spring between atoms i and j
+                my $atom_j = $res_j->atom_by_name($link->{atom});
+                push @{$self->pairs}, Bio::Protein::Poing2::LinearSpring->new(
+                    atom_1 => $atom_i,
+                    atom_2 => $atom_j,
+                    distance => $Bio::Protein::Poing2::BB_BB_len{$atom_i_name}->{$link->{atom}},
+                );
+            }
         }
     }
-
-    $_->init_coarse_bb for values %{$self->residues};
 }
 
 =item C<init_coarse_sc()>:
@@ -311,7 +353,17 @@ sub init_coarse_sc {
     my ($self) = @_;
     for(values %{$self->residues}){
         $_->init_coarse_sc;
-        push @{$self->pairs}, @{$_->internal_springs};
+
+        my $ca_atom = $_->atom_by_name('CA');
+        my $sc_atom = $_->atom_by_name($_->threeletter);
+        if($sc_atom && $ca_atom){
+            push @{$self->pairs}, Bio::Protein::Poing2::LinearSpring->new(
+                atom_1 => $ca_atom,
+                atom_2 => $sc_atom,
+                distance => $Bio::Protein::Poing2::Data::CA_SC_len{$_->threeletter},
+            );
+        }
+
     }
 }
 
