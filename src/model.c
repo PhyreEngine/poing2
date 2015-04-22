@@ -99,16 +99,16 @@ void model_accumulate_forces(struct model *m){
                     &spring_forces[1],
                     &spring_forces[2],
                     &spring_forces[3],
-                    &s);
+                    s);
 
-            if(!s.a1->fixed)
-                vadd_to(&s.a1->force, &spring_forces[0]);
-            if(!s.a2->fixed)
-                vadd_to(&s.a2->force, &spring_forces[1]);
-            if(!s.a3->fixed)
-                vadd_to(&s.a3->force, &spring_forces[2]);
-            if(!s.a4->fixed)
-                vadd_to(&s.a4->force, &spring_forces[3]);
+            if(!s->a1->fixed)
+                vadd_to(&s->a1->force, &spring_forces[0]);
+            if(!s->a2->fixed)
+                vadd_to(&s->a2->force, &spring_forces[1]);
+            if(!s->a3->fixed)
+                vadd_to(&s->a3->force, &spring_forces[2]);
+            if(!s->a4->fixed)
+                vadd_to(&s->a4->force, &spring_forces[3]);
         }
     }
 
