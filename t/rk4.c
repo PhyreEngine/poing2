@@ -9,74 +9,12 @@
 #include "../src/linear_spring.h"
 #include "../src/torsion_spring.h"
 #include "../src/vector.h"
-#include "tap.h"
 
-
-int main(int argc, char **argv){
-#ifdef _GNU_SOURCE
-    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
-#endif
-    plan(2);
-/*
-    struct residue *r1 = residue_alloc(AA_lookup("G", 1));
-    struct residue *r2 = residue_alloc(AA_lookup("G", 1));
-    struct residue residues[2];
-    residues[0] = *r1;
-    residues[1] = *r2;
-
-    struct linear_spring *s = linear_spring_alloc(2.0, 1.0, r1, r2);
-    vector_fill(r1->position, -0.5, 0, 0);
-    vector_fill(r2->position, +0.5, 0, 0);
-    struct linear_spring springs[1];
-    springs[0] = *s;
-
-    struct model *m = model_alloc();
-    m->num_residues        = 2;
-    m->num_linear_springs  = 1;
-    m->num_torsion_springs = 0;
-    m->residues            = residues;
-    m->linear_springs      = springs;
-
-    rk4_push(m, 0.1);
-    ok(r1->position[0] < -0.5, "Moved r1 in the correct direction");
-    ok(r2->position[0] > +0.5, "Moved r2 in the correct direction");
-
-    for(int i=0; i < 1000; i++){
-        printf("%g %g %g %g %g %g %g %g %g %g %g %g\n",
-                r1->position[0], r1->position[1], r1->position[2],
-                r2->position[0], r2->position[1], r2->position[2],
-                r1->velocity[0], r1->velocity[1], r1->velocity[2],
-                r2->velocity[0], r2->velocity[1], r2->velocity[2]);
-        rk4_push(m, 0.1);
-    }
-    */
-
-    const char *spec = 
-        "timestep = 0.01\n"
-        "synth_time = 1\n"
-        "[PDB]\n"
-        "ATOM      1  CA  GLU A   1       0.000   0.000   0.000\n"
-        "ATOM      2  CA  GLU A   2       0.000   0.000   0.000\n"
-        "ATOM      3  CA  GLU A   3       0.000   0.000   0.000\n"
-        "ATOM      4  CA  GLU A   4       0.000   0.000   0.000\n"
-        "[Linear]\n"
-        "1 CA 2 CA 1.0 1.0\n"
-        "2 CA 3 CA 1.0 1.0\n"
-        "3 CA 4 CA 1.0 1.0\n"
-        "[Torsion]\n"
-        "1 2 3 4 -45 0.01\n"
-        ;
-
+void run(const char *spec, const char *out){
     struct model state;
     struct model *m = springreader_parse_str(spec);
-    for(size_t i = 0; i < 4; i++)
-        m->residues[i].num_atoms = 1;
-    vector_fill(&m->residues[0].atoms[0].position, -1, 0, 0);
-    vector_fill(&m->residues[1].atoms[0].position,  0, 0, 0);
-    vector_fill(&m->residues[2].atoms[0].position,  0, 0, 1);
-    vector_fill(&m->residues[3].atoms[0].position,  0, 1, 1);
 
-    FILE *fout = fopen("test.csv", "w");
+    FILE *fout = fopen(out, "w");
     for(int i=0; i < 10000; i++){
         model_synth(&state, m);
         if(i % 10 == 0){
@@ -88,8 +26,71 @@ int main(int argc, char **argv){
         m->time = state.time;
     }
     fclose(fout);
+    model_free(m);
+}
 
+int main(int argc, char **argv){
+#ifdef _GNU_SOURCE
+    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+#endif
 
+    const char *lin_spec =
+        "timestep = 0.01\n"
+        "synth_time = 1\n"
+        "shield_drag = false\n"
+        "drag_coefficient = -0.5\n"
+        "[PDB]\n"
+        "ATOM      1  CA  GLY A   1      -1.000   0.000   0.000\n"
+        "ATOM      2  CA  GLY A   2       0.000   0.000   0.000\n"
+        "ATOM      3  CA  GLY A   3       0.000   0.000   1.000\n"
+        "ATOM      4  CA  GLY A   4       0.000   1.000   1.000\n"
+        "[Linear]\n"
+        "1 CA 2 CA 3.8 1.0\n"
+        "2 CA 3 CA 3.8 1.0\n"
+        "3 CA 4 CA 3.8 1.0\n"
+        ;
 
-    done_testing();
+    const char *angle_spec =
+        "timestep = 0.01\n"
+        "synth_time = 1\n"
+        "shield_drag = false\n"
+        "drag_coefficient = -0.5\n"
+        "[PDB]\n"
+        "ATOM      1  CA  GLY A   1      -1.000   0.000   0.000\n"
+        "ATOM      2  CA  GLY A   2       0.000   0.000   0.000\n"
+        "ATOM      3  CA  GLY A   3       0.000   0.000   1.000\n"
+        "ATOM      4  CA  GLY A   4       0.000   1.000   1.000\n"
+        "[Linear]\n"
+        "1 CA 2 CA 3.8 1.0\n"
+        "2 CA 3 CA 3.8 1.0\n"
+        "3 CA 4 CA 3.8 1.0\n"
+        "[Angle]\n"
+        "1 CA 2 CA 3 CA 90 0.1\n"
+        "2 CA 3 CA 4 CA 90 0.1\n"
+        ;
+
+    const char *torsion_spec =
+        "timestep = 0.01\n"
+        "synth_time = 1\n"
+        "shield_drag = false\n"
+        "drag_coefficient = -0.5\n"
+        "[PDB]\n"
+        "ATOM      1  CA  GLY A   1      -1.000   0.000   0.000\n"
+        "ATOM      2  CA  GLY A   2       0.000   0.000   0.000\n"
+        "ATOM      3  CA  GLY A   3       0.000   0.000   1.000\n"
+        "ATOM      4  CA  GLY A   4       0.000   1.000   1.000\n"
+        "[Linear]\n"
+        "1 CA 2 CA 3.8 1.0\n"
+        "2 CA 3 CA 3.8 1.0\n"
+        "3 CA 4 CA 3.8 1.0\n"
+        "[Angle]\n"
+        "1 CA 2 CA 3 CA 90 0.1\n"
+        "2 CA 3 CA 4 CA 90 0.1\n"
+        "[Torsion]\n"
+        "1 CA 2 CA 3 CA 4 CA 45 0.5\n"
+        ;
+
+    run(lin_spec, "linear_spring.csv");
+    run(angle_spec, "angle_spring.csv");
+    run(torsion_spec, "torsion_spring.csv");
 }

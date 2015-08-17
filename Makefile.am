@@ -12,7 +12,7 @@ check_PROGRAMS=test_springreader test_vector \
 			   test_sterics test_bond_angle
 TESTS=test_springreader test_vector \
 	  test_linear_spring test_torsion_spring \
-	  test_rk4 test_model test_residue \
+	  test_model test_residue \
 	  test_sterics test_bond_angle
 BUILT_SOURCES=data/AA.c data/atoms.c
 SUFFIXES=.gperf
