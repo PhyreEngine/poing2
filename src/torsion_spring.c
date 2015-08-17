@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 #include "torsion_spring.h"
 
 static void torsion_spring_force_single(struct vector *dst, struct
@@ -158,7 +159,7 @@ void torsion_spring_force_single(struct vector *dst, struct torsion_spring *s,
 /**
  * Here, we calculate the force on each atom of a torsion spring from a
  * potential energy function.  We use the CHARMM method (Blondel & Karplus
- * 1995: Noew Formulation for Derivatives of Torsion Angles and Improper
+ * 1995: New Formulation for Derivatives of Torsion Angles and Improper
  * Torsion Angles in Molecular Mechanics: Elimination of Singularities) rather
  * than the GROMACS method (GROMACS manual, sec 4.2.13 and Allen & Tildesley
  * (pp. 330-332)).
@@ -193,12 +194,6 @@ void torsion_spring_force_new(
         struct torsion_spring *s){
 
     struct vector tmp;
-    double angle = torsion_spring_angle(s);
-
-    //Get the dE/dphi part.  As a quick test, let's just use
-    //-cos(phi-phi0) as the potential well. That gives us a force of
-    //+sin(phi-phi0).
-    double force = sin(angle - s->angle);
 
     //Bond vectors according to naming in Blondel & Karplus
     struct vector F, G, H;
@@ -210,6 +205,14 @@ void torsion_spring_force_new(
     struct vector A, B;
     vcross(&A, &F, &G);
     vcross(&B, &H, &G);
+
+    //Get the dE/dphi part.  As a quick test, let's just use
+    //-cos(phi-phi0) as the potential well. That gives us a force of
+    //-sin(phi-phi0).
+    //double angle = acos(vdot(&A, &B) / (vmag(&A) * vmag(&B)));
+    vcross(&tmp, &B, &A);
+    double angle = torsion_spring_angle(s);
+    double force = -sin((angle - s->angle) / 180 * M_PI);
 
     //d \phi / d r_i (i.e. for first atom)
     vector_copy_to(f1, &A);

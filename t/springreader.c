@@ -24,7 +24,10 @@ const char *pdb =
 "1 CA 3 CA 3.0 0.2\n"
 "3 CA 4 CA 4.0 0.3 0.1\n"
 "[Torsion]\n"
-"1 CA 2 CA 3 CA 4 TYR 40 0.1\n";
+"1 CA 2 CA 3 CA 4 TYR 40 0.1\n"
+"[Angle]\n"
+"1 CA 2 CA 3 CA 45 0.1\n"
+;
 
 void check_model(struct model *m){
     fis(m->timestep, 0.01, 1e-10, "Timestep");
@@ -67,10 +70,16 @@ void check_model(struct model *m){
     ok(m->torsion_springs[0].a4->id == m->residues[3].atoms[1].id, "Torsion a4 = a4");
     ok(abs(m->torsion_springs[0].angle - 40) < 1e9, "Angle correct");
     ok(abs(m->torsion_springs[0].constant - 0.1) < 1e9, "Constant correct");
+
+    ok(m->bond_angles[0].a1->id == m->residues[0].atoms[0].id, "Angle a1 = a1");
+    ok(m->bond_angles[0].a2->id == m->residues[1].atoms[0].id, "Angle a2 = a2");
+    ok(m->bond_angles[0].a3->id == m->residues[2].atoms[0].id, "Angle a3 = a3");
+    ok(abs(m->bond_angles[0].angle - 45) < 1e9, "Angle correct");
+    ok(abs(m->bond_angles[0].constant - 0.1) < 1e9, "Constant correct");
 }
 
 int main(int argc, char **argv){
-    plan(62);
+    plan(72);
 
     struct model *ms = springreader_parse_str(pdb);
     check_model(ms);

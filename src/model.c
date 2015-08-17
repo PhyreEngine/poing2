@@ -18,10 +18,12 @@ struct model *model_alloc(){
 
     m->num_linear_springs = 0;
     m->num_torsion_springs = 0;
+    m->num_bond_angles = 0;
     m->num_residues = 0;
     m->residues = NULL;
     m->linear_springs = NULL;
     m->torsion_springs = NULL;
+    m->bond_angles = NULL;
     m->time = 0;
     m->until = 0;
     m->timestep = 0.1;
@@ -47,6 +49,7 @@ void model_free(struct model *m){
     free(m->residues);
     free(m->linear_springs);
     free(m->torsion_springs);
+    free(m->bond_angles);
     free(m);
 }
 
@@ -57,6 +60,7 @@ void model_accumulate_forces(struct model *m){
     struct residue *residues = m->residues;
     struct linear_spring *linear_springs = m->linear_springs;
     struct torsion_spring *torsion_springs = m->torsion_springs;
+    struct bond_angle_spring *bond_angles = m->bond_angles;
 
     //Begin by zeroing out any existing forces
     #pragma omp parallel for shared(residues)
@@ -94,7 +98,7 @@ void model_accumulate_forces(struct model *m){
                 && s->a4->synthesised){
 
             struct vector spring_forces[4];
-            torsion_spring_force(
+            torsion_spring_force_new(
                     &spring_forces[0],
                     &spring_forces[1],
                     &spring_forces[2],
@@ -109,6 +113,31 @@ void model_accumulate_forces(struct model *m){
                 vadd_to(&s->a3->force, &spring_forces[2]);
             if(!s->a4->fixed)
                 vadd_to(&s->a4->force, &spring_forces[3]);
+        }
+    }
+
+    //Bond angle constraints
+    #pragma omp parallel for shared(torsion_springs)
+    for(size_t i=0; i < m->num_bond_angles; i++){
+        struct bond_angle_spring *s = &bond_angles[i];
+
+        if(s->a1->synthesised
+                && s->a2->synthesised
+                && s->a3->synthesised){
+
+            struct vector spring_forces[3];
+            bond_angle_force(
+                    &spring_forces[0],
+                    &spring_forces[1],
+                    &spring_forces[2],
+                    s);
+
+            if(!s->a1->fixed)
+                vadd_to(&s->a1->force, &spring_forces[0]);
+            if(!s->a2->fixed)
+                vadd_to(&s->a2->force, &spring_forces[1]);
+            if(!s->a3->fixed)
+                vadd_to(&s->a3->force, &spring_forces[2]);
         }
     }
 

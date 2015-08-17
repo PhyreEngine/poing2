@@ -8,12 +8,14 @@
 #include "residue.h"
 #include "linear_spring.h"
 #include "torsion_spring.h"
+#include "bond_angle.h"
 
 enum section {
     PREAMBLE,
     LINEAR_SPRINGS,
     TORSION_SPRINGS,
     PDB,
+    ANGLES,
     UNKNOWN
 };
 
@@ -24,6 +26,8 @@ static void parse_preamble_line(
 static void parse_linear_spring_line(
         const char *line, struct model *m);
 static void parse_torsion_spring_line(
+        const char *line, struct model *m);
+static void parse_bond_angle_line(
         const char *line, struct model *m);
 static void parse_pdb_line(
         const char *line, struct model *m);
@@ -101,6 +105,8 @@ enum section parse_section_header(const char *line){
         return TORSION_SPRINGS;
     else if(strcmp(section_name, "pdb") == 0)
         return PDB;
+    else if(strcmp(section_name, "angle") == 0)
+        return ANGLES;
     return UNKNOWN;
 }
 
@@ -224,6 +230,74 @@ bool scan_bool(const char *line, const char *value){
                 value, line);
         return false;
     }
+}
+
+void parse_bond_angle_line(const char *line, struct model *m){
+    //Residue numbers
+    int r1, r2, r3;
+    //Atom names
+    char na1[4], na2[4], na3[4];
+    double angle, constant, cutoff;
+
+    int num_matched = sscanf(line, "%d %s %d %s %d %s %lf %lf %lf",
+            &r1, na1, &r2, na2, &r3, na3,
+            &angle, &constant, &cutoff);
+    switch(num_matched){
+        case 8:
+            cutoff = -1;
+        case 9:
+            break;
+        default:
+            fprintf(stderr, "Couldn't interpret torsion spring: %s\n", line);
+            return;
+    }
+
+    int r[3] = {r1, r2, r3};
+    for(size_t i=0; i < 3; i++){
+        if(r[i] <= 0 || r[i] > m->num_residues){
+            fprintf(stderr, "Residue %d does not exist -- ignoring spring.\n",
+                    r[i]);
+            return;
+        }
+    }
+
+    //Alter the indexing; the file uses 1-indexing, we use 0-indexing
+    r1--;
+    r2--;
+    r3--;
+
+    m->num_bond_angles++;
+    m->bond_angles = realloc(
+            m->bond_angles,
+            m->num_bond_angles * sizeof(*m->bond_angles));
+    struct atom *a1, *a2, *a3;
+    a1 = a2 = a3 = NULL;
+
+    for(size_t i=0; i < m->residues[r1].num_atoms; i++)
+        if(strcmp(m->residues[r1].atoms[i].name, na1) == 0)
+            a1 = &m->residues[r1].atoms[i];
+
+    for(size_t i=0; i < m->residues[r2].num_atoms; i++)
+        if(strcmp(m->residues[r2].atoms[i].name, na2) == 0)
+            a2 = &m->residues[r2].atoms[i];
+
+    for(size_t i=0; i < m->residues[r3].num_atoms; i++)
+        if(strcmp(m->residues[r3].atoms[i].name, na3) == 0)
+            a3 = &m->residues[r3].atoms[i];
+
+    if(a1 == NULL || a2 == NULL || a3 == NULL){
+        fprintf(stderr,
+                "Error reading line. "
+                "I'm continuing, but this is probably very bad. "
+                "Fix your springs file. Offending line:\n"
+                "%s",
+                line);
+    }else{
+        bond_angle_spring_init(&m->bond_angles[m->num_bond_angles-1],
+                a1, a2, a3,
+                angle, constant);
+    }
+
 }
 
 void parse_torsion_spring_line(const char *line, struct model *m){
@@ -375,6 +449,9 @@ void parse_line(const char *line, struct model *m, enum section *section){
                 break;
             case PDB:
                 parse_pdb_line(line, m);
+                break;
+            case ANGLES:
+                parse_bond_angle_line(line, m);
                 break;
             case UNKNOWN:
                 //Ignore lines in unknown section

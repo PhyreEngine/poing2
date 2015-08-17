@@ -35,6 +35,12 @@ void torsion_spring_force(
         struct vector *f3,
         struct vector *f4,
         struct torsion_spring *s);
+void torsion_spring_force_new(
+        struct vector *f1,
+        struct vector *f2,
+        struct vector *f3,
+        struct vector *f4,
+        struct torsion_spring *s);
 
 #endif /* TORSION_SPRING_H_ */
 

@@ -7,6 +7,7 @@
 #include "residue.h"
 #include "linear_spring.h"
 #include "torsion_spring.h"
+#include "bond_angle.h"
 
 #define DEFAULT_MAX_SYNTH_ANGLE 45
 struct steric_grid;
@@ -21,6 +22,8 @@ struct model {
     size_t num_torsion_springs;
     ///Number of residues
     size_t num_residues;
+    ///Number of bond angle constraints.
+    size_t num_bond_angles;
 
     ///Residues
     struct residue *residues;
@@ -28,6 +31,8 @@ struct model {
     struct linear_spring *linear_springs;
     ///Torsion springs
     struct torsion_spring *torsion_springs;
+    ///Bond angle springs
+    struct bond_angle_spring *bond_angles;
 
     ///Current time
     double time;
