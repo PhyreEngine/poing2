@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Bio::Protein::Poing2::LinearSpring;
 use Bio::Protein::Poing2::Fourmer;
+use Bio::Protein::Poing2::BondAngle;
 use Bio::Protein::Poing2::IO::Fasta;
 use Bio::Protein::Poing2::IO::PDB;
 use Bio::Protein::Poing2::Data qw(%BB_BB_len);
@@ -58,6 +59,14 @@ Arrayref of atom filters.
 =cut
 
 has atom_filters => (is => 'ro', default => sub { [] });
+
+=item C<angles>
+
+Arrayref of bond angles.
+
+=cut
+
+has angles => (is => 'ro', default => sub{ [] });
 
 =back
 
@@ -201,6 +210,7 @@ sub fourmers {
     my @fourmers = ();
     push @fourmers, $self->all_fourmers(\@Bio::Protein::Poing2::Data::phi_links);
     push @fourmers, $self->all_fourmers(\@Bio::Protein::Poing2::Data::psi_links);
+    push @fourmers, $self->all_fourmers(\@Bio::Protein::Poing2::Data::omega_links);
     $self->{fourmers} = \@fourmers;
 
     return $self->{fourmers};
@@ -283,6 +293,11 @@ sub string_repr {
     push @lines, "[Torsion]\n";
     for my $torsion(@{$self->fourmers}){
         push @lines, $torsion->string_repr;
+    }
+
+    push @lines, "[Angle]\n";
+    for my $angle(@{$self->angles}){
+        push @lines, $angle->string_repr;
     }
     return join q{}, @lines;
 }
@@ -391,6 +406,56 @@ sub init_coarse_sc {
             );
         }
 
+    }
+}
+
+sub init_fine_bb_angles {
+    my ($self) = @_;
+    $self->init_bb_angles(\%Bio::Protein::Poing2::Data::fine_bb_angles);
+}
+
+=item C<init_bb_angles($links)>:
+
+Initialise backbone angles according to some link specification. See, for
+example, C<%Bio::Protein::Poing2::Data::fine_bb_links>.
+
+=cut
+
+sub init_bb_angles {
+    my ($self, $links) = @_;
+
+    for my $res_i_idx(sort {$a <=> $b} keys %{$self->residues}){
+        my $res_i = $self->residues->{$res_i_idx};
+
+        #$atom_i_name will be the atom name in $res_i
+        for my $atom_i_name(keys %{$links}){
+            my $atom_i = $res_i->atom_by_name($atom_i_name);
+
+            for my $link(@{$links->{$atom_i_name}}){
+
+                my $atom_j_name = $link->{atoms}[0]{atom};
+                my $atom_k_name = $link->{atoms}[1]{atom};
+
+                my $atom_j_increment = $link->{atoms}[0]{increment};
+                my $atom_k_increment = $link->{atoms}[1]{increment};
+
+                my $angle = $link->{angle};
+
+                my $res_j = $self->residues->{$res_i_idx + $atom_j_increment};
+                my $res_k = $self->residues->{$res_i_idx + $atom_k_increment};
+
+                #Residue might not exist
+                next if !$res_j || !$res_k;
+
+                #Add spring between atoms i and j
+                my $atom_j = $res_j->atom_by_name($atom_j_name);
+                my $atom_k = $res_k->atom_by_name($atom_k_name);
+
+                push @{$self->{angles}}, Bio::Protein::Poing2::BondAngle->new(
+                    atoms => [$atom_i, $atom_j, $atom_k],
+                );
+            }
+        }
     }
 }
 

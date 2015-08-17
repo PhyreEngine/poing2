@@ -158,6 +158,52 @@ our %coarse_bb_links = (
     CA => [{increment => +1, atom => 'CA'}],
 );
 
+our %fine_bb_angles = (
+    C => [
+        {
+            atoms => [
+                {increment => +1, atom => 'N'},
+                {increment => +1, atom => 'CA'}
+            ],
+            angle => 121.7,
+        },
+    ],
+    CA => [
+        {
+            atoms => [
+                {increment =>  0, atom => 'C'},
+                {increment => +1, atom => 'N'},
+            ],
+            angle => 117.5,
+        },
+        {
+            atoms => [
+                {increment =>  0, atom => 'C'},
+                {increment =>  0, atom => 'O'},
+            ],
+            angle => 121.5,
+        },
+    ],
+    N => [
+        {
+            atoms => [
+                {increment => 0, atom => 'CA'},
+                {increment => 0, atom => 'C'},
+            ],
+            angle => 111.6
+        },
+    ],
+    O => [
+        {
+            atoms => [
+                {increment =>  0, atom => 'C'},
+                {increment => +1, atom => 'N'},
+            ],
+            angle => 123.0
+        },
+    ],
+);
+
 =item C<@phi_links>: Links used when calculating the φ dihedral angle (TODO:
 reference build_dihedral_sets).
 
