@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Bio::Protein::Poing2::LinearSpring;
 use Bio::Protein::Poing2::Fourmer;
+use Bio::Protein::Poing2::Ramachandran;
 use Bio::Protein::Poing2::BondAngle;
 use Bio::Protein::Poing2::IO::Fasta;
 use Bio::Protein::Poing2::IO::PDB;
@@ -67,6 +68,14 @@ Arrayref of bond angles.
 =cut
 
 has angles => (is => 'ro', default => sub{ [] });
+
+=item C<ss>
+
+Secondary structure string.
+
+=cut
+
+has ss => (is => 'ro', default => q{}, isa => 'Str');
 
 =back
 
@@ -234,6 +243,12 @@ sub all_fourmers {
                     $template_id,
                     (++$done) / $nres * 100;
             }
+
+            #First, check if the residue type has changed (e.g. general -> GLY)
+            my $actual_res_type   = $self->residues->{$residue_idx}->rama_type;
+            my $template_res_type = $template->{$residue_idx}->rama_type;
+            next if $actual_res_type ne $template_res_type;
+
             #See if we can add a phi fourmer.
             my $fourmer = $self->build_fourmer($template, $residue_idx, $spec);
             push @fourmers, $fourmer if defined $fourmer;
@@ -241,6 +256,43 @@ sub all_fourmers {
         print STDERR "\n" if $self->verbose;
     }
     return @fourmers;
+}
+
+=item C<ramachandran()>
+
+Get arrayref of Ramachandran constraints.
+
+=cut
+
+sub ramachandran {
+    my ($self) = @_;
+    return $self->{ramachandran} if defined $self->{ramachandran};
+
+    my @rama = ();
+    for my $residue_idx(keys %{$self->residues}){
+        my $next_actual_res   = $self->residues->{$residue_idx + 1};
+
+        #First, check if this is a pre-proline
+        my $actual_type   = $self->residues->{$residue_idx}->rama_type;
+
+        #Explicitly mark this as a pre-proline unless both the template and
+        #query sequence have the proline in the same place and the type of
+        #the pre-proline has not changed.
+        if($next_actual_res && $next_actual_res->threeletter eq 'PRO'){
+            #Mark as pre-proline
+            push @rama, Bio::Protein::Poing2::Ramachandran->new(
+                residue => $residue_idx,
+                type    => 'PRE_PROLINE',
+            );
+        }else{
+            push @rama, Bio::Protein::Poing2::Ramachandran->new(
+                residue => $residue_idx,
+                type    => $actual_type,
+            );
+        }
+    }
+    $self->{ramachandran} = \@rama;
+    return $self->{ramachandran};
 }
 
 #Look at each residue and those residues behind it to see if we can add
@@ -298,6 +350,11 @@ sub string_repr {
     push @lines, "[Angle]\n";
     for my $angle(@{$self->angles}){
         push @lines, $angle->string_repr;
+    }
+
+    push @lines, "[Ramachandran]\n";
+    for my $rama(@{$self->ramachandran}){
+        push @lines, $rama->string_repr;
     }
     return join q{}, @lines;
 }

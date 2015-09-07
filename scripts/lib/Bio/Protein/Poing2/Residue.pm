@@ -235,6 +235,25 @@ sub string_repr {
     return join q{}, map {$_->string_repr()} @{$self->atoms};
 }
 
+=item C<rama_type()>: Get Ramachandran type. Returns "GENERAL", "PROLINE",
+"GLYCINE", or "ALANINE".
+
+=cut
+
+sub rama_type {
+    my ($self) = @_;
+
+    if($self->threeletter eq 'PRO'){
+        return 'PROLINE';
+    }elsif($self->threeletter eq 'GLY'){
+        return 'GLYCINE';
+    }elsif($self->threeletter eq 'ALA'){
+        return 'ALANINE';
+    }else{
+        return 'GENERAL';
+    }
+}
+
 =back
 
 =cut
