@@ -70,6 +70,7 @@ extern struct atom_description * atom_description_lookup (
 void atom_init(struct atom *a, int id, const char *name);
 void atom_set_atom_description(struct atom *a,
         const struct atom_description *aa);
+struct atom *residue_get_atom(const struct residue *r, const char *name);
 
 void residue_synth(
         struct residue *r,

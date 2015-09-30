@@ -59,6 +59,19 @@ struct atom * residue_push_atom(struct residue *r, int id, const char *name){
 }
 
 /**
+ * Get an atom with the given name from the residue. Returns NULL if the atom is
+ * not found.
+ */
+struct atom *residue_get_atom(const struct residue *r, const char *name){
+    for(size_t i=0; i < r->num_atoms; i++){
+        struct atom *a = &r->atoms[i];
+        if(strcmp(a->name, name) == 0)
+            return a;
+    }
+    return NULL;
+}
+
+/**
  * Synthesise (i.e. set position and synthesised flag) a new residue.
  *
  * Here, a residue is "synthesised" by placing all atoms into the system and

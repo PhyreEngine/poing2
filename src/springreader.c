@@ -9,6 +9,7 @@
 #include "linear_spring.h"
 #include "torsion_spring.h"
 #include "bond_angle.h"
+#include "rama.h"
 
 enum section {
     PREAMBLE,
@@ -16,6 +17,7 @@ enum section {
     TORSION_SPRINGS,
     PDB,
     ANGLES,
+    RAMA,
     UNKNOWN
 };
 
@@ -28,6 +30,8 @@ static void parse_linear_spring_line(
 static void parse_torsion_spring_line(
         const char *line, struct model *m);
 static void parse_bond_angle_line(
+        const char *line, struct model *m);
+static void parse_rama_line(
         const char *line, struct model *m);
 static void parse_pdb_line(
         const char *line, struct model *m);
@@ -107,6 +111,8 @@ enum section parse_section_header(const char *line){
         return PDB;
     else if(strcmp(section_name, "angle") == 0)
         return ANGLES;
+    else if(strcmp(section_name, "ramachandran") == 0)
+        return RAMA;
     return UNKNOWN;
 }
 
@@ -300,6 +306,41 @@ void parse_bond_angle_line(const char *line, struct model *m){
 
 }
 
+static void parse_rama_line(
+        const char *line, struct model *m){
+    //Residue number
+    int res_num;
+    //Type
+    char type_str[strlen(line)];
+
+    //Check for the rama data
+    char filename[strlen(line)];
+    if(sscanf(line, "%s = %s", type_str, filename) == 2){
+        rama_read_closest(filename, rama_parse_type(type_str));
+        return;
+    }
+
+    int num_matched = sscanf(line, "%d %s", &res_num, type_str);
+    if(num_matched != 2){
+        fprintf(stderr, "Couldn't interpret Rama constraint: %s\n", line);
+        return;
+    }
+
+    m->num_rama_constraints++;
+    m->rama_constraints = realloc(
+            m->rama_constraints,
+            m->num_rama_constraints
+            * sizeof(*m->rama_constraints));
+
+    struct residue *res      = &m->residues[res_num - 1];
+    struct residue *next_res = &m->residues[res_num];
+
+    rama_init(
+            &m->rama_constraints[m->num_rama_constraints - 1],
+            res, next_res, type_str);
+    rama_random_init(&m->rama_constraints[m->num_rama_constraints - 1]);
+}
+
 void parse_torsion_spring_line(const char *line, struct model *m){
     //Residue numbers
     int r1, r2, r3, r4;
@@ -452,6 +493,9 @@ void parse_line(const char *line, struct model *m, enum section *section){
                 break;
             case ANGLES:
                 parse_bond_angle_line(line, m);
+                break;
+            case RAMA:
+                parse_rama_line(line, m);
                 break;
             case UNKNOWN:
                 //Ignore lines in unknown section

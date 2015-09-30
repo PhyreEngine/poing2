@@ -24,6 +24,8 @@ struct model {
     size_t num_residues;
     ///Number of bond angle constraints.
     size_t num_bond_angles;
+    ///Number of Ramachandran constraints
+    size_t num_rama_constraints;
 
     ///Residues
     struct residue *residues;
@@ -33,6 +35,8 @@ struct model {
     struct torsion_spring *torsion_springs;
     ///Bond angle springs
     struct bond_angle_spring *bond_angles;
+    ///Ramachandran constraints
+    struct rama_constraint *rama_constraints;
 
     ///Current time
     double time;
