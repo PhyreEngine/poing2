@@ -252,4 +252,10 @@ void torsion_spring_force_new(
     //Fourth atom
     vector_copy_to(f4, &B);
     vmul_by(f4, force * vmag(&G) / (vmag(&B) * vmag(&B)));
+
+    //Multiply by constant
+    vmul_by(f1, s->constant);
+    vmul_by(f2, s->constant);
+    vmul_by(f3, s->constant);
+    vmul_by(f4, s->constant);
 }

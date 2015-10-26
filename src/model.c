@@ -100,10 +100,12 @@ void model_accumulate_forces(struct model *m){
     //Ramachandran constraints
     for(size_t i=0; i < m->num_rama_constraints; i++){
         struct rama_constraint *rama = &m->rama_constraints[i];
-        rama_get_closest(rama);
-        if(rama->enabled){
-            add_torsion_force(rama->phi);
-            add_torsion_force(rama->psi);
+        if(rama_is_synthesised(rama)){
+            rama_get_closest(rama);
+            if(rama->enabled){
+                add_torsion_force(rama->phi);
+                add_torsion_force(rama->psi);
+            }
         }
     }
 

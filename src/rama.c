@@ -35,12 +35,18 @@ static struct phi_psi **rama_data(enum rama_constraint_type type){
     }
 }
 
+int rama_is_inited(enum rama_constraint_type type){
+    return (*(rama_data(type))) != NULL;
+}
+
 /** Read a file containing several grid points. At each grid point, we have the
  * coordinates of the boundary of the nearest Ramachandran region.
  *
  * For the moment, we will just assume 1 degree bins.
  *
  * Upon error, this function returns a non-zero value.
+ *
+ * This function expects to read values in the range 0--360, not -180--180.
  */
 int rama_read_closest(const char *file, enum rama_constraint_type type){
     int retval = 0;
@@ -91,6 +97,8 @@ int rama_read_closest(const char *file, enum rama_constraint_type type){
                     nread, num_points);
             goto read_error;
         }
+        //We dont' remove the 180 degree offset when reading so that we can use
+        //negative numbers as a flag to indicate missing values.
         (*points)[phi * 360 + psi].phi = to_phi;
         (*points)[phi * 360 + psi].psi = to_psi;
     }
@@ -124,6 +132,20 @@ void rama_random_init(struct rama_constraint *rama){
 }
 
 /**
+ * Return true if all atoms in this constraint are synthesised.
+ */
+int rama_is_synthesised(struct rama_constraint *rama){
+    return rama->phi->a1->synthesised &&
+        rama->phi->a2->synthesised &&
+        rama->phi->a3->synthesised &&
+        rama->phi->a4->synthesised &&
+        rama->psi->a1->synthesised &&
+        rama->psi->a2->synthesised &&
+        rama->psi->a3->synthesised &&
+        rama->psi->a4->synthesised;
+}
+
+/**
  * Parse a type string into an enum.
  */
 enum rama_constraint_type rama_parse_type(const char *type){
@@ -151,14 +173,11 @@ int rama_get_closest(struct rama_constraint *rama){
 
     double phi_f = torsion_spring_angle(rama->phi);
     double psi_f = torsion_spring_angle(rama->psi);
-    if(phi_f < 0)
-        phi_f += 180;
-    if(psi_f < 0)
-        psi_f += 180;
 
-    //Round to nearest grid point.
-    int phi_grid = (int)(phi_f + 0.5);
-    int psi_grid = (int)(psi_f + 0.5);
+    //Round to nearest grid point. Remember that the grid goes from 0--360, not
+    //-180--180.
+    int phi_grid = (int)(phi_f + 180 + 0.5);
+    int psi_grid = (int)(psi_f + 180 + 0.5);
 
     struct phi_psi **points = rama_data(rama->type);
     if(!points){
@@ -173,13 +192,16 @@ int rama_get_closest(struct rama_constraint *rama){
     }
 
     struct phi_psi *closest = &((*points)[phi_grid * 360 + psi_grid]);
+
+
     if(closest->phi < 0 || closest->psi < 0){
         //If we are in an allowed Ramachandran region, disable the constraint.
         rama->enabled = false;
     }else{
-        //Update the torsion spring.
-        rama->phi->angle = closest->phi;
-        rama->psi->angle = closest->psi;
+        //Update the torsion spring.  Remember that the data files are from
+        //0-360, whereas we use -180 -- 180
+        rama->phi->angle = closest->phi - 180;
+        rama->psi->angle = closest->psi - 180;
         rama->enabled = true;
     }
 error:
@@ -192,23 +214,25 @@ error:
 void rama_init(struct rama_constraint *rama,
         struct residue *residue,
         struct residue *next_residue,
-        const char *type){
+        struct residue *prev_residue,
+        const char *type,
+        float constant){
 
     rama->type = rama_parse_type(type);
     rama->enabled = true;
 
-    struct atom *phi_C  = residue_get_atom(residue, "C");
+    struct atom *phi_prev_C  = residue_get_atom(prev_residue, "C");
     struct atom *phi_N  = residue_get_atom(residue, "N");
     struct atom *phi_CA = residue_get_atom(residue, "CA");
-    struct atom *phi_next_C = residue_get_atom(next_residue, "C");
+    struct atom *phi_C  = residue_get_atom(residue, "C");
     //TODO: Get a good constant
-    rama->phi = torsion_spring_alloc(phi_C, phi_N, phi_CA, phi_next_C, 0, 1);
+    rama->phi = torsion_spring_alloc(phi_prev_C, phi_N, phi_CA, phi_C, 0, constant);
 
     struct atom *psi_N  = residue_get_atom(residue, "N");
     struct atom *psi_CA = residue_get_atom(residue, "CA");
     struct atom *psi_C  = residue_get_atom(residue, "C");
     struct atom *psi_next_N = residue_get_atom(next_residue, "N");
-    rama->psi = torsion_spring_alloc(psi_N, psi_CA, psi_C, psi_next_N, 0, 1);
+    rama->psi = torsion_spring_alloc(psi_N, psi_CA, psi_C, psi_next_N, 0, constant);
 }
 
 void rama_free_data(){

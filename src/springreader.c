@@ -17,6 +17,7 @@ enum section {
     TORSION_SPRINGS,
     PDB,
     ANGLES,
+    RAMA_DATA,
     RAMA,
     UNKNOWN
 };
@@ -30,6 +31,8 @@ static void parse_linear_spring_line(
 static void parse_torsion_spring_line(
         const char *line, struct model *m);
 static void parse_bond_angle_line(
+        const char *line, struct model *m);
+static void parse_rama_data_line(
         const char *line, struct model *m);
 static void parse_rama_line(
         const char *line, struct model *m);
@@ -111,6 +114,8 @@ enum section parse_section_header(const char *line){
         return PDB;
     else if(strcmp(section_name, "angle") == 0)
         return ANGLES;
+    else if(strcmp(section_name, "ramachandran data") == 0)
+        return RAMA_DATA;
     else if(strcmp(section_name, "ramachandran") == 0)
         return RAMA;
     return UNKNOWN;
@@ -306,10 +311,8 @@ void parse_bond_angle_line(const char *line, struct model *m){
 
 }
 
-static void parse_rama_line(
+static void parse_rama_data_line(
         const char *line, struct model *m){
-    //Residue number
-    int res_num;
     //Type
     char type_str[strlen(line)];
 
@@ -317,28 +320,54 @@ static void parse_rama_line(
     char filename[strlen(line)];
     if(sscanf(line, "%s = %s", type_str, filename) == 2){
         rama_read_closest(filename, rama_parse_type(type_str));
-        return;
+    }else{
+        fprintf(stderr, "Couldn't interpret line: %s\n", line);
     }
+}
 
-    int num_matched = sscanf(line, "%d %s", &res_num, type_str);
-    if(num_matched != 2){
+static void parse_rama_line(
+        const char *line, struct model *m){
+    //Residue number
+    int res_num;
+    //Type
+    char type_str[strlen(line)];
+    float constant = DEFAULT_RAMA_CONST;
+
+    int num_matched = sscanf(line, "%d %s %f", &res_num, type_str, &constant);
+    if(num_matched < 2 || num_matched > 3){
         fprintf(stderr, "Couldn't interpret Rama constraint: %s\n", line);
         return;
     }
 
-    m->num_rama_constraints++;
-    m->rama_constraints = realloc(
-            m->rama_constraints,
-            m->num_rama_constraints
-            * sizeof(*m->rama_constraints));
+    if(!rama_is_inited(rama_parse_type(type_str))){
+        fprintf(stderr,
+                "Ramachandran type %s is not initialised! "
+                "Use the 'ramachandran data' section",
+                type_str);
+        exit(1);
+    }
 
-    struct residue *res      = &m->residues[res_num - 1];
-    struct residue *next_res = &m->residues[res_num];
+    //For residue i, the phi angle needs the previous residue to exist (res_num
+    //>= 2) and the psi angle needs the next residue to exist (res_num <
+    //m->num_residues).
+    if(res_num < m->num_residues && res_num >= 2){
 
-    rama_init(
-            &m->rama_constraints[m->num_rama_constraints - 1],
-            res, next_res, type_str);
-    rama_random_init(&m->rama_constraints[m->num_rama_constraints - 1]);
+        m->num_rama_constraints++;
+        m->rama_constraints = realloc(
+                m->rama_constraints,
+                m->num_rama_constraints
+                * sizeof(*m->rama_constraints));
+
+        //res_num is 1-indexed, but we used 0-indexing
+        struct residue *res      = &m->residues[res_num - 1];
+        struct residue *next_res = &m->residues[res_num];
+        struct residue *prev_res = &m->residues[res_num - 2];
+
+        rama_init(
+                &m->rama_constraints[m->num_rama_constraints - 1],
+                res, next_res, prev_res, type_str, constant);
+        rama_random_init(&m->rama_constraints[m->num_rama_constraints - 1]);
+    }
 }
 
 void parse_torsion_spring_line(const char *line, struct model *m){
@@ -493,6 +522,9 @@ void parse_line(const char *line, struct model *m, enum section *section){
                 break;
             case ANGLES:
                 parse_bond_angle_line(line, m);
+                break;
+            case RAMA_DATA:
+                parse_rama_data_line(line, m);
                 break;
             case RAMA:
                 parse_rama_line(line, m);

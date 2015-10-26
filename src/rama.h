@@ -5,6 +5,8 @@
 #include "residue.h"
 #include "torsion_spring.h"
 
+#define DEFAULT_RAMA_CONST 0.5
+
 enum rama_constraint_type {
     GENERAL,
     ALPHA,
@@ -22,6 +24,7 @@ struct rama_constraint {
     bool enabled;
 };
 
+int rama_is_inited(enum rama_constraint_type type);
 int rama_read_closest(const char *file, enum rama_constraint_type type);
 int rama_get_closest(struct rama_constraint *rama);
 void rama_free_data();
@@ -29,7 +32,10 @@ enum rama_constraint_type rama_parse_type(const char *type);
 void rama_init(struct rama_constraint *rama,
         struct residue *residue,
         struct residue *next_residue,
-        const char *type);
+        struct residue *prev_residue,
+        const char *type,
+        float constant);
 void rama_random_init(struct rama_constraint *rama);
+int rama_is_synthesised(struct rama_constraint *rama);
 
 #endif //RAMA_H_
