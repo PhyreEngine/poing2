@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Bio::Protein::Poing2;
 use Moose;
+extends 'Bio::Protein::Poing2::Filter::Pair';
 
 =head1 NAME
 
