@@ -27,10 +27,10 @@ void steric_grid_init(struct steric_grid *grid, size_t divisions){
     double d3 = divisions * divisions * divisions;
     grid->divisions = divisions;
     grid->atom_grid = malloc(sizeof(struct atom *) * d3);
-    grid->num_atoms = malloc(sizeof(struct atom *) * d3);
+    grid->atoms_per_cell = malloc(sizeof(struct atom *) * d3);
     for(size_t i=0; i < d3; i++){
         grid->atom_grid[i] = NULL;
-        grid->num_atoms[i] = 0;
+        grid->atoms_per_cell[i] = 0;
     }
     vector_fill(&grid->min, 0, 0, 0);
     vector_fill(&grid->max, 0, 0, 0);
@@ -44,7 +44,7 @@ void steric_grid_free(struct steric_grid *grid){
         free(grid->atom_grid[i]);
 
     free(grid->atom_grid);
-    free(grid->num_atoms);
+    free(grid->atoms_per_cell);
     free(grid);
 }
 
@@ -66,7 +66,7 @@ void steric_grid_update(struct steric_grid *grid, struct model *model){
 
     double d3 = grid->divisions * grid->divisions * grid->divisions;
     for(size_t i=0; i < d3; i++)
-        grid->num_atoms[i] = 0;
+        grid->atoms_per_cell[i] = 0;
 
     for(size_t i=0; i < model->num_residues; i++){
         for(size_t j=0; j < model->residues[i].num_atoms; j++){
@@ -94,10 +94,10 @@ void steric_grid_update(struct steric_grid *grid, struct model *model){
 
             grid->atom_grid[index] = realloc(
                     grid->atom_grid[index],
-                    (grid->num_atoms[index] + 1) * sizeof(a));
+                    (grid->atoms_per_cell[index] + 1) * sizeof(a));
 
-            grid->atom_grid[index][grid->num_atoms[index]] = a;
-            grid->num_atoms[index]++;
+            grid->atom_grid[index][grid->atoms_per_cell[index]] = a;
+            grid->atoms_per_cell[index]++;
         }
     }
 }
@@ -156,7 +156,7 @@ void steric_grid_foreach_nearby(
                     + j * grid->divisions
                     + k;
                 struct atom **atoms = grid->atom_grid[index];
-                size_t num_atoms    = grid->num_atoms[index];
+                size_t num_atoms    = grid->atoms_per_cell[index];
                 for(size_t l=0; l < num_atoms; l++){
                     if(a != atoms[l]){
                         bool cont = (*lambda)(a, atoms[l], data);

@@ -13,7 +13,7 @@ struct steric_grid {
     struct vector min, max;
     size_t divisions;
     struct atom ***atom_grid;
-    size_t *num_atoms;
+    size_t *atoms_per_cell;
 };
 
 struct steric_grid *steric_grid_alloc(size_t divisions);
