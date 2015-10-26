@@ -57,7 +57,7 @@ secondary structure state.
 
 =cut
 
-has ss_state => (is => 'ro');
+has ss_state => (is => 'rw', isa => 'Maybe[Str]', default => undef);
 
 =item C<index()>: The index of the residue in the sequence.
 
@@ -140,11 +140,14 @@ sub init_coarse_bb {
 
 If C<$start> is supplied, the index of the added atoms begins at C<$start>.
 
+Returns the index of the next atom.
+
 =cut
 
 sub init_fine_bb {
     my ($self, $start) = @_;
     $self->init_atoms([keys %Bio::Protein::Poing2::Data::backbone], $start);
+    return ($start // 1) + @{$self->atoms};
 }
 
 =item C<init_coarse_sc([$start])>: Add coarse sidechain atoms.
@@ -234,29 +237,6 @@ sub string_repr {
     my ($self) = @_;
     return join q{}, map {$_->string_repr()} @{$self->atoms};
 }
-
-=item C<rama_type()>: Get Ramachandran type. Returns "GENERAL", "PROLINE",
-"GLYCINE", or "ALANINE".
-
-=cut
-
-sub rama_type {
-    my ($self) = @_;
-
-    if($self->threeletter eq 'PRO'){
-        return 'PROLINE';
-    }elsif($self->threeletter eq 'GLY'){
-        return 'GLYCINE';
-    }elsif($self->threeletter eq 'ALA'){
-        return 'ALANINE';
-    }else{
-        return 'GENERAL';
-    }
-}
-
-=back
-
-=cut
 
 __PACKAGE__->meta->make_immutable;
 1;

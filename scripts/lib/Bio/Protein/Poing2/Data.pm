@@ -222,10 +222,10 @@ reference build_dihedral_sets).
 =cut
 
 our @psi_links = (
-   {increment => -1, atom => 'N'},
-   {increment => -1, atom => 'CA'},
-   {increment => -1, atom => 'C'},
-   {increment =>  0, atom => 'N'},
+   {increment => 0, atom => 'N'},
+   {increment => 0, atom => 'CA'},
+   {increment => 0, atom => 'C'},
+   {increment => 1, atom => 'N'},
 );
 
 =item C<@omega_links>: Links used when calculating the ω dihedral angle(TODO:

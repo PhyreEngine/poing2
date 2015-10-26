@@ -6,12 +6,9 @@ use autodie;
 use Pod::Usage;
 use Getopt::Long;
 use Bio::Protein::Poing2;
-use Bio::Protein::Poing2::IO::Fasta;
-use Bio::Protein::Poing2::IO::PDB;
-use Bio::Protein::Poing2::Residue;
-use Bio::Protein::Poing2::Filter::Atom::Backbone;
+use Bio::Protein::Poing2::Query;
+use Bio::Protein::Poing2::Template;
 use Bio::Protein::Poing2::Filter::Pair::SeqSep;
-use Bio::Protein::Poing2::Filter::Pair::PruneLong;
 
 =head1 NAME
 
@@ -19,28 +16,24 @@ build_config.pl - Build confing for poing2 run
 
 =head1 USAGE
 
-B<build_config.pl> B<query.fasta> B<template1.pdb> [B<template2.pdb>] ...
-
-=head1 ARGUMENTS
-
-The first argument must be a FASTA file containing the query sequence. The
-remaining arguments are assumed to be PDB files containing templates.
+B<build_config.pl> B<query.fasta> [B<-t> I<aln.fasta>=I<model.pdb>] ...
 
 =head1 OPTIONS
 
 =over
 
+=item B<-t>, B<--template> I<template.fasta>=I<template.pdb>
+
+Add a template with alignment I<template.fasta> and model I<template.pdb>. This
+option can be repeated as many times as necessary.
+
+=item B<-s>, B<--ss> I<psipred.ss2>
+
+Psipred SS2 file containing a secondary structure prediction.
+
 =item B<-h>, B<--help>
 
 Display this help text.
-
-=item B<--bb-only>
-
-Only use backbone atoms.
-
-=item B<-v>, B<--verbose>
-
-Give a bit more information (to standard error) about what is happening.
 
 =back
 
@@ -53,45 +46,29 @@ my %options = (
 Getopt::Long::Configure(qw(bundling no_ignore_case));
 GetOptions(\%options,
     'help|h',
-    'coarse',
-    'verbose|v',
-    'min-seq-sep=i',
-    'max-seq-sep=i',
+    'template|t=s@',
+    'ss|s=s',
 ) or pod2usage(2);
 pod2usage(-verbose => 2, -noperldoc => 1, -exitval => 1) if $options{help};
 
-my $query     = shift || pod2usage('No sequence provided.');
-my @templates = @ARGV;
+my $query_file = shift || pod2usage('No sequence provided.');
 
-my @atom_filters = ();
-my @pair_filters = ();
-push @pair_filters, Bio::Protein::Poing2::Filter::Pair::SeqSep->new(
-    min_sep => $options{'min-seq-sep'},
-    max_sep => $options{'max-seq-sep'},
+my $query = Bio::Protein::Poing2::Query->new(
+    sequence => $query_file,
+    ss       => $options{ss},
 );
-
-push @atom_filters, Bio::Protein::Poing2::Filter::Atom::Backbone->new();
-push @pair_filters, Bio::Protein::Poing2::Filter::Pair::PruneLong->new();
-
+my @templates = map {
+    my ($aln, $model) = split q{=};
+    Bio::Protein::Poing2::Template->new(
+        alignment => $aln,
+        model     => $model,
+)} @{$options{template}};
 
 my $poing2 = Bio::Protein::Poing2->new(
-    query => $query,
-    pdbs  => \@templates,
-    verbose => $options{verbose},
-
-    atom_filters => \@atom_filters,
-    pair_filters => \@pair_filters,
+    query     => $query,
+    templates => \@templates,
+    spring_filters => [
+        Bio::Protein::Poing2::Filter::Pair::SeqSep->new(min_sep => 3),
+    ],
 );
-
-if($options{coarse}){
-    $poing2->init_coarse_bb;
-    $poing2->init_coarse_sc;
-}else{
-    $poing2->init_fine_bb;
-    $poing2->init_fine_bb_angles;
-    $poing2->init_coarse_sc;
-}
-$poing2->renumber_atoms;
-$poing2->set_positions;
-
-print $poing2->string_repr;
+print $poing2;

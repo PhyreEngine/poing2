@@ -33,8 +33,9 @@ Requires the argument C<atoms>.
 has atoms => (is => 'ro', isa => 'ArrayRef', required => 1);
 has constant => (is => 'rw', default => 0.1);
 has cutoff => (is => 'rw', default => undef);
+has angle => (is => 'ro', lazy => 1, builder => '_calculate_angle');
 
-sub angle {
+sub _calculate_angle {
     my ($self) = @_;
     my ($rij) = $self->atoms->[0]->coords - $self->atoms->[1]->coords;
     my ($rkj) = $self->atoms->[2]->coords - $self->atoms->[1]->coords;
