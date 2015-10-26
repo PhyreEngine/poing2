@@ -121,7 +121,7 @@ int main(int argc, char **argv){
 
         /* Do synth steps */
         model_synth(&state, model);
-        rk4_push(&state);
+        leapfrog_push(&state);
 
         /* If we're doing a three-state synthesis then fix/unfix residues
          * and enable/disable torsion springs. */
