@@ -61,7 +61,8 @@ test_residue_SOURCES=t/residue.c src/model.c src/residue.c src/vector.c \
 test_sterics_CFLAGS=$(OPENMP_CFLAGS)
 test_sterics_SOURCES=t/sterics.c src/model.c src/residue.c src/vector.c \
 				   src/linear_spring.c src/torsion_spring.c src/springreader.c \
-				   src/sterics.c data/AA.c t/tap.c data/atoms.c src/bond_angle.c
+				   src/sterics.c data/AA.c t/tap.c data/atoms.c src/bond_angle.c \
+				   src/rama.c
 
 .gperf.c:
 	$(GPERF) $< --output-file $@

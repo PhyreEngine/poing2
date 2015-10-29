@@ -9,6 +9,7 @@
 #include "springreader.h"
 #include "model.h"
 #include "rk4.h"
+#include "leapfrog.h"
 #include "sterics.h"
 
 #ifdef _GNU_SOURCE
