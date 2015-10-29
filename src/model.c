@@ -21,6 +21,7 @@ struct model *model_alloc(){
 
     m->num_linear_springs = 0;
     m->num_torsion_springs = 0;
+    m->num_rama_constraints = 0;
     m->num_bond_angles = 0;
     m->num_residues = 0;
     m->residues = NULL;
