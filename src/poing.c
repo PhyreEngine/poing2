@@ -82,18 +82,17 @@ int main(int argc, char **argv){
 #if defined(_GNU_SOURCE) && !defined(__FAST_MATH__)
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
-    if(!fixed_seed){
-        srand(time(NULL) * getpid());
-    }else{
-        srand(random_seed);
-    }
-
-
     /* Get options and whatnot */
     char * spec = get_options(argc, argv);
     struct model *model = springreader_parse_file(spec);
     if(!model)
         return 2;
+
+    if(!fixed_seed){
+        srand(time(NULL) * getpid());
+    }else{
+        srand(random_seed);
+    }
 
     /* Open output file for kinetic energy if specified. */
     FILE *kinetic_out;
