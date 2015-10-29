@@ -32,6 +32,28 @@ void bond_angle_spring_free(struct bond_angle_spring *s){
     free(s);
 }
 
+double bond_angle_angle(struct bond_angle_spring *s){
+    //Bond vectors (j is atom 2, the central atom)
+    struct vector r_ij, r_kj;
+    vsub(&r_ij, &s->a1->position, &s->a2->position);
+    vsub(&r_kj, &s->a3->position, &s->a2->position);
+
+    //Calculate modulus of bond vectors
+    float r_ij_mod = vmag(&r_ij);
+    float r_kj_mod = vmag(&r_kj);
+
+    //Calculate theta
+    float cos_theta = vdot(&r_ij, &r_kj) / (r_ij_mod * r_kj_mod);
+
+    //Fix floating point inaccuracy
+    if(cos_theta < -1)
+        cos_theta = 1;
+    else if(cos_theta > 1)
+        cos_theta = 1;
+
+    return acos(cos_theta) * 180 / M_PI;
+}
+
 void bond_angle_force(
         struct vector *f1,
         struct vector *f2,

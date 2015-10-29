@@ -23,6 +23,7 @@ void bond_angle_spring_init(
         double angle, double constant);
 void bond_angle_spring_free(struct bond_angle_spring *s);
 
+double bond_angle_angle(struct bond_angle_spring *s);
 void bond_angle_force(
         struct vector *f1,
         struct vector *f2,

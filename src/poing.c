@@ -16,14 +16,19 @@
 #   include <fenv.h>
 #endif
 
+static void debug_file(FILE **f, const char *loc, const char *header);
+
 static struct option opts[] = { {"help",     no_argument,       0, 'h'},
     {"snapshot",   required_argument, 0, 's'},
     {"no-connect", no_argument,       0, 'c'},
     {"seed",       required_argument, 0, 'r'},
     {"kinetic",    required_argument, 0, 'k'},
+    {"debug-linear",  required_argument, 0, 'l'},
+    {"debug-angle",   required_argument, 0, 'a'},
+    {"debug-torsion", required_argument, 0, 't'},
     {0, 0, 0, 0}
 };
-const char *opt_str = "hs:u:s:k:r:";
+const char *opt_str = "hs:u:s:k:r:l:a:t:";
 
 const char *usage_str =
 "Usage: poing [OPTIONS] <SPEC>\n"
@@ -42,6 +47,8 @@ bool print_connect = true;
 bool fixed_seed = false;
 int random_seed = 0;
 char *kinetic = NULL;
+
+struct model_debug debug_opts = {NULL, NULL, NULL, NULL, 0, 0};
 
 void usage(const char *msg, int exitval){
     FILE *out = (exitval < 2) ? stdout : stderr;
@@ -71,11 +78,28 @@ char * get_options(int argc, char **argv){
             case 'k':
                 kinetic = optarg;
                 break;
+            case 'l':
+                debug_file(&debug_opts.linear, optarg, DEBUG_LINEAR_FIELDS);
+                break;
+            case 'a':
+                debug_file(&debug_opts.angle, optarg, DEBUG_ANGLE_FIELDS);
+                break;
+            case 't':
+                debug_file(&debug_opts.torsion, optarg, DEBUG_TORSION_FIELDS);
+                break;
         }
     }
     if(optind >= argc)
         usage("No specification file supplied.", 2);
     return argv[optind];
+}
+
+void debug_file(FILE **f, const char *loc, const char *header){
+    *f = fopen(loc, "w");
+    if(!(*f))
+        perror("Error opening debug file");
+    else
+        fprintf(*f, header);
 }
 
 int main(int argc, char **argv){
@@ -87,6 +111,8 @@ int main(int argc, char **argv){
     struct model *model = springreader_parse_file(spec);
     if(!model)
         return 2;
+    debug_opts.interval = snapshot;
+    model->debug = &debug_opts;
 
     if(!fixed_seed){
         srand(time(NULL) * getpid());
@@ -95,7 +121,7 @@ int main(int argc, char **argv){
     }
 
     /* Open output file for kinetic energy if specified. */
-    FILE *kinetic_out;
+    FILE *kinetic_out = NULL;
     if(kinetic){
         kinetic_out = fopen(kinetic, "w");
         if(!kinetic_out){
