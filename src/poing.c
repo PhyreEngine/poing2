@@ -108,8 +108,7 @@ int main(int argc, char **argv){
     /* Initialise steric grid if it is being used. */
     struct steric_grid *steric_grid = NULL;
     if(model->use_sterics || model->use_water || model->shield_drag){
-         steric_grid = steric_grid_alloc(
-                (int)ceil(cbrt(model->num_residues)));
+         steric_grid = steric_grid_alloc(6);
         model->steric_grid = steric_grid;
     }
 

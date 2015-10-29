@@ -2,6 +2,9 @@
 #include <math.h>
 #include "sterics.h"
 
+#define cube(x)   ((x) * (x) * (x))
+#define square(x) ((x) * (x))
+
 unsigned long long called = 0;
 static int min(int a, int b);
 static int max(int a, int b);
@@ -16,70 +19,52 @@ struct is_kick_good_args {
     struct vector *kick_point;
 };
 static bool should_apply_drag(struct atom *a, struct atom *b, void *data);
+static size_t coords_to_index(struct steric_grid *grid, int coords[3]);
 
-struct steric_grid *steric_grid_alloc(size_t divisions){
+struct steric_grid *steric_grid_alloc(double cell_size){
     struct steric_grid *sg = malloc(sizeof(struct steric_grid));
-    steric_grid_init(sg, divisions);
+    steric_grid_init(sg, cell_size);
     return sg;
 }
 
-void steric_grid_init(struct steric_grid *grid, size_t divisions){
-    double d3 = divisions * divisions * divisions;
-    grid->divisions = divisions;
-    grid->atom_grid = malloc(sizeof(struct atom *) * d3);
-    grid->atoms_per_cell = malloc(sizeof(struct atom *) * d3);
-    for(size_t i=0; i < d3; i++){
-        grid->atom_grid[i] = NULL;
-        grid->atoms_per_cell[i] = 0;
-    }
-    vector_fill(&grid->min, 0, 0, 0);
-    vector_fill(&grid->max, 0, 0, 0);
+void steric_grid_init(struct steric_grid *grid, double cell_size){
+    vector_zero(&grid->size);
+    grid->cell_size = cell_size;
+    grid->atom_grid = NULL;
 }
 
 void steric_grid_free(struct steric_grid *grid){
-    if(!grid)
-        return;
-    double d3 = grid->divisions * grid->divisions * grid->divisions;
-    for(size_t i=0; i < d3; i++)
-        free(grid->atom_grid[i]);
-
-    free(grid->atom_grid);
-    free(grid->atoms_per_cell);
-    free(grid);
 }
 
-/**
- * Generate a lattice with all atoms arranged on it.
+/** Generate a lattice with all atoms arranged on it.
  *
  * This will be used for calculating short-range forces like steric effects.
  * The grid will be split into cells each containing a list of atoms falling
- * into that cell. The size of the cells is given by the maximum volume taken
- * by the protein divided by the number of divisions specified.
+ * into that cell. The size of the cells is fixed and chosen to correspond to
+ * the steric cut-off.
  *
  * To update the grid, we first scan through the atoms and work out the minimum
- * and maximum values in all dimensions. This allows us to calculate the cell
- * size and we then scan through again and assign all atoms to a cell.
+ * and maximum values in all dimensions. This allows us to determine how many
+ * cells we need in each dimension. If the memory allocated to this steric grid
+ * is insufficient, we realloc it to expand.
  */
 void steric_grid_update(struct steric_grid *grid, struct model *model){
     vector_fill(&grid->min, INFINITY, INFINITY, INFINITY);
     vector_fill(&grid->max, -INFINITY, -INFINITY, -INFINITY);
 
-    double d3 = grid->divisions * grid->divisions * grid->divisions;
-    for(size_t i=0; i < d3; i++)
-        grid->atoms_per_cell[i] = 0;
-
+    //Find maximum extent of grid in all directions
+    int natoms = 0;
     for(size_t i=0; i < model->num_residues; i++){
         for(size_t j=0; j < model->residues[i].num_atoms; j++){
-            for(size_t k=0; k < N; k++){
-                grid->min.c[k] = fmin(
-                        grid->min.c[k],
-                        model->residues[i].atoms[j].position.c[k]);
-                grid->max.c[k] = fmax(
-                        grid->max.c[k],
-                        model->residues[i].atoms[j].position.c[k]);
-            }
+            vmin_elems(&grid->min, &model->residues[i].atoms[j].position);
+            vmax_elems(&grid->max, &model->residues[i].atoms[j].position);
+            natoms++;
         }
     }
+    //Bail if no atoms have been synthed
+    if(natoms == 0)
+        return;
+
     //It's best to add a small buffer to the edges here to avoid weird
     //singularities
     for(size_t i=0; i < N; i++){
@@ -87,38 +72,86 @@ void steric_grid_update(struct steric_grid *grid, struct model *model){
         grid->min.c[i] -= 0.01;
     }
 
+    //Find the number of cells required in each dimension and total number
+    size_t num_old_cells = 1;
+    size_t num_new_cells = 1;
+    for(size_t i=0; i < N; i++){
+        num_old_cells *= grid->size.c[i];
+
+        double extent = (grid->max.c[i] - grid->min.c[i]);
+        grid->size.c[i] = ceil(extent / grid->cell_size);
+        num_new_cells *= grid->size.c[i];
+    }
+    //Free old buckets
+    for(size_t i=0; i < num_old_cells; i++)
+        steric_grid_free_atoms(grid, i);
+
+    //Realloc if necessary
+    grid->ncells = num_new_cells;
+    if(num_new_cells > num_old_cells)
+        grid->atom_grid = realloc(grid->atom_grid,
+                sizeof(*grid->atom_grid) * num_new_cells);
+
+    //Zero out each grid cell
+    for(size_t i=0; i < num_new_cells; i++)
+        grid->atom_grid[i] = NULL;
+
     for(size_t i=0; i < model->num_residues; i++){
         for(size_t j=0; j < model->residues[i].num_atoms; j++){
             struct atom *a = &model->residues[i].atoms[j];
-            int index = steric_grid_index(grid, a);
-
-            grid->atom_grid[index] = realloc(
-                    grid->atom_grid[index],
-                    (grid->atoms_per_cell[index] + 1) * sizeof(a));
-
-            grid->atom_grid[index][grid->atoms_per_cell[index]] = a;
-            grid->atoms_per_cell[index]++;
+            steric_grid_add_atom(grid, a);
         }
     }
 }
 
-size_t steric_grid_index(struct steric_grid *grid, struct atom *a){
-    int x, y, z;
-    steric_grid_coords(grid, a, &x, &y, &z);
-    double divs = grid->divisions;
-    return x * divs * divs + y * divs + z;
+//Free linked list of atoms at cell
+void steric_grid_free_atoms(struct steric_grid *grid, size_t index){
+    struct atom_in_cell *tmp;
+    while(grid->atom_grid[index]){
+        tmp = grid->atom_grid[index];
+        grid->atom_grid[index] = grid->atom_grid[index]->next;
+        free(tmp);
+    }
 }
 
-void steric_grid_coords(struct steric_grid *grid, struct atom *a,
-        int *x, int *y, int *z){
-    double divs = grid->divisions;
-    double length = grid->max.c[0] - grid->min.c[0];
-    double width  = grid->max.c[1] - grid->min.c[1];
-    double height = grid->max.c[2] - grid->min.c[2];
+//Add atom to grid. We alloc a new atom_in_cell struct and add it to the head
+//of the linked list.
+void steric_grid_add_atom(struct steric_grid *grid, struct atom *a){
+    //Find coords
 
-    *x = (a->position.c[0] - grid->min.c[0]) / length * divs;
-    *y = (a->position.c[1] - grid->min.c[1]) / width  * divs;
-    *z = (a->position.c[2] - grid->min.c[2]) / height * divs;
+    size_t grid_index = steric_grid_index(grid, a);
+    struct atom_in_cell *container = malloc(sizeof(struct atom_in_cell));
+    container->a = a;
+    container->next = grid->atom_grid[grid_index];
+    grid->atom_grid[grid_index] = container;
+}
+
+size_t steric_grid_index(struct steric_grid *grid, struct atom *a){
+    int coords[N];
+    steric_grid_coords(grid, a, coords);
+    return coords_to_index(grid, coords);
+}
+
+size_t coords_to_index(struct steric_grid *grid, int coords[3]){
+    size_t index = coords[0]
+        + grid->size.c[0] * coords[1]
+        + grid->size.c[0] * grid->size.c[1] * coords[2];
+    return index;
+}
+
+
+void steric_grid_coords(struct steric_grid *grid, struct atom *a, int *dst){
+    /*
+     * Consider an atom a on a line:
+     *
+     *             a
+     * |----|----|----|----|----|----|
+     * min       <--d->             max
+     *
+     * The grid cell of a is 2, given by floor( (x(a) - min) / d).
+     */
+    for(size_t i=0; i < N; i++)
+        dst[i] = (int)((a->position.c[i] - grid->min.c[i]) / grid->cell_size);
 }
 
 void steric_grid_forces(struct steric_grid *grid, struct model *model){
@@ -138,31 +171,23 @@ void steric_grid_foreach_nearby(
         struct steric_grid *grid, struct atom *a,
         bool (*lambda)(struct atom *a, struct atom *b, void *data),
         void *data){
-    int x, y, z;
-    steric_grid_coords(grid, a, &x, &y, &z);
+    int r[3];
+    steric_grid_coords(grid, a, r);
 
-    //Find the number of cells that correspond to a realistic steric distance
-    int dx = ceil(MAX_STERIC_DISTANCE * grid->divisions
-            / (grid->max.c[0] - grid->min.c[0]));
-    int dy = ceil(MAX_STERIC_DISTANCE * grid->divisions
-            / (grid->max.c[1] - grid->min.c[1]));
-    int dz = ceil(MAX_STERIC_DISTANCE * grid->divisions
-            / (grid->max.c[2] - grid->min.c[2]));
+    for(int i=max(0, r[0]-1); i <= min(grid->size.c[0]-1, r[0]+1); i++){
+        for(int j=max(0, r[1]-1); j <= min(grid->size.c[1]-1, r[1]+1); j++){
+            for(int k=max(0, r[2]-1); k <= min(grid->size.c[2]-1, r[2]+1); k++){
+                int coords[3] = {i, j, k};
+                int index = coords_to_index(grid, coords);
 
-    for(int i=max(0, x-dx); i <= min(grid->divisions-1, x+dx); i++){
-        for(int j=max(0, y-dy); j <= min(grid->divisions-1, y+dy); j++){
-            for(int k=max(0, z-dz); k <= min(grid->divisions-1, z+dz); k++){
-                int index = i * grid->divisions * grid->divisions
-                    + j * grid->divisions
-                    + k;
-                struct atom **atoms = grid->atom_grid[index];
-                size_t num_atoms    = grid->atoms_per_cell[index];
-                for(size_t l=0; l < num_atoms; l++){
-                    if(a != atoms[l]){
-                        bool cont = (*lambda)(a, atoms[l], data);
-                        if(!cont)
-                            return;
-                    }
+                struct atom_in_cell *c;
+                for(c = grid->atom_grid[index]; c; c = c->next){
+                    if(c->a == a)
+                        continue;
+
+                    bool cont = (*lambda)(a, c->a, data);
+                    if(!cont)
+                        return;
                 }
             }
         }
