@@ -169,15 +169,10 @@ void parse_pdb_line(const char *line, struct model *m){
     sscanf(buf, "%lf", &z);
     buf[0] = '\0';
 
-    if(res_id > m->num_residues){
-        struct residue *r = model_push_residue(m, res_id);
-        if(!m->do_synthesis)
-            r->synthesised = true;
-        strcpy(r->name, res_name);
-    }
-    struct residue *res = &m->residues[m->num_residues-1];
+    struct atom *atom = model_push_atom(m,
+            res_id, res_name,
+            atom_id, atom_name);
 
-    struct atom *atom = residue_push_atom(res, atom_id, atom_name);
     if(!m->do_synthesis)
         atom->synthesised = true;
     atom->position.c[0] = x;
@@ -285,16 +280,16 @@ void parse_bond_angle_line(const char *line, struct model *m){
     a1 = a2 = a3 = NULL;
 
     for(size_t i=0; i < m->residues[r1].num_atoms; i++)
-        if(strcmp(m->residues[r1].atoms[i].name, na1) == 0)
-            a1 = &m->residues[r1].atoms[i];
+        if(strcmp(m->residues[r1].atoms[i]->name, na1) == 0)
+            a1 = m->residues[r1].atoms[i];
 
     for(size_t i=0; i < m->residues[r2].num_atoms; i++)
-        if(strcmp(m->residues[r2].atoms[i].name, na2) == 0)
-            a2 = &m->residues[r2].atoms[i];
+        if(strcmp(m->residues[r2].atoms[i]->name, na2) == 0)
+            a2 = m->residues[r2].atoms[i];
 
     for(size_t i=0; i < m->residues[r3].num_atoms; i++)
-        if(strcmp(m->residues[r3].atoms[i].name, na3) == 0)
-            a3 = &m->residues[r3].atoms[i];
+        if(strcmp(m->residues[r3].atoms[i]->name, na3) == 0)
+            a3 = m->residues[r3].atoms[i];
 
     if(a1 == NULL || a2 == NULL || a3 == NULL){
         fprintf(stderr,
@@ -414,20 +409,20 @@ void parse_torsion_spring_line(const char *line, struct model *m){
     a1 = a2 = a3 = a4 = NULL;
 
     for(size_t i=0; i < m->residues[r1].num_atoms; i++)
-        if(strcmp(m->residues[r1].atoms[i].name, na1) == 0)
-            a1 = &m->residues[r1].atoms[i];
+        if(strcmp(m->residues[r1].atoms[i]->name, na1) == 0)
+            a1 = m->residues[r1].atoms[i];
 
     for(size_t i=0; i < m->residues[r2].num_atoms; i++)
-        if(strcmp(m->residues[r2].atoms[i].name, na2) == 0)
-            a2 = &m->residues[r2].atoms[i];
+        if(strcmp(m->residues[r2].atoms[i]->name, na2) == 0)
+            a2 = m->residues[r2].atoms[i];
 
     for(size_t i=0; i < m->residues[r3].num_atoms; i++)
-        if(strcmp(m->residues[r3].atoms[i].name, na3) == 0)
-            a3 = &m->residues[r3].atoms[i];
+        if(strcmp(m->residues[r3].atoms[i]->name, na3) == 0)
+            a3 = m->residues[r3].atoms[i];
 
     for(size_t i=0; i < m->residues[r4].num_atoms; i++)
-        if(strcmp(m->residues[r4].atoms[i].name, na4) == 0)
-            a4 = &m->residues[r4].atoms[i];
+        if(strcmp(m->residues[r4].atoms[i]->name, na4) == 0)
+            a4 = m->residues[r4].atoms[i];
 
     if(a1 == NULL || a2 == NULL || a3 == NULL || a4 == NULL){
         fprintf(stderr,
@@ -477,13 +472,13 @@ void parse_linear_spring_line(const char *line, struct model *m){
 
     struct atom *atom_i, *atom_j;
     for(int k=0; k < m->residues[i].num_atoms; k++){
-        if(strcmp(i_name, m->residues[i].atoms[k].name) == 0){
-            atom_i = &m->residues[i].atoms[k];
+        if(strcmp(i_name, m->residues[i].atoms[k]->name) == 0){
+            atom_i = m->residues[i].atoms[k];
         }
     }
     for(int k=0; k < m->residues[j].num_atoms; k++){
-        if(strcmp(j_name, m->residues[j].atoms[k].name) == 0){
-            atom_j = &m->residues[j].atoms[k];
+        if(strcmp(j_name, m->residues[j].atoms[k]->name) == 0){
+            atom_j = m->residues[j].atoms[k];
         }
     }
 

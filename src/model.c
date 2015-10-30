@@ -24,7 +24,9 @@ struct model *model_alloc(){
     m->num_rama_constraints = 0;
     m->num_bond_angles = 0;
     m->num_residues = 0;
+    m->num_atoms = 0;
     m->residues = NULL;
+    m->atoms = NULL;
     m->linear_springs = NULL;
     m->torsion_springs = NULL;
     m->bond_angles = NULL;
@@ -62,17 +64,14 @@ void model_accumulate_forces(struct model *m){
     struct vector force;
     struct vector tmp;
 
-    struct residue *residues = m->residues;
     struct linear_spring *linear_springs = m->linear_springs;
     struct torsion_spring *torsion_springs = m->torsion_springs;
     struct bond_angle_spring *bond_angles = m->bond_angles;
 
     //Begin by zeroing out any existing forces
     #pragma omp parallel for shared(residues)
-    for(size_t i=0; i < m->num_residues; i++){
-        for(size_t j=0; j < residues[i].num_atoms; j++)
-            vector_zero(&residues[i].atoms[j].force);
-    }
+    for(size_t i=0; i < m->num_atoms; i++)
+        vector_zero(&m->atoms[i].force);
 
     //Then go through all springs and accumulate forces on the residues
     #pragma omp parallel for shared(linear_springs)
@@ -215,12 +214,10 @@ void model_accumulate_forces(struct model *m){
 
     //If we're not using the fancy drag force, apply the drag force now.
     if(!m->shield_drag){
-        for(size_t i=0; i < m->num_residues; i++){
-            for(size_t j=0; j < residues[i].num_atoms; j++){
-                vector_copy_to(&tmp, &residues[i].atoms[j].velocity);
-                vmul_by(&tmp, m->drag_coefficient);
-                vadd_to(&residues[i].atoms[j].force, &tmp);
-            }
+        for(size_t i=0; i < m->num_atoms; i++){
+            vector_copy_to(&tmp, &m->atoms[i].velocity);
+            vmul_by(&tmp, m->drag_coefficient);
+            vadd_to(&m->atoms[i].force, &tmp);
         }
     }
 
@@ -279,15 +276,15 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
         struct residue r = m->residues[i];
 
         for(size_t j=0; j < r.num_atoms; j++){
-            struct atom a = r.atoms[j];
-            if(a.synthesised){
-                int res = fprintf(out, atom_fmt, a.id, a.name,
+            struct atom *a = r.atoms[j];
+            if(a->synthesised){
+                int res = fprintf(out, atom_fmt, a->id, a->name,
                         r.name,
                         r.id,
                         " ",
-                        a.position.c[0],
-                        a.position.c[1],
-                        a.position.c[2]);
+                        a->position.c[0],
+                        a->position.c[1],
+                        a->position.c[2]);
 
                 if(res < 0)
                     return res;
@@ -324,13 +321,16 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
 void model_synth(struct model *dst, const struct model *src){
     memcpy(dst, src, sizeof(*src));
 
-    if(!src->do_synthesis)
+    if(!src->do_synthesis){
         dst->num_residues = src->num_residues;
-    else
-        dst->num_residues = src->time / src->synth_time;
-
-    if(dst->num_residues > src->num_residues)
-        dst->num_residues = src->num_residues;
+        dst->num_atoms = src->num_atoms;
+    }else{
+        dst->num_residues = 0;
+        dst->num_atoms = src->time / src->synth_time;
+        if(dst->num_atoms > src->num_atoms)
+            dst->num_atoms = src->num_atoms;
+        dst->num_residues = dst->atoms[dst->num_atoms - 1].residue->id;
+    }
 
     for(size_t i=0; i < dst->num_residues; i++){
         struct residue *prev  = (i >= 1) ? &dst->residues[i-1] : NULL;
@@ -339,8 +339,8 @@ void model_synth(struct model *dst, const struct model *src){
             residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle);
             if(dst->fix && prev){
                 for(size_t j=0; j < prev->num_atoms; j++){
-                    prev->atoms[j].fixed = true;
-                    vector_zero(&prev->atoms[j].velocity);
+                    prev->atoms[j]->fixed = true;
+                    vector_zero(&prev->atoms[j]->velocity);
                 }
             }
         }
@@ -361,4 +361,40 @@ struct residue * model_push_residue(struct model *m, int id){
     residue_init(&m->residues[m->num_residues], id);
     m->num_residues++;
     return &m->residues[m->num_residues - 1];
+}
+
+/**
+ * Add an atom to the model.
+ *
+ * If necessary, this will reallocate the residues array and increase
+ * num_residues.
+ */
+struct atom * model_push_atom(struct model *m,
+        int res_id, const char *res_name,
+        int atom_id, const char *atom_name){
+
+    //Realloc array and add atom
+    m->atoms = realloc(m->atoms, sizeof(struct atom) * (m->num_atoms+1));
+    struct atom *a = &m->atoms[m->num_atoms];
+    atom_init(a, atom_id, atom_name);
+    m->num_atoms++;
+
+    //Get residue
+    struct residue *res;
+    if(res_id > m->num_residues){
+        //Create residue if necessary
+        res = model_push_residue(m, res_id);
+        if(!m->do_synthesis){
+            res->synthesised = true;
+            a->synthesised = true;
+        }
+        //TODO: Refactor this so model_push_residue strcpys automatically
+        strcpy(res->name, res_name);
+    }else{
+        res = &m->residues[res_id - 1];
+    }
+
+    //Add atom to residue
+    residue_push_atom(res, a);
+    return a;
 }
