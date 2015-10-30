@@ -47,6 +47,7 @@ struct atom {
     double mass;
     bool fixed;
     double hydrophobicity;
+    struct residue *residue;
 };
 
 struct residue {

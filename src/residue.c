@@ -34,6 +34,7 @@ void atom_init(struct atom *a, int id, const char *name){
     vector_zero(&a->velocity);
     vector_zero(&a->force);
     a->hydrophobicity = 0.0;
+    a->residue = NULL;
 }
 
 void atom_set_atom_description(struct atom *a,
@@ -54,6 +55,7 @@ void atom_set_atom_description(struct atom *a,
 struct atom * residue_push_atom(struct residue *r, int id, const char *name){
     r->atoms = realloc(r->atoms, sizeof(struct atom) * (r->num_atoms+1));
     atom_init(&r->atoms[r->num_atoms], id, name);
+    r->atoms[r->num_atoms].residue = r;
     r->num_atoms++;
     return &r->atoms[r->num_atoms - 1];
 }

@@ -1,6 +1,7 @@
 #include <config.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <stdio.h>
 #include <getopt.h>
 #include <math.h>
@@ -15,6 +16,8 @@
 #ifdef _GNU_SOURCE
 #   include <fenv.h>
 #endif
+
+enum state {FROZEN, NORMAL};
 
 static void debug_file(FILE **f, const char *loc, const char *header);
 
@@ -139,6 +142,9 @@ int main(int argc, char **argv){
         model->steric_grid = steric_grid;
     }
 
+        /* If we're doing a three-state synthesis then fix/unfix residues
+     * and enable/disable springs. */
+    enum state three_state = NORMAL;
 
     /* Run. */
     struct model state;
@@ -149,8 +155,7 @@ int main(int argc, char **argv){
         model_synth(&state, model);
         leapfrog_push(&state);
 
-        /* If we're doing a three-state synthesis then fix/unfix residues
-         * and enable/disable torsion springs. */
+
         if(model->threestate && state.num_residues > 0){
             int num_syn  = state.time / state.synth_time;
             double dt    = state.timestep;
@@ -160,76 +165,65 @@ int main(int argc, char **argv){
             if(state.num_residues > 1)
                 prev = &state.residues[state.num_residues - 2];
 
-            /* Fix all atoms for the first 2/3 synth_time. For the first
-             * synth_time / 3 use linear springs and not torsion springs.
-             * Then, for the next synth_time / 3 use torsional springs
-             * only. Then enable them all and unfix atoms.
+            /*
+             * We begin by fixing all atoms except those in the newly
+             * synthesised residue, just to make our life a bit easier. Then,
+             * we disable all springs except back to the previous residue.
              *
-             * This should get the correct distances but not necessarily
-             * the correct handedness. Then we fix the handedness with the
-             * linear springs turned off so that the torsion spring does
-             * not have to overcome the linear springs. All atoms except
-             * the curent one are fixed so that effects don't carry on to
-             * the rest of the atoms.*/
-
-            double off_lin = 1 * state.synth_time / 3;
-            double unfix   = 2 * state.synth_time / 3;
-
-            /* Fix all residues. */
-            if(since - dt <= dt){
-                fprintf(stderr, "Fixing previous residues and disabling torsion springs\n");
-
-                for(size_t j=0; j < state.num_residues - 1; j++)
-                    for(size_t k=0; k < state.residues[j].num_atoms; k++){
-                        state.residues[j].atoms[k].fixed = true;
-                        vector_zero(&state.residues[j].atoms[k].velocity);
-                    }
-
-                for(size_t j=0; j < state.num_torsion_springs; j++)
-                    state.torsion_springs[j].enabled = false;
-
-            }else if(since - dt < off_lin && since >= off_lin){
-                fprintf(stderr, "Enabling torsion springs, disabling linear springs\n");
-
-                for(size_t j=0; j < state.num_torsion_springs; j++)
-                    state.torsion_springs[j].enabled = true;
-
-                for(size_t j=0; j < state.num_linear_springs; j++)
-                    state.linear_springs[j].enabled = false;
-
-                if(prev){
-                    for(size_t j = 0; j < state.num_linear_springs; j++){
-                        //Check if the spring links this residue with the
-                        //previous residue.
-                        struct linear_spring *spr = &state.linear_springs[j];
-                        bool use = false;
-                        for(size_t k=0; k < res->num_atoms; k++){
-                            for(size_t l=0; l < prev->num_atoms; l++){
-                                struct atom *a1 = &res->atoms[k];
-                                struct atom *a2 = &prev->atoms[l];
-                                if(spr->a->id == a1->id && spr->b->id == a2->id){
-                                    use = true;
-                                    break;
-                                }
-                            }
-                            if(use)
-                                break;
-                        }
-                        if(use)
-                            spr->enabled = true;
+             * After a little bit (1/2 of the synthesis time, we unfreeze the
+             * atoms and re-enable springs.
+             */
+            if(since < model->synth_time / 2 && three_state == NORMAL){
+                //Fix atoms
+                for(size_t i=0; i < state.num_residues - 1; i++){
+                    for(size_t j=0; j < state.residues[i].num_atoms; j++){
+                        state.residues[i].atoms[j].fixed = true;
                     }
                 }
 
-            }else if(since - dt < unfix && since >= unfix){
-                fprintf(stderr, "Unfixing atoms, enabling linear springs\n");
+                //Disable springs
+                for(size_t i=0; i < state.num_linear_springs; i++){
+                    //Allow springs only if they are part of the backbone
+                    struct atom *a1 = state.linear_springs[i].a;
+                    struct atom *a2 = state.linear_springs[i].b;
 
-                for(size_t j=0; j < state.num_residues; j++)
-                    for(size_t k=0; k < state.residues[j].num_atoms; k++)
-                        state.residues[j].atoms[k].fixed = false;
+                    struct residue *r1 = a1->residue;
+                    struct residue *r2 = a2->residue;
 
-                for(size_t j=0; j < state.num_linear_springs; j++)
-                    state.linear_springs[j].enabled = true;
+                    //Ensure ordering
+                    struct atom *tmp_atom;
+                    struct residue *tmp_residue;
+                    if(a1->id > a2->id){
+                        tmp_atom = a2;
+                        tmp_residue = r2;
+                        a2 = a1;
+                        r2 = r1;
+                        a1 = tmp_atom;
+                        r1 = tmp_residue;
+                    }
 
+                    if(r1 == r2 || (
+                                r1 == prev && r2 == res
+                                && strcmp(a1->name, "CA") == 0
+                                && strcmp(a2->name, "CA") == 0)){
+                        //Keep constraint
+                    }else{
+                        state.linear_springs[i].enabled = false;
+                    }
+                }
+                //Set state
+                three_state = FROZEN;
+            }else if(since > model->synth_time / 2 && three_state == FROZEN){
+                for(size_t i=0; i < state.num_residues - 1; i++){
+                    for(size_t j=0; j < state.residues[i].num_atoms; j++){
+                        state.residues[i].atoms[j].fixed = false;
+                    }
+                }
+
+                for(size_t i=0; i < state.num_linear_springs; i++){
+                    state.linear_springs[i].enabled = true;
+                }
+                three_state = NORMAL;
             }
         }
 
