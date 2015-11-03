@@ -182,34 +182,15 @@ int main(int argc, char **argv){
                 }
 
                 //Disable springs
+                struct residue *recent = &state.residues[state.num_residues - 1];
                 for(size_t i=0; i < state.num_linear_springs; i++){
+
                     //Allow springs only if they are part of the backbone
                     struct atom *a1 = state.linear_springs[i].a;
                     struct atom *a2 = state.linear_springs[i].b;
 
-                    struct residue *r1 = a1->residue;
-                    struct residue *r2 = a2->residue;
-
-                    //Ensure ordering
-                    struct atom *tmp_atom;
-                    struct residue *tmp_residue;
-                    if(a1->id > a2->id){
-                        tmp_atom = a2;
-                        tmp_residue = r2;
-                        a2 = a1;
-                        r2 = r1;
-                        a1 = tmp_atom;
-                        r1 = tmp_residue;
-                    }
-
-                    if(r1 == r2 || (
-                                r1 == prev && r2 == res
-                                && strcmp(a1->name, "CA") == 0
-                                && strcmp(a2->name, "CA") == 0)){
-                        //Keep constraint
-                    }else{
+                    if(strcmp(a1->name, "CA") == 0 && strcmp(a2->name, "CA") == 0)
                         state.linear_springs[i].enabled = false;
-                    }
                 }
                 //Set state
                 three_state = FROZEN;
