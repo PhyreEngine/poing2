@@ -21,7 +21,7 @@ bool increment(struct atom *a, struct atom *b, void *data){
 }
 
 int main(){
-    plan(8);
+    plan(10);
 
     const char *springs =
         "[PDB]\n"
@@ -38,7 +38,7 @@ int main(){
     vector_fill(&m->residues[1].atoms[1].position, 1, 1, 1);
 
     struct steric_grid grid;
-    steric_grid_init(&grid, 4);
+    steric_grid_init(&grid, 1.5);
     steric_grid_update(&grid, m);
     is_vector(
             &grid.min,
@@ -56,6 +56,22 @@ int main(){
     steric_grid_foreach_nearby(&grid, &m->residues[0].atoms[0],
             increment, &num_nearby);
     cmp_ok(num_nearby, "==", 3, "Three nearby atoms");
+
+    //Lower cell size and see how many atoms we find
+    grid.cell_size = 0.5;
+    steric_grid_update(&grid, m);
+    num_nearby = 0;
+    steric_grid_foreach_nearby(&grid, &m->residues[0].atoms[0],
+            increment, &num_nearby);
+    cmp_ok(num_nearby, "==", 0, "found 0 atoms in nearby cells");
+
+    //Move an atom closer and ensure we find it
+    m->residues[0].atoms[1].position.c[0] = 0.2;
+    num_nearby = 0;
+    steric_grid_update(&grid, m);
+    steric_grid_foreach_nearby(&grid, &m->residues[0].atoms[0],
+            increment, &num_nearby);
+    cmp_ok(num_nearby, "==", 1, "found 1 atom in nearby cells");
 
     done_testing();
 }

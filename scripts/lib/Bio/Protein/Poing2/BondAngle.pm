@@ -20,6 +20,25 @@ Bio::Protein::Poing2::BondAngle - Angle between three atoms
     );
     print $spring->angle;
 
+=head1 ATTRIBUTES
+
+=over
+
+=item B<atoms>
+
+Arrayref of three L<Bio::Protein::Poing2::Atom> objects. For example, the angle
+C<[$i, $j, $k]> is the angle between the line segments C<$i$j> and C<$j$k>.
+
+=item B<constant> (Default: 0.1)
+
+Strength of the angle spring.
+
+=item B<cutoff> (Default: none)
+
+Disable springs beyond this angle.
+
+=back
+
 =head1 METHODS
 
 =over
@@ -27,6 +46,12 @@ Bio::Protein::Poing2::BondAngle - Angle between three atoms
 =item C<new(%args)> Instantiate a new object.
 
 Requires the argument C<atoms>.
+
+=item C<angle()>
+
+Calculate the angle between atoms.
+
+=back
 
 =cut
 
@@ -51,11 +76,6 @@ sub string_repr {
         $self->atoms->[2]->residue->index, $self->atoms->[2]->name,
         $self->angle, $self->constant;
 }
-
-
-=back
-
-=cut
 
 __PACKAGE__->meta->make_immutable;
 1;
