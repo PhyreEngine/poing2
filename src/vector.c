@@ -37,3 +37,6 @@ extern inline void vrot_y(struct vector *dst, struct vector *v, double theta);
 extern inline void vrot_z(struct vector *dst, struct vector *v, double theta);
 extern inline void vrot_axis(struct vector *dst, struct vector *axis, struct vector *v,
         double theta);
+
+extern inline void vmin_elems(struct vector *dst, struct vector *v);
+extern inline void vmax_elems(struct vector *dst, struct vector *v);

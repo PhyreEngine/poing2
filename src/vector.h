@@ -149,5 +149,17 @@ inline void vrot_axis(struct vector *dst, struct vector *axis, struct vector *v,
         + v->c[2] * (ct + uz*uz*(1-ct));
 }
 
+inline void vmin_elems(struct vector *dst, struct vector *v){
+    for(size_t i=0; i < N; i++)
+        if(v->c[i] < dst->c[i])
+            dst->c[i] = v->c[i];
+}
+
+inline void vmax_elems(struct vector *dst, struct vector *v){
+    for(size_t i=0; i < N; i++)
+        if(v->c[i] > dst->c[i])
+            dst->c[i] = v->c[i];
+}
+
 #endif /* VECTOR_H_ */
 
