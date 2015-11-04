@@ -7,7 +7,9 @@ use Bio::Protein::Poing2::Residue;
 use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::Fourmer;
 use Bio::Protein::Poing2::Ramachandran;
+use Bio::Protein::Poing2::Handedness;
 use Bio::Protein::Poing2::Filter::Atom::Backbone;
+use List::Util qw(min max);
 use Moose;
 
 =head1 NAME
@@ -58,6 +60,7 @@ has fourmers  => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_f
 has pairs     => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_pairwise_springs');
 has residues  => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_residues');
 has aln       => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_alignment');
+has handedness => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_handedness');
 
 sub _read_residues {
     my ($self) = @_;
@@ -68,6 +71,31 @@ sub _read_residues {
     my $residues = Bio::Protein::Poing2::IO::PDB::read_pdb($self->model);
     $residues = $bb_filter->filter($residues);
     return $residues;
+}
+
+sub _build_handedness {
+    my ($self) = @_;
+
+    my $residues = $self->residues;
+    my $springs = $self->pairs;
+
+    my @hands = ();
+    my @res_idx = sort {$a <=> $b} keys %{$residues};
+    for my $spring(@{$springs}){
+        my $r1 = $spring->atom_1->residue->index;
+        my $r2 = $spring->atom_2->residue->index;
+
+        my $sep = int(($r2->index - $r1->index) / 3);
+        my $inner = $self->closest_residue($r1 + $sep)->atom_by_name('CA');
+        my $outer = $self->closest_residue($r2 - $sep)->atom_by_name('CA');
+        next if(!$inner || !$outer);
+
+        my $hand = Bio::Protein::Poing2::Handedness->new(
+            atoms => [$spring->atom_1, $inner, $outer, $spring->atom_2],
+        );
+        push @hands, $hand;
+    }
+    return \@hands;
 }
 
 sub _build_pairwise_springs {
@@ -167,6 +195,22 @@ sub build_fourmer {
     }else{
         return undef;
     }
+}
+
+#Find the closest residue that actually exists in the template
+sub closest_residue {
+    my ($self, $resi) = @_;
+
+    my $first_resi = min(keys %{$self->residues});
+    my $last_resi  = max(keys %{$self->residues});
+    for(my $i=0; $resi - $i >= $first_resi || $resi + $i <= $last_resi; $i++){
+        #Prefer lower numbers
+        my $r1 = $self->residues->{$resi - $i};
+        my $r2 = $self->residues->{$resi + $i};
+        return $r1 if $r1;
+        return $r2 if $r2;
+    }
+    return undef;
 }
 
 __PACKAGE__->meta->make_immutable;
