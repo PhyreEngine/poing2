@@ -9,7 +9,7 @@
 #include "torsion_spring.h"
 #include "bond_angle.h"
 
-#define DEFAULT_MAX_SYNTH_ANGLE 45
+#define DEFAULT_MAX_SYNTH_ANGLE 1
 struct steric_grid;
 
 #define DEBUG_LINEAR_FIELDS \
@@ -68,6 +68,8 @@ struct model {
     size_t num_torsion_springs;
     ///Number of residues
     size_t num_residues;
+    ///Number of atoms
+    size_t num_atoms;
     ///Number of bond angle constraints.
     size_t num_bond_angles;
     ///Number of Ramachandran constraints
@@ -75,6 +77,8 @@ struct model {
 
     ///Residues
     struct residue *residues;
+    ///Atoms
+    struct atom *atoms;
     ///Linear springs
     struct linear_spring *linear_springs;
     ///Torsion springs
@@ -154,6 +158,9 @@ void model_accumulate_forces(struct model *m);
 int model_pdb(FILE *out, const struct model *m, bool conect);
 void model_synth(struct model *state, const struct model *m);
 struct residue * model_push_residue(struct model *m, int id);
+struct atom * model_push_atom(struct model *m,
+        int res_id, const char *res_name,
+        int atom_id, const char *atom_name);
 
 #endif /* MODEL_H_ */
 

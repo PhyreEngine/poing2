@@ -173,12 +173,8 @@ int main(int argc, char **argv){
              * atoms and re-enable springs.
              */
             if(since < model->synth_time / 2 && three_state == NORMAL){
-                //Fix atoms
-                for(size_t i=0; i < state.num_residues - 1; i++){
-                    for(size_t j=0; j < state.residues[i].num_atoms; j++){
-                        state.residues[i].atoms[j].fixed = true;
-                    }
-                }
+                for(size_t i=0; i < state.num_atoms - 1; i++)
+                    state.atoms[i].fixed = true;
 
                 //Disable springs
                 struct residue *recent = &state.residues[state.num_residues - 1];
@@ -194,15 +190,10 @@ int main(int argc, char **argv){
                 //Set state
                 three_state = FROZEN;
             }else if(since > model->synth_time / 2 && three_state == FROZEN){
-                for(size_t i=0; i < state.num_residues - 1; i++){
-                    for(size_t j=0; j < state.residues[i].num_atoms; j++){
-                        state.residues[i].atoms[j].fixed = false;
-                    }
-                }
-
-                for(size_t i=0; i < state.num_linear_springs; i++){
+                for(size_t i=0; i < state.num_atoms - 1; i++)
+                    state.atoms[i].fixed = false;
+                for(size_t i=0; i < state.num_linear_springs; i++)
                     state.linear_springs[i].enabled = true;
-                }
                 three_state = NORMAL;
             }
         }

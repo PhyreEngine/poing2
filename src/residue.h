@@ -55,13 +55,13 @@ struct residue {
     char name[MAX_ATOM_NAME_SZ];
     bool synthesised;
     size_t num_atoms;
-    struct atom *atoms;
+    struct atom **atoms;
 };
 
 struct residue *residue_alloc(int id);
 void residue_init(struct residue *r, int id);
 void residue_free(struct residue *r);
-struct atom * residue_push_atom(struct residue *r, int id, const char *name);
+struct atom * residue_push_atom(struct residue *r, struct atom *atom);
 extern struct AA * AA_lookup (
         register const char *str,
         register unsigned int len);
