@@ -12,6 +12,7 @@
 #include "rk4.h"
 #include "leapfrog.h"
 #include "sterics.h"
+#include "linear_spring.h"
 
 #ifdef _GNU_SOURCE
 #   include <fenv.h>

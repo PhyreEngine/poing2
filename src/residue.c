@@ -3,20 +3,21 @@
 #include <stdio.h>
 #include <math.h>
 #include "residue.h"
+#include "model.h"
 
-struct residue *residue_alloc(int id){
+struct residue *residue_alloc(int id, const char *name){
     struct residue *r = malloc(sizeof(struct residue));
     if(!r)
         return NULL;
-    residue_init(r, id);
+    residue_init(r, id, name);
     return r;
 }
 
-void residue_init(struct residue *r, int id){
+void residue_init(struct residue *r, int id, const char *name){
     r->id = id;
     r->synthesised = false;
     r->num_atoms = 0;
-    r->atoms = NULL;
+    strncpy(r->name, name, MAX_ATOM_NAME_SZ);
 }
 
 void residue_free(struct residue *r){
@@ -34,7 +35,7 @@ void atom_init(struct atom *a, int id, const char *name){
     vector_zero(&a->velocity);
     vector_zero(&a->force);
     a->hydrophobicity = 0.0;
-    a->residue = NULL;
+    a->residue_idx = 0;
 }
 
 void atom_set_atom_description(struct atom *a,
@@ -49,24 +50,29 @@ void atom_set_atom_description(struct atom *a,
  *
  * This reallocates the atoms array.
  *
- * \param id    Atom ID, passed to atom_init
- * \param name  Atom name, passed to atom_name
+ * \param r     Residue onto which to add the atom.
+ * \param atom  Atom to add onto the residue.
+ *
+ * \return Non-zero if adding the atom failed.
  */
-struct atom * residue_push_atom(struct residue *r, struct atom *atom){
-    r->atoms = realloc(r->atoms, sizeof(struct atom *) * (r->num_atoms+1));
+int residue_push_atom(struct residue *r, struct atom *atom){
+    if(r->num_atoms == MAX_ATOMS_PER_RES)
+        return 1;
+
     r->num_atoms++;
-    r->atoms[r->num_atoms - 1] = atom;
-    atom->residue = r;
-    return atom;
+    r->atoms[r->num_atoms - 1] = atom->id;
+    return 0;
 }
 
 /**
  * Get an atom with the given name from the residue. Returns NULL if the atom is
  * not found.
  */
-struct atom *residue_get_atom(const struct residue *r, const char *name){
+struct atom *residue_get_atom(const struct model *m, const struct residue *r,
+        const char *name){
+
     for(size_t i=0; i < r->num_atoms; i++){
-        struct atom *a = r->atoms[i];
+        struct atom *a = &m->atoms[r->atoms[i]];
         if(strcmp(a->name, name) == 0)
             return a;
     }
@@ -104,28 +110,28 @@ void residue_synth(
     struct vector z = {.c = {0, 0, 1}};
     if(!prev2 && ! prev){
         for(size_t i=1; i < r->num_atoms; i++){
-            if(!r->atoms[i]->synthesised){
-                double dist = r->atoms[0]->radius + r->atoms[i]->radius;
-                vector_rand(&r->atoms[i]->position, M_PI/2-0.1, M_PI/2+0.1);
-                vmul_by(&r->atoms[i]->position, dist);
-                vadd_to(&r->atoms[i]->position, &r->atoms[0]->position);
+            if(!r->atoms[i].synthesised){
+                double dist = r->atoms[0].radius + r->atoms[i].radius;
+                vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
+                vmul_by(&r->atoms[i].position, dist);
+                vadd_to(&r->atoms[i].position, &r->atoms[0].position);
             }
         }
     }else if(prev && !prev2){
         //Put the backbone atom in the Z direction
-        if(!r->atoms[0]->synthesised){
-            vector_rand(&r->atoms[0]->position, 0, max_angle / 180 * M_PI);
-            vmul_by(&r->atoms[0]->position, CA_CA_LEN);
-            vadd_to(&r->atoms[0]->position, &prev->atoms[0]->position);
+        if(!r->atoms[0].synthesised){
+            vector_rand(&r->atoms[0].position, 0, max_angle / 180 * M_PI);
+            vmul_by(&r->atoms[0].position, CA_CA_LEN);
+            vadd_to(&r->atoms[0].position, &prev->atoms[0].position);
         }
         //Place any sidechains at a random angle close to the X-Y plane
         for(size_t i=1; i < r->num_atoms; i++){
-            if(!r->atoms[i]->synthesised){
-                double dist = r->atoms[0]->radius + r->atoms[i]->radius;
+            if(!r->atoms[i].synthesised){
+                double dist = r->atoms[0].radius + r->atoms[i].radius;
 
-                vector_rand(&r->atoms[i]->position, M_PI/2-0.1, M_PI/2+0.1);
-                vmul_by(&r->atoms[i]->position, dist);
-                vadd_to(&r->atoms[i]->position, &r->atoms[0]->position);
+                vector_rand(&r->atoms[i].position, M_PI/2-0.1, M_PI/2+0.1);
+                vmul_by(&r->atoms[i].position, dist);
+                vadd_to(&r->atoms[i].position, &r->atoms[0].position);
             }
         }
     }else if(prev && prev2){
@@ -136,7 +142,7 @@ void residue_synth(
         //Rotate it with the same angle and axis that the (prev - prev2)
         //displacement vector has from the z axis.
         struct vector displ;
-        vsub(&displ, &prev->atoms[0]->position, &prev2->atoms[0]->position);
+        vsub(&displ, &prev->atoms[0].position, &prev2->atoms[0].position);
 
         struct vector rot_axis;
         vcross(&rot_axis, &displ, &z);
@@ -144,26 +150,26 @@ void residue_synth(
 
         double angle = acos(vdot(&displ, &z) / vmag(&displ));
         vrot_axis(&tmp, &rot_axis, &tmp, -angle);
-        vadd_to(&tmp, &prev->atoms[0]->position);
+        vadd_to(&tmp, &prev->atoms[0].position);
 
-        if(!r->atoms[0]->synthesised){
-            vector_copy_to(&r->atoms[0]->position, &tmp);
+        if(!r->atoms[0].synthesised){
+            vector_copy_to(&r->atoms[0].position, &tmp);
         }
 
         //Similar procedure with sidechain, but with a random vector starting
         //in the X-Y plane
         for(size_t i=1; i < r->num_atoms; i++){
-            if(!r->atoms[i]->synthesised){
-                double dist = r->atoms[i-1]->radius + r->atoms[i]->radius;
+            if(!r->atoms[i].synthesised){
+                double dist = r->atoms[i-1].radius + r->atoms[i].radius;
 
-                vector_rand(&r->atoms[i]->position, 0, max_angle / 180 * M_PI);//M_PI/2-0.1, M_PI/2+0.1);
-                vmul_by(&r->atoms[i]->position, dist);
-                vrot_axis(&r->atoms[i]->position, &rot_axis, &r->atoms[i]->position, -angle);
-                vadd_to(&r->atoms[i]->position, &r->atoms[i-1]->position);
+                vector_rand(&r->atoms[i].position, 0, max_angle / 180 * M_PI);//M_PI/2-0.1, M_PI/2+0.1);
+                vmul_by(&r->atoms[i].position, dist);
+                vrot_axis(&r->atoms[i].position, &rot_axis, &r->atoms[i].position, -angle);
+                vadd_to(&r->atoms[i].position, &r->atoms[i-1].position);
             }
         }
     }
     r->synthesised = true;
     for(size_t i=0; i < r->num_atoms; i++)
-        r->atoms[i]->synthesised = true;
+        r->atoms[i].synthesised = true;
 }

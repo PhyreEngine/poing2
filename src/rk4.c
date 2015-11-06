@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include "rk4.h"
 #include "vector.h"
+#include "model.h"
+#include "residue.h"
 
 void rk4_push(struct model *model){
     double dt = model->timestep;

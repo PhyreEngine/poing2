@@ -2,6 +2,8 @@
 #include "leapfrog.h"
 #include "rk4.h"
 #include "vector.h"
+#include "model.h"
+#include "residue.h"
 
 //The leapfrog integrator requires the velocity to be a half-step out of phase
 //with the position (hence "leapfrog"). To initialise it, we use the RK4
@@ -36,7 +38,6 @@ void leapfrog_push(struct model *model){
     model_accumulate_forces(model);
 
     //Increase position and velocity
-    #pragma omp parallel for shared(atoms, orig_pos, k1, k2, k3, k4)
     for(size_t i=0; i < model->num_atoms; i++){
         if(model->atoms[i].fixed)
             continue;

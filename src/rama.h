@@ -7,6 +7,8 @@
 
 #define DEFAULT_RAMA_CONST 0.5
 
+struct model;
+
 enum rama_constraint_type {
     GENERAL,
     ALPHA,
@@ -30,6 +32,7 @@ int rama_get_closest(struct rama_constraint *rama);
 void rama_free_data();
 enum rama_constraint_type rama_parse_type(const char *type);
 void rama_init(struct rama_constraint *rama,
+        const struct model *m,
         struct residue *residue,
         struct residue *next_residue,
         struct residue *prev_residue,

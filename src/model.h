@@ -4,10 +4,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include "residue.h"
-#include "linear_spring.h"
-#include "torsion_spring.h"
-#include "bond_angle.h"
+
+struct residue;
 
 #define DEFAULT_MAX_SYNTH_ANGLE 1
 struct steric_grid;
@@ -157,10 +155,6 @@ void model_free(struct model *m);
 void model_accumulate_forces(struct model *m);
 int model_pdb(FILE *out, const struct model *m, bool conect);
 void model_synth(struct model *state, const struct model *m);
-struct residue * model_push_residue(struct model *m, int id);
-struct atom * model_push_atom(struct model *m,
-        int res_id, const char *res_name,
-        int atom_id, const char *atom_name);
 
 #endif /* MODEL_H_ */
 

@@ -2,10 +2,15 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+
 #include "model.h"
 #include "vector.h"
 #include "sterics.h"
 #include "rama.h"
+#include "linear_spring.h"
+#include "bond_angle.h"
+#include "rama.h"
+#include "torsion_spring.h"
 
 static void add_torsion_force(struct torsion_spring *spring);
 
@@ -51,12 +56,12 @@ struct model *model_alloc(){
  * Free memory for a model structure, including the residues, atoms and springs.
  */
 void model_free(struct model *m){
-    for(size_t i=0; i < m->num_residues; i++)
-        free(m->residues[i].atoms);
+    free(m->atoms);
     free(m->residues);
     free(m->linear_springs);
     free(m->torsion_springs);
     free(m->bond_angles);
+    free(m->rama_constraints);
     free(m);
 }
 
@@ -69,7 +74,6 @@ void model_accumulate_forces(struct model *m){
     struct bond_angle_spring *bond_angles = m->bond_angles;
 
     //Begin by zeroing out any existing forces
-    #pragma omp parallel for shared(residues)
     for(size_t i=0; i < m->num_atoms; i++)
         vector_zero(&m->atoms[i].force);
 
@@ -276,7 +280,7 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
         struct residue r = m->residues[i];
 
         for(size_t j=0; j < r.num_atoms; j++){
-            struct atom *a = r.atoms[j];
+            struct atom *a = &m->atoms[r.atoms[j]];
             if(a->synthesised){
                 int res = fprintf(out, atom_fmt, a->id, a->name,
                         r.name,
@@ -321,26 +325,23 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
 void model_synth(struct model *dst, const struct model *src){
     memcpy(dst, src, sizeof(*src));
 
-    if(!src->do_synthesis){
+    if(!src->do_synthesis)
         dst->num_residues = src->num_residues;
-        dst->num_atoms = src->num_atoms;
-    }else{
-        dst->num_residues = 0;
-        dst->num_atoms = src->time / src->synth_time;
-        if(dst->num_atoms > src->num_atoms)
-            dst->num_atoms = src->num_atoms;
-        dst->num_residues = dst->atoms[dst->num_atoms - 1].residue->id;
-    }
+    else
+        dst->num_residues = src->time / src->synth_time;
+
+    if(dst->num_residues > src->num_residues)
+        dst->num_residues = src->num_residues;
 
     for(size_t i=0; i < dst->num_residues; i++){
         struct residue *prev  = (i >= 1) ? &dst->residues[i-1] : NULL;
         struct residue *prev2 = (i >= 2) ? &dst->residues[i-2] : NULL;
         if(!dst->residues[i].synthesised){
-            residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle);
+            residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle); 
             if(dst->fix && prev){
                 for(size_t j=0; j < prev->num_atoms; j++){
-                    prev->atoms[j]->fixed = true;
-                    vector_zero(&prev->atoms[j]->velocity);
+                    prev->atoms[j].fixed = true;
+                    vector_zero(&prev->atoms[j].velocity);
                 }
             }
         }
@@ -348,53 +349,3 @@ void model_synth(struct model *dst, const struct model *src){
     }
 }
 
-/**
- * Add a residue to the model.
- *
- * This reallocates the residues array and increases num_residues.
- *
- * \param id ID of the residue to add.
- */
-struct residue * model_push_residue(struct model *m, int id){
-    m->residues = realloc(m->residues,
-            sizeof(struct residue) * (m->num_residues + 1));
-    residue_init(&m->residues[m->num_residues], id);
-    m->num_residues++;
-    return &m->residues[m->num_residues - 1];
-}
-
-/**
- * Add an atom to the model.
- *
- * If necessary, this will reallocate the residues array and increase
- * num_residues.
- */
-struct atom * model_push_atom(struct model *m,
-        int res_id, const char *res_name,
-        int atom_id, const char *atom_name){
-
-    //Realloc array and add atom
-    m->atoms = realloc(m->atoms, sizeof(struct atom) * (m->num_atoms+1));
-    struct atom *a = &m->atoms[m->num_atoms];
-    atom_init(a, atom_id, atom_name);
-    m->num_atoms++;
-
-    //Get residue
-    struct residue *res;
-    if(res_id > m->num_residues){
-        //Create residue if necessary
-        res = model_push_residue(m, res_id);
-        if(!m->do_synthesis){
-            res->synthesised = true;
-            a->synthesised = true;
-        }
-        //TODO: Refactor this so model_push_residue strcpys automatically
-        strcpy(res->name, res_name);
-    }else{
-        res = &m->residues[res_id - 1];
-    }
-
-    //Add atom to residue
-    residue_push_atom(res, a);
-    return a;
-}
