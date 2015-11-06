@@ -55,7 +55,6 @@ void leapfrog_push(struct model *model){
     model_accumulate_forces(model);
 
     //Increase position and velocity
-    #pragma omp parallel for shared(atoms, orig_pos, k1, k2, k3, k4)
     for(size_t i=0; i < num_atoms; i++){
         vmul(&dr, &atoms[i]->velocity, dt);
         vadd_to(&atoms[i]->position, &dr);
