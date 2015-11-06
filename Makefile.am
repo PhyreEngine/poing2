@@ -48,9 +48,7 @@ test_rk4_SOURCES=t/rk4.c src/rk4.c src/model.c src/residue.c \
 				 src/vector.c data/AA.c t/tap.c data/atoms.c
 
 test_model_CFLAGS=$(OPENMP_CFLAGS)
-test_model_SOURCES=t/model.c src/model.c src/residue.c src/vector.c \
-				   src/linear_spring.c src/torsion_spring.c src/sterics.c \
-				   data/AA.c t/tap.c src/bond_angle.c
+test_model_SOURCES=t/model.c t/tap.c $(poing2_deps)
 
 test_residue_CFLAGS=$(OPENMP_CFLAGS)
 test_residue_SOURCES=t/residue.c src/model.c src/residue.c src/vector.c \

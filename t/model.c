@@ -10,8 +10,42 @@
 int main(int argc, char **argv){
     plan(8);
 
-    struct residue residues[4];
+    size_t natoms = 20;
+    struct residue residues[1];
+    struct atom atoms[natoms];
+
     struct model *m = model_alloc();
+    m->timestep = 1;
+    m->synth_time = 1;
+    m->num_atoms = natoms;
+    m->atoms = atoms;
+    m->num_residues = 1;
+    m->residues = residues;
+
+
+    residue_init(&residues[0], 1, "ALA");
+
+    for(size_t i=0; i < natoms; i++){
+        if(i % 2 == 0){
+            atom_init(&m->atoms[i], i+1, "CA");
+            atom_set_atom_description(
+                    &m->atoms[i],
+                    atom_description_lookup("CA", 2));
+        }else{
+            atom_init(&m->atoms[i], i+1, "O");
+            atom_set_atom_description(
+                    &m->atoms[i],
+                    atom_description_lookup("O", 1));
+        }
+    }
+    for(size_t i=0; i < natoms; i++)
+        model_synth_atom(m, i, 20);
+    model_pdb(stdout, m, false);
+    return 0;
+}
+
+/**
+
     m->timestep = 1;
     m->synth_time = 1;
     m->num_residues = 4;
@@ -69,3 +103,4 @@ int main(int argc, char **argv){
 
     done_testing();
 }
+*/
