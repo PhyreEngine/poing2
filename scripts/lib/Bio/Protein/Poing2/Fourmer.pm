@@ -23,7 +23,7 @@ Bio::Protein::Poing2::Fourmer - Represent four atoms, so we can get dihedral ang
 
 has atoms => (is => 'ro', required => 1);
 
-has constant => (is => 'ro', default => 1.0);
+has constant => (is => 'ro', isa => 'Maybe[Num]', default => undef);
 
 sub dihedral {
     my ($self) = @_;
@@ -48,6 +48,16 @@ sub string_repr {
         $self->atoms->[2]->residue->index, $self->atoms->[2]->name,
         $self->atoms->[3]->residue->index, $self->atoms->[3]->name,
         $self->dihedral, $self->constant;
+}
+
+sub TO_JSON {
+    my ($self) = @_;
+    my $repr = {
+        atoms => [map {$_->index} @{$self->atoms}],
+        angle => $self->dihedral,
+    };
+    $repr->{constant} = $self->constant if $self->constant;
+    return $repr;
 }
 
 __PACKAGE__->meta->make_immutable;

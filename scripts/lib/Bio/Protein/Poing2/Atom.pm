@@ -108,6 +108,19 @@ sub string_repr {
         $self->x, $self->y, $self->z;
 }
 
+=item C<TO_JSON()>: Convert to JSON for JSON-formatted config file.
+
+=cut
+
+sub TO_JSON {
+    my ($self) = @_;
+    return {
+        id      => $self->index,
+        name    => $self->name,
+        residue => $self->residue->index,
+    };
+}
+
 =back
 
 =cut

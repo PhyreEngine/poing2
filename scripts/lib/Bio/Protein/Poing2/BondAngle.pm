@@ -77,5 +77,16 @@ sub string_repr {
         $self->angle, $self->constant;
 }
 
+sub TO_JSON {
+    my ($self) = @_;
+    my $repr = {
+        atoms => [map {$_->index} @{$self->atoms}],
+        angle => $self->angle,
+    };
+    $repr->{constant} = $self->constant if $self->constant;
+    $repr->{cutoff}   = $self->cutoff   if $self->cutoff;
+    return $repr;
+}
+
 __PACKAGE__->meta->make_immutable;
 1;

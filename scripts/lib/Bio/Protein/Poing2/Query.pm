@@ -54,6 +54,7 @@ sub _read_sequence {
         );
         $residues->{$_}->ss_state($ss_res->{$_}->ss_state) for keys %{$ss_res};
     }
+    #Add atoms to the residue
     return $residues;
 }
 

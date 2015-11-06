@@ -101,6 +101,48 @@ sub to_str {
 
 }
 
+sub TO_JSON {
+    my ($self) = @_;
+
+    my %json = (
+        atoms   => [],
+        linear  => [],
+        angle   => [],
+        torsion => [],
+    );
+
+    #Serialise the sequence into a flat string
+    my @seq = map {$self->query->residues->{$_}}
+        sort {$a <=> $b} keys %{$self->query->residues};
+    $json{sequence} = join q{}, @seq;
+
+    #Build the atom representation
+    for my $res_i(sort {$a <=> $b} keys %{$self->query->backbone}){
+        my $res = $self->query->backbone->{$res_i};
+        push @{$json{atoms}}, $_ for @{$res->atoms};
+    }
+
+    #Build linear springs
+    #Start with backbone springs
+    push @{$json{linear}}, $_ for @{$self->query->backbone_springs};
+    #Then add springs from templates
+    for my $template(@{$self->templates}){
+        my $pairs = $template->pairs;
+        $pairs = $_->filter($pairs) for @{$self->spring_filters};
+        push @{$json{linear}}, $_ for @{$pairs};
+    }
+
+    #Add angles from query
+    push @{$json{angle}}, $_ for @{$self->query->angles};
+
+    #Add torsion angles from each template
+    for my $template(@{$self->templates}){
+        push @{$json{torsion}}, $_ for @{$template->fourmers};
+    }
+
+    return \%json;
+}
+
 
 __PACKAGE__->meta->make_immutable;
 1;

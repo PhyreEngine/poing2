@@ -44,6 +44,22 @@ sub string_repr {
         $self->distance;
 }
 
+=item C<TO_JSON()>
+
+Serialise into a format usable by the JSON config file.
+
+=cut
+
+sub TO_JSON {
+    my ($self) = @_;
+    my $repr = {
+        atoms => [$self->atom_1->index, $self->atom_2->index],
+        distance => $self->distance,
+    };
+    $repr->{constant} = $self->constant if $self->constant;
+    $repr->{cutoff}   = $self->cutoff   if $self->cutoff;
+    return $repr;
+}
 
 =back
 

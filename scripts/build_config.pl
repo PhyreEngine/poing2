@@ -9,6 +9,7 @@ use Bio::Protein::Poing2;
 use Bio::Protein::Poing2::Query;
 use Bio::Protein::Poing2::Template;
 use Bio::Protein::Poing2::Filter::Pair::SeqSep;
+use JSON::XS;
 
 =head1 NAME
 
@@ -71,4 +72,5 @@ my $poing2 = Bio::Protein::Poing2->new(
         Bio::Protein::Poing2::Filter::Pair::SeqSep->new(min_sep => 3),
     ],
 );
-print $poing2;
+my $encoder = JSON::XS->new->convert_blessed->pretty;
+print $encoder->encode($poing2);
