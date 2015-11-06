@@ -53,16 +53,12 @@ void steric_grid_update(struct steric_grid *grid, struct model *model){
     vector_fill(&grid->max, -INFINITY, -INFINITY, -INFINITY);
 
     //Find maximum extent of grid in all directions
-    int natoms = 0;
-    for(size_t i=0; i < model->num_residues; i++){
-        for(size_t j=0; j < model->residues[i].num_atoms; j++){
-            vmin_elems(&grid->min, &model->residues[i].atoms[j].position);
-            vmax_elems(&grid->max, &model->residues[i].atoms[j].position);
-            natoms++;
-        }
+    for(size_t i=0; i < model->num_atoms; i++){
+        vmin_elems(&grid->min, &model->atoms[i].position);
+        vmax_elems(&grid->max, &model->atoms[i].position);
     }
     //Bail if no atoms have been synthed
-    if(natoms == 0)
+    if(model->num_atoms == 0)
         return;
 
     //It's best to add a small buffer to the edges here to avoid weird
@@ -96,11 +92,9 @@ void steric_grid_update(struct steric_grid *grid, struct model *model){
     for(size_t i=0; i < num_new_cells; i++)
         grid->atom_grid[i] = NULL;
 
-    for(size_t i=0; i < model->num_residues; i++){
-        for(size_t j=0; j < model->residues[i].num_atoms; j++){
-            struct atom *a = &model->residues[i].atoms[j];
-            steric_grid_add_atom(grid, a);
-        }
+    for(size_t i=0; i < model->num_atoms; i++){
+        struct atom *a = &model->atoms[i];
+        steric_grid_add_atom(grid, a);
     }
 }
 
@@ -155,15 +149,13 @@ void steric_grid_coords(struct steric_grid *grid, struct atom *a, int *dst){
 }
 
 void steric_grid_forces(struct steric_grid *grid, struct model *model){
-    for(size_t i=0; i < model->num_residues; i++){
-        for(size_t j=0; j < model->residues[i].num_atoms; j++){
-            //Get the list of nearby atoms; that is, all atoms in this cell or
-            //the surrounding cells
-            struct atom *a = &model->residues[i].atoms[j]; //grid->atom_grid[i][j];
-            if(a->fixed)
-                continue;
-            steric_grid_foreach_nearby(grid, a, steric_force_lambda, NULL);
-        }
+    for(size_t i=0; i < model->num_atoms; i++){
+        //Get the list of nearby atoms; that is, all atoms in this cell or
+        //the surrounding cells
+        struct atom *a = &model->atoms[i]; //grid->atom_grid[i][j];
+        if(a->fixed)
+            continue;
+        steric_grid_foreach_nearby(grid, a, steric_force_lambda, NULL);
     }
 }
 
@@ -226,56 +218,52 @@ void steric_force(struct atom *a, struct atom *b){
 #define KICK_VELOCITY 0.08
 
 void water_force(struct model *m, struct steric_grid *grid){
-    for(size_t i=0; i < m->num_residues; i++){
-        for(size_t j=0; j < m->residues[i].num_atoms; j++){
-            struct atom *a = &m->residues[i].atoms[j];
-            if(a->fixed)
-                continue;
+    for(size_t i=0; i < m->num_atoms; i++){
+        struct atom *a = &m->atoms[i];
+        if(a->fixed)
+            continue;
 
-            double sf_area = 4*M_PI*a->radius*a->radius;
+        double sf_area = 4*M_PI*a->radius*a->radius;
 
-            double kick_prob = sf_area * (POLAR_KICK_PROB + (a->hydrophobicity
-                        * (KICK_PROB - POLAR_KICK_PROB)));
+        double kick_prob = sf_area * (POLAR_KICK_PROB + (a->hydrophobicity
+                    * (KICK_PROB - POLAR_KICK_PROB)));
 
-            bool do_kick = kick_prob * RAND_MAX * m->timestep < rand();
+        bool do_kick = kick_prob * RAND_MAX * m->timestep < rand();
 
-            struct vector kick, kick_point;
-            vector_rand(&kick, 0, M_PI);
+        struct vector kick, kick_point;
+        vector_rand(&kick, 0, M_PI);
 
-            vector_copy_to(&kick_point, &kick);
-            vmul_by(&kick_point, a->radius);
-            vadd_to(&kick_point, &a->position);
+        vector_copy_to(&kick_point, &kick);
+        vmul_by(&kick_point, a->radius);
+        vadd_to(&kick_point, &a->position);
 
-            if(do_kick){
-                bool good = true;
-                struct is_kick_good_args args = {&good, &kick_point};
-                steric_grid_foreach_nearby(grid, a, is_kick_good, &args);
-                if(good){
-                    vmul_by(&kick, KICK_VELOCITY);
-                    vadd_to(&a->force, &kick);
-                }
+        if(do_kick){
+            bool good = true;
+            struct is_kick_good_args args = {&good, &kick_point};
+            steric_grid_foreach_nearby(grid, a, is_kick_good, &args);
+            if(good){
+                vmul_by(&kick, KICK_VELOCITY);
+                vadd_to(&a->force, &kick);
             }
         }
     }
 }
 
 void drag_force(struct model *m, struct steric_grid *grid){
-    for(size_t i=0; i < m->num_residues; i++){
-        for(size_t j=0; j < m->residues[i].num_atoms; j++){
-            struct atom *a = &m->residues[i].atoms[j];
-            if(a->fixed)
-                continue;
+    for(size_t i=0; i < m->num_atoms; i++){
+        struct atom *a = &m->atoms[i];
+        if(a->fixed)
+            continue;
 
-            struct vector drag;
-            vector_copy_to(&drag, &a->velocity);
+        struct vector drag;
+        vector_copy_to(&drag, &a->velocity);
 
-            if(vmag(&drag) > 0){
-                bool apply_drag = true;
-                steric_grid_foreach_nearby(grid, a, should_apply_drag, &apply_drag);
-                if(apply_drag){
-                    vmul_by(&drag, m->drag_coefficient);
-                    vadd_to(&a->force, &drag);
-                }
+        if(vmag(&drag) > 0){
+            bool apply_drag = true;
+            steric_grid_foreach_nearby(grid, a, should_apply_drag, &apply_drag);
+            if(apply_drag){
+                vmul_by(&drag, m->drag_coefficient);
+                vadd_to(&a->force, &drag);
             }
         }
     }

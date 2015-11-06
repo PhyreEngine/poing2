@@ -1,10 +1,12 @@
 bin_PROGRAMS=poing2
-poing2_CFLAGS=$(OPENMP_CFLAGS)
-poing2_SOURCES=src/poing.c src/rk4.c src/leapfrog.c src/model.c src/residue.c \
+
+poing2_deps=src/rk4.c src/leapfrog.c src/model.c src/residue.c \
 			   src/linear_spring.c src/torsion_spring.c src/springreader.c \
 			   src/bond_angle.c \
 			   src/vector.c src/sterics.c data/AA.c data/atoms.c \
-			   src/rama.c
+			   src/rama.c src/cJSON/cJSON.c
+poing2_CFLAGS=$(OPENMP_CFLAGS)
+poing2_SOURCES=src/poing.c $(poing2_deps)
 
 
 check_PROGRAMS=test_springreader test_vector \
@@ -19,10 +21,7 @@ BUILT_SOURCES=data/AA.c data/atoms.c
 SUFFIXES=.gperf
 
 test_springreader_CFLAGS=$(OPENMP_CFLAGS)
-test_springreader_SOURCES=t/springreader.c t/tap.c src/springreader.c \
-						src/model.c src/residue.c src/sterics.c \
-						data/AA.c src/linear_spring.c src/torsion_spring.c \
-						src/vector.c data/atoms.c src/bond_angle.c
+test_springreader_SOURCES=t/springreader.c t/tap.c $(poing2_deps)
 
 test_vector_CFLAGS=$(OPENMP_CFLAGS)
 test_vector_SOURCES=t/vector.c src/vector.c t/tap.c

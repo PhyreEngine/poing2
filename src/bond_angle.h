@@ -5,6 +5,8 @@
 #include "residue.h"
 #include "vector.h"
 
+#define DEFAULT_BOND_ANGLE_CONST 0.1
+
 struct bond_angle_spring {
     struct atom *a1, *a2, *a3;
     double angle;

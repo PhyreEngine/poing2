@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include "rama.h"
 #include "residue.h"
+#include "model.h"
 
 #define NBINS (360*360)
 
@@ -104,8 +105,8 @@ int rama_read_closest(const char *file, enum rama_constraint_type type){
     }
 read_error:
     free(line);
-open_error:
     fclose(fin);
+open_error:
     return retval;
 }
 
@@ -212,6 +213,7 @@ error:
  * Initialise a Ramachandran constraint.
  */
 void rama_init(struct rama_constraint *rama,
+        const struct model *m,
         struct residue *residue,
         struct residue *next_residue,
         struct residue *prev_residue,
@@ -221,17 +223,17 @@ void rama_init(struct rama_constraint *rama,
     rama->type = rama_parse_type(type);
     rama->enabled = true;
 
-    struct atom *phi_prev_C  = residue_get_atom(prev_residue, "C");
-    struct atom *phi_N  = residue_get_atom(residue, "N");
-    struct atom *phi_CA = residue_get_atom(residue, "CA");
-    struct atom *phi_C  = residue_get_atom(residue, "C");
+    struct atom *phi_prev_C  = residue_get_atom(m, prev_residue, "C");
+    struct atom *phi_N  = residue_get_atom(m, residue, "N");
+    struct atom *phi_CA = residue_get_atom(m, residue, "CA");
+    struct atom *phi_C  = residue_get_atom(m, residue, "C");
     //TODO: Get a good constant
     rama->phi = torsion_spring_alloc(phi_prev_C, phi_N, phi_CA, phi_C, 0, constant);
 
-    struct atom *psi_N  = residue_get_atom(residue, "N");
-    struct atom *psi_CA = residue_get_atom(residue, "CA");
-    struct atom *psi_C  = residue_get_atom(residue, "C");
-    struct atom *psi_next_N = residue_get_atom(next_residue, "N");
+    struct atom *psi_N  = residue_get_atom(m, residue, "N");
+    struct atom *psi_CA = residue_get_atom(m, residue, "CA");
+    struct atom *psi_C  = residue_get_atom(m, residue, "C");
+    struct atom *psi_next_N = residue_get_atom(m, next_residue, "N");
     rama->psi = torsion_spring_alloc(psi_N, psi_CA, psi_C, psi_next_N, 0, constant);
 }
 

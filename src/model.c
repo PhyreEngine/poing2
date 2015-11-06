@@ -2,10 +2,15 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+
 #include "model.h"
 #include "vector.h"
 #include "sterics.h"
 #include "rama.h"
+#include "linear_spring.h"
+#include "bond_angle.h"
+#include "rama.h"
+#include "torsion_spring.h"
 
 static void add_torsion_force(struct torsion_spring *spring);
 
@@ -24,7 +29,9 @@ struct model *model_alloc(){
     m->num_rama_constraints = 0;
     m->num_bond_angles = 0;
     m->num_residues = 0;
+    m->num_atoms = 0;
     m->residues = NULL;
+    m->atoms = NULL;
     m->linear_springs = NULL;
     m->torsion_springs = NULL;
     m->bond_angles = NULL;
@@ -49,12 +56,12 @@ struct model *model_alloc(){
  * Free memory for a model structure, including the residues, atoms and springs.
  */
 void model_free(struct model *m){
-    for(size_t i=0; i < m->num_residues; i++)
-        free(m->residues[i].atoms);
+    free(m->atoms);
     free(m->residues);
     free(m->linear_springs);
     free(m->torsion_springs);
     free(m->bond_angles);
+    free(m->rama_constraints);
     free(m);
 }
 
@@ -62,17 +69,13 @@ void model_accumulate_forces(struct model *m){
     struct vector force;
     struct vector tmp;
 
-    struct residue *residues = m->residues;
     struct linear_spring *linear_springs = m->linear_springs;
     struct torsion_spring *torsion_springs = m->torsion_springs;
     struct bond_angle_spring *bond_angles = m->bond_angles;
 
     //Begin by zeroing out any existing forces
-    #pragma omp parallel for shared(residues)
-    for(size_t i=0; i < m->num_residues; i++){
-        for(size_t j=0; j < residues[i].num_atoms; j++)
-            vector_zero(&residues[i].atoms[j].force);
-    }
+    for(size_t i=0; i < m->num_atoms; i++)
+        vector_zero(&m->atoms[i].force);
 
     //Then go through all springs and accumulate forces on the residues
     #pragma omp parallel for shared(linear_springs)
@@ -215,12 +218,10 @@ void model_accumulate_forces(struct model *m){
 
     //If we're not using the fancy drag force, apply the drag force now.
     if(!m->shield_drag){
-        for(size_t i=0; i < m->num_residues; i++){
-            for(size_t j=0; j < residues[i].num_atoms; j++){
-                vector_copy_to(&tmp, &residues[i].atoms[j].velocity);
-                vmul_by(&tmp, m->drag_coefficient);
-                vadd_to(&residues[i].atoms[j].force, &tmp);
-            }
+        for(size_t i=0; i < m->num_atoms; i++){
+            vector_copy_to(&tmp, &m->atoms[i].velocity);
+            vmul_by(&tmp, m->drag_coefficient);
+            vadd_to(&m->atoms[i].force, &tmp);
         }
     }
 
@@ -279,15 +280,15 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
         struct residue r = m->residues[i];
 
         for(size_t j=0; j < r.num_atoms; j++){
-            struct atom a = r.atoms[j];
-            if(a.synthesised){
-                int res = fprintf(out, atom_fmt, a.id, a.name,
+            struct atom *a = &m->atoms[r.atoms[j]];
+            if(a->synthesised){
+                int res = fprintf(out, atom_fmt, a->id, a->name,
                         r.name,
                         r.id,
                         " ",
-                        a.position.c[0],
-                        a.position.c[1],
-                        a.position.c[2]);
+                        a->position.c[0],
+                        a->position.c[1],
+                        a->position.c[2]);
 
                 if(res < 0)
                     return res;
@@ -336,7 +337,7 @@ void model_synth(struct model *dst, const struct model *src){
         struct residue *prev  = (i >= 1) ? &dst->residues[i-1] : NULL;
         struct residue *prev2 = (i >= 2) ? &dst->residues[i-2] : NULL;
         if(!dst->residues[i].synthesised){
-            residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle);
+            residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle); 
             if(dst->fix && prev){
                 for(size_t j=0; j < prev->num_atoms; j++){
                     prev->atoms[j].fixed = true;
@@ -348,17 +349,3 @@ void model_synth(struct model *dst, const struct model *src){
     }
 }
 
-/**
- * Add a residue to the model.
- *
- * This reallocates the residues array and increases num_residues.
- *
- * \param id ID of the residue to add.
- */
-struct residue * model_push_residue(struct model *m, int id){
-    m->residues = realloc(m->residues,
-            sizeof(struct residue) * (m->num_residues + 1));
-    residue_init(&m->residues[m->num_residues], id);
-    m->num_residues++;
-    return &m->residues[m->num_residues - 1];
-}
