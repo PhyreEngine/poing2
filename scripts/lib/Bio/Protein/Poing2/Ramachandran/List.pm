@@ -72,5 +72,10 @@ sub string_repr {
     return @lines;
 }
 
+sub TO_JSON {
+    my ($self) = @_;
+    return \@{$self->ramachandrans};
+}
+
 __PACKAGE__->meta->make_immutable;
 1;

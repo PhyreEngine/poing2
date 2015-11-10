@@ -109,6 +109,7 @@ sub TO_JSON {
         linear  => [],
         angle   => [],
         torsion => [],
+        ramachandran => {},
     );
 
     #Serialise the sequence into a flat string
@@ -139,6 +140,10 @@ sub TO_JSON {
     for my $template(@{$self->templates}){
         push @{$json{torsion}}, $_ for @{$template->fourmers};
     }
+
+    #Ramachandran data and constraints
+    $json{ramachandran}->{constraints} = $self->query->ramachandran;
+    $json{ramachandran}->{data} = $self->rama_data;
 
     return \%json;
 }

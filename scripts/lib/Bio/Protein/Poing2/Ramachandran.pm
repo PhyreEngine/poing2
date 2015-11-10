@@ -75,5 +75,10 @@ sub string_repr {
     return sprintf "% 4d %s\n", $self->residue->index, $self->type;
 }
 
+sub TO_JSON {
+    my ($self) = @_;
+    return {residue => $self->residue->index, type => $self->type};
+}
+
 __PACKAGE__->meta->make_immutable;
 1;

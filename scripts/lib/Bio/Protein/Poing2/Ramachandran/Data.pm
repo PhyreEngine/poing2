@@ -90,5 +90,10 @@ sub string_repr {
     return @lines;
 }
 
+sub TO_JSON {
+    my ($self) = @_;
+    return $self->files;
+}
+
 __PACKAGE__->meta->make_immutable;
 1;
