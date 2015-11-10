@@ -21,6 +21,10 @@ void linear_spring_init(struct linear_spring *s,
     s->b = b;
     s->enabled = true;
     s->cutoff = -1;
+
+    //Default to not disabling based on handedness
+    s->inner = s->outer = NULL;
+    s->right_handed = false;
 }
 
 void linear_spring_free(struct linear_spring *s){
@@ -34,6 +38,34 @@ bool linear_spring_active(struct linear_spring *s){
 
     if(!s->enabled)
         return false;
+    if(s->before && s->after){
+        /*
+         * Here is the situation:
+         *          o--------b
+         *          |
+         *          |
+         * a--------i
+         *
+         * We want to determine whether o is above or below the plane defined by
+         * aib. To do this we take the cross product of ab and ai, to find the
+         * normal to the plane aib. Then we take the dot product of ao and the
+         * normal, and call this spring right handed if the dot product is
+         * greater than zero.
+         */
+        struct vector ab; //Vector between A and B
+        struct vector ai; //Between a and i (inner)
+        struct vector oa; //Between o (outer) and a
+        struct vector cross;
+        vsub(ab, &s->b.position, &s->a.position);
+        vsub(ai, &s->inner.position, &s->a.position);
+        vsub(oa, &s->outer.position, &s->a.position);
+        vcross(&cross, &ab, &ai);
+        double dot = vdot(&cross, &oa);
+        bool rh = (dot > 0) ? true : false;
+        if(rh && !s->right_handed || !rh && s->right_handed)
+            return false;
+
+    }
     if(s->cutoff < 0 || fabs(distance - s->distance) < s->cutoff)
         return true;
     return false;

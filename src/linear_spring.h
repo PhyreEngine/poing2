@@ -17,6 +17,10 @@ struct linear_spring {
     double cutoff;
     bool enabled;
     struct atom *a, *b;
+
+    ///Used for determining handedness
+    struct atom *inner, *outer;
+    bool right_handed;
 };
 
 enum unit { A, B };
