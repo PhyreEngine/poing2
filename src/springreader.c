@@ -198,6 +198,7 @@ int read_springs(cJSON *root, struct model *m){
         cJSON *distance = cJSON_GetObjectItem(spring, "distance");
         cJSON *constant = cJSON_GetObjectItem(spring, "constant");
         cJSON *cutoff   = cJSON_GetObjectItem(spring, "cutoff");
+        cJSON *hand     = cJSON_GetObjectItem(spring, "handedness");
 
         if(atoms->type != cJSON_Array)
             goto_err(free_springs,
@@ -225,6 +226,37 @@ int read_springs(cJSON *root, struct model *m){
                 &m->atoms[a1], &m->atoms[a2]);
         if(cutoff)
             s->cutoff = cutoff->valuedouble;
+
+        if(hand){
+            const char *mand_hand[3] = {"inner", "outer", "handedness"};
+            fail = check_mandatory_keys(hand, mandatory, 3,
+                    "Spring no. %d missing key '%s'\n");
+            if(fail)
+                goto free_springs;
+
+            cJSON *inner = cJSON_GetObjectItem(hand, "inner");
+            cJSON *outer = cJSON_GetObjectItem(hand, "outer");
+            cJSON *handednesss = cJSON_GetObjectItem(hand, "handedness");
+
+            //Check atoms exist. Tedious error checking.
+            if(inner->valueint - 1 < 0 || inner->valueint - 1 >= m->num_atoms)
+                goto_err(free_springs,
+                        "Inner atom %d does not exist in spring %lu\n",
+                        inner->valueint, i + 1);
+            if(outer->valueint - 1 < 0 || outer->valueint - 1 >= m->num_atoms)
+                goto_err(free_springs,
+                        "Outer atom %d does not exist in spring %lu\n",
+                        outer->valueint, i + 1);
+            if(strmp(handedness->valuestring, "RIGHT") != 0
+                    && strcmp(handedness->valuestring, "LEFT") != 0)
+                goto_err(free_springs,
+                        "Handedness of spring %d is not 'LEFT' or 'RIGHT'\n",
+                        i + 1);
+
+            s->inner = &m->atoms[inner->valueint - 1];
+            s->outer = &m->atoms[outer->valueint - 1];
+            s->right_handed = (strcmp(handedness->valuestring, "RIGHT") == 0);
+        }
     }
     return 0;
 

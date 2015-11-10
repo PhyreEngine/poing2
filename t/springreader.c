@@ -33,7 +33,12 @@ const char *json =
 "        {\n"
 "            \"atoms\": [1, 5],\n"
 "            \"distance\": 3.0,\n"
-"            \"constant\": 0.2\n"
+"            \"constant\": 0.2,\n"
+"            \"handedness\": {\n"
+"               \"inner\": 2,\n"
+"               \"outer\": 4,\n"
+"               \"handedness\": \"RIGHT\"\n"
+"            }\n"
 "        },\n"
 "        {\n"
 "            \"atoms\": [5, 7],\n"
@@ -102,6 +107,9 @@ void check_model(struct model *m){
     ok(abs(m->linear_springs[1].distance - 3.0) < 1e9, "Spring 2 distance is 3.0A");
     ok(abs(m->linear_springs[1].constant - 0.2) < 1e9, "Spring 2 constant is 0.2A");
     ok(m->linear_springs[1].cutoff < 0, "Spring 2 cutoff disabled");
+    ok(m->linear_springs[1].inner == &m->atoms[1], "inner set");
+    ok(m->linear_springs[1].outer == &m->atoms[3], "outer set");
+    ok(m->linear_springs[1].right_handed, "handedness set");
 
     ok(m->linear_springs[2].a->id == m->atoms[4].id, "Spring 3 attached to residue 3");
     ok(m->linear_springs[2].b->id == m->atoms[6].id, "Spring 3 attached to residue 3");
