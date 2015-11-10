@@ -4,6 +4,7 @@ use warnings;
 use utf8;
 use Carp;
 use Bio::Protein::Poing2::Atom;
+use namespace::autoclean;
 use Moose;
 
 =head1 NAME
@@ -32,6 +33,12 @@ Requires the arguments C<atom_1>, C<atom_2> and C<distance>.
 
 has atom_1 => (is => 'ro', required => 1);
 has atom_2 => (is => 'ro', required => 1);
+
+#Inner and outer are used to compute handedness
+has handedness => (is => 'ro', lazy => 1, builder => '_build_handedness', init_arg => undef);
+has inner_atom => (is => 'rw', isa => 'Maybe[Bio::Protein::Poing2::Atom]', required => 0);
+has outer_atom => (is => 'rw', isa => 'Maybe[Bio::Protein::Poing2::Atom]', required => 0);
+
 has distance => (is => 'ro', required => 1);
 has constant => (is => 'rw', default => undef);
 has cutoff => (is => 'rw', default => undef);
@@ -42,6 +49,30 @@ sub string_repr {
         $self->atom_1->residue->index, $self->atom_1->name,
         $self->atom_2->residue->index, $self->atom_2->name,
         $self->distance;
+}
+
+=item C<handedness()>
+
+Calculate handedness (left of right) of this spring, using the C<inner> and
+C<outer> atoms as the inner pair.
+
+=cut
+
+sub _build_handedness {
+    my ($self) = @_;
+
+    my $a = $self->atom_1;
+    my $b = $self->atom_2;
+    my $inner = $self->inner_atom;
+    my $outer = $self->outer_atom;
+    return undef unless $inner && $outer;
+
+    my $ab = $b->coords     - $a->coords;
+    my $ai = $inner->coords - $a->coords;
+    my $ao = $outer->coords - $a->coords;
+    my $cross = $ab x $ai;
+    my $dot = $cross * $ao;
+    return ($dot > 0) ? "RIGHT" : "LEFT";
 }
 
 =item C<TO_JSON()>
@@ -58,6 +89,11 @@ sub TO_JSON {
     };
     $repr->{constant} = $self->constant if $self->constant;
     $repr->{cutoff}   = $self->cutoff   if $self->cutoff;
+    $repr->{handedness} = {
+        inner => $self->inner_atom->index,
+        outer => $self->outer_atom->index,
+        handedness => $self->handedness,
+    } if $self->handedness;
     return $repr;
 }
 

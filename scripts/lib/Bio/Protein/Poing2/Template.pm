@@ -7,7 +7,6 @@ use Bio::Protein::Poing2::Residue;
 use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::Fourmer;
 use Bio::Protein::Poing2::Ramachandran;
-use Bio::Protein::Poing2::Handedness;
 use Bio::Protein::Poing2::Filter::Atom::Backbone;
 use List::Util qw(min max);
 use Moose;
@@ -36,7 +35,7 @@ information from the alignment and model.
 
 The strongest constraint in Poing2 is the matrix of CA-CA distances found from
 each template. These constrain the structure at all ranges, and encode for all
-information except handedness.
+information except angular information.
 
 =head3 Fourmers
 
@@ -60,7 +59,6 @@ has fourmers  => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_f
 has pairs     => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_pairwise_springs');
 has residues  => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_residues');
 has aln       => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_alignment');
-has handedness => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_handedness');
 
 sub _read_residues {
     my ($self) = @_;
@@ -79,7 +77,6 @@ sub _build_handedness {
     my $residues = $self->residues;
     my $springs = $self->pairs;
 
-    my @hands = ();
     my @res_idx = sort {$a <=> $b} keys %{$residues};
     for my $spring(@{$springs}){
         my $r1 = $spring->atom_1->residue->index;
@@ -90,12 +87,9 @@ sub _build_handedness {
         my $outer = $self->closest_residue($r2 - $sep)->atom_by_name('CA');
         next if(!$inner || !$outer);
 
-        my $hand = Bio::Protein::Poing2::Handedness->new(
-            atoms => [$spring->atom_1, $inner, $outer, $spring->atom_2],
-        );
-        push @hands, $hand;
+        $spring->inner_atom($inner);
+        $spring->outer_atom($outer);
     }
-    return \@hands;
 }
 
 sub _build_pairwise_springs {
@@ -115,9 +109,16 @@ sub _build_pairwise_springs {
             my $res2 = $res->{$r2};
             my $a2 = $res2->atom_by_name('CA');
 
+            #Inner and outer atoms for handedness determination
+            my $sep = int(($r2 - $r1) / 3);
+            my $inner = $self->closest_residue($r1 + $sep)->atom_by_name('CA');
+            my $outer = $self->closest_residue($r2 - $sep)->atom_by_name('CA');
+
             my $pair = Bio::Protein::Poing2::LinearSpring->new(
                 atom_1 => $a1,
                 atom_2 => $a2,
+                inner_atom => $inner,
+                outer_atom => $outer,
                 distance => abs($a1->coords - $a2->coords),
             );
             push @{$pairs}, $pair;
