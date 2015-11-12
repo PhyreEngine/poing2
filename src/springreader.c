@@ -229,14 +229,14 @@ int read_springs(cJSON *root, struct model *m){
 
         if(hand){
             const char *mand_hand[3] = {"inner", "outer", "handedness"};
-            fail = check_mandatory_keys(hand, mandatory, 3,
+            fail = check_mandatory_keys(hand, mand_hand, 3,
                     "Spring no. %d missing key '%s'\n");
             if(fail)
                 goto free_springs;
 
             cJSON *inner = cJSON_GetObjectItem(hand, "inner");
             cJSON *outer = cJSON_GetObjectItem(hand, "outer");
-            cJSON *handednesss = cJSON_GetObjectItem(hand, "handedness");
+            cJSON *handedness = cJSON_GetObjectItem(hand, "handedness");
 
             //Check atoms exist. Tedious error checking.
             if(inner->valueint - 1 < 0 || inner->valueint - 1 >= m->num_atoms)
@@ -247,10 +247,10 @@ int read_springs(cJSON *root, struct model *m){
                 goto_err(free_springs,
                         "Outer atom %d does not exist in spring %lu\n",
                         outer->valueint, i + 1);
-            if(strmp(handedness->valuestring, "RIGHT") != 0
+            if(strcmp(handedness->valuestring, "RIGHT") != 0
                     && strcmp(handedness->valuestring, "LEFT") != 0)
                 goto_err(free_springs,
-                        "Handedness of spring %d is not 'LEFT' or 'RIGHT'\n",
+                        "Handedness of spring %lu is not 'LEFT' or 'RIGHT'\n",
                         i + 1);
 
             s->inner = &m->atoms[inner->valueint - 1];

@@ -38,7 +38,7 @@ bool linear_spring_active(struct linear_spring *s){
 
     if(!s->enabled)
         return false;
-    if(s->before && s->after){
+    if(s->inner && s->outer){
         /*
          * Here is the situation:
          *          o--------b
@@ -56,9 +56,9 @@ bool linear_spring_active(struct linear_spring *s){
         struct vector ai; //Between a and i (inner)
         struct vector oa; //Between o (outer) and a
         struct vector cross;
-        vsub(ab, &s->b.position, &s->a.position);
-        vsub(ai, &s->inner.position, &s->a.position);
-        vsub(oa, &s->outer.position, &s->a.position);
+        vsub(&ab, &s->b->position, &s->a->position);
+        vsub(&ai, &s->inner->position, &s->a->position);
+        vsub(&oa, &s->outer->position, &s->a->position);
         vcross(&cross, &ab, &ai);
         double dot = vdot(&cross, &oa);
         bool rh = (dot > 0) ? true : false;
