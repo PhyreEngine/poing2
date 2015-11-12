@@ -35,6 +35,7 @@ struct atom_description {
     double mass;
     double steric_radius;
     double hydrophobicity;
+    bool backbone;
 };
 
 struct AA_name {
@@ -53,6 +54,7 @@ struct atom {
     bool fixed;
     double hydrophobicity;
     size_t residue_idx;
+    bool backbone;
 };
 
 struct residue {

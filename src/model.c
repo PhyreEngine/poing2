@@ -276,24 +276,19 @@ const char *conect_fmt = "CONECT% 5d% 5d\n";
 int model_pdb(FILE *out, const struct model *m, bool conect){
 
     int bytes_written = 0;
-    for(size_t i=0; i < m->num_residues; i++){
-        struct residue r = m->residues[i];
+    for(size_t i=0; i < m->num_atoms; i++){
+        struct atom *a    = &m->atoms[i];
+        struct residue *r = &m->residues[a->residue_idx];
 
-        for(size_t j=0; j < r.num_atoms; j++){
-            struct atom *a = &m->atoms[r.atoms[j]];
-            if(a->synthesised){
-                int res = fprintf(out, atom_fmt, a->id, a->name,
-                        r.name,
-                        r.id,
-                        " ",
-                        a->position.c[0],
-                        a->position.c[1],
-                        a->position.c[2]);
+        if(a->synthesised){
+            fprintf(out, atom_fmt, a->id, a->name,
+                    r->name,
+                    r->id,
+                    " ",
+                    a->position.c[0],
+                    a->position.c[1],
+                    a->position.c[2]);
 
-                if(res < 0)
-                    return res;
-                bytes_written += res;
-            }
         }
     }
     if(conect){
@@ -311,41 +306,103 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
     return bytes_written;
 }
 
-/**
- * Generate a model at time src->time.
+
+/** Synthesise (i.e. set position and synthesised flag) a new atom.
  *
- * \param[out] dst State will be placed in here.
- * \param[in]  src Full model.
+ * Here, an atom is "synthesised" by placing all atoms into the system and
+ * setting the "synthesised" property of the residue and all atoms to true.
+ * The way that atoms are synthesised depends on both the number of atoms
+ * already in the system and the type of atom being synthesised.
  *
- * \details This function copies the state of model src to dst such that only
- * residues that have been synthesised in the past are included. This is done
- * by changing the num_residues parameter of src and using the same array of
- * residues, so don't free any members of dst!
+ * - If this atom is the first atom being synthesised, just place it at the
+ *   origin.
+ *
+ * - If the second atom is being placed and it is a backbone atom, move it
+ *   along the z-axis, plus a random azimuthal angle, according to the steric
+ *   radii of the two atoms (i.e. place them so that they are not quite
+ *   touching.) If it is not a backbone atom, pick a direction in the x-y plane
+ *   for it using the same distance rules.
+ *
+ * - For any other atoms, define the backbone axis as the direction taken by
+ *   the previous two backbone atoms. Backbone atoms get placed along this
+ *   vector, and non-backbone atoms get placed around this vector.
  */
-void model_synth(struct model *dst, const struct model *src){
-    memcpy(dst, src, sizeof(*src));
+void model_synth_atom(const struct model *m, size_t idx, double max_angle){
+    //We are going to be synthesising this atom:
+    struct atom *a = &m->atoms[idx];
 
-    if(!src->do_synthesis)
-        dst->num_residues = src->num_residues;
-    else
-        dst->num_residues = src->time / src->synth_time;
+    //Try and get the previous two backbone atoms
+    struct atom *prev1 = NULL;
+    struct atom *prev2 = NULL;
 
-    if(dst->num_residues > src->num_residues)
-        dst->num_residues = src->num_residues;
+    for(size_t i=idx - 1; idx > 0 && i >= 0 && !prev1 && !prev2; i--){
+        if(m->atoms[i].backbone){
+            if(prev1)
+                prev2 = &m->atoms[i];
+            else
+                prev1 = &m->atoms[i];
+        }
+    }
 
-    for(size_t i=0; i < dst->num_residues; i++){
-        struct residue *prev  = (i >= 1) ? &dst->residues[i-1] : NULL;
-        struct residue *prev2 = (i >= 2) ? &dst->residues[i-2] : NULL;
-        if(!dst->residues[i].synthesised){
-            residue_synth(&dst->residues[i], prev, prev2, src->max_synth_angle); 
-            if(dst->fix && prev){
-                for(size_t j=0; j < prev->num_atoms; j++){
-                    prev->atoms[j].fixed = true;
-                    vector_zero(&prev->atoms[j].velocity);
-                }
-            }
+    a->synthesised = true;
+    if(!prev1 && !prev2){
+        //If this is the first atom, just plonk it down
+        vector_zero(&a->position);
+    }else if(prev1 && !prev2){
+        //If this is the second atom, just plonk it down near the z-axis for a
+        //backbone atom, or on the x-y plane for a non-backbone atom.
+
+        //First, find the required distance between this and the previous atom
+        double separation = a->radius + prev1->radius;
+
+        struct vector unit_offset;
+        if(a->backbone){
+            //Get a unit vector near the z-axis
+            vector_rand(&unit_offset, 0, max_angle / 180 * M_PI);
+        }else{
+            //Get a unit vector along the x-y axis
+            vector_rand(&unit_offset,
+                    (90 - max_angle) / 180 * M_PI,
+                    (90 + max_angle) / 180 * M_PI);
         }
 
+        //Multiply by the distance
+        vmul_by(&unit_offset, separation);
+
+        //Add to the previous atom's coordinates
+        vadd_to(&unit_offset, &prev1->position);
+
+        //Copy into the new atom's coords
+        vector_copy_to(&a->position, &unit_offset);
+    }else{
+
+        //We want to do the same as before, but then we want to rotate it such
+        //that the vector between the previous two atoms is the new z-axis.
+        double separation = a->radius + prev1->radius;
+        struct vector unit_offset;
+        if(a->backbone){
+            vector_rand(&unit_offset, 0, max_angle / 180 * M_PI);
+        }else{
+            vector_rand(&unit_offset,
+                    (90 - max_angle) / 180 * M_PI,
+                    (90 + max_angle) / 180 * M_PI);
+        }
+        vmul_by(&unit_offset, separation);
+        vadd_to(&unit_offset, &prev1->position);
+
+        //So we have our vector, but we need to rotate our coordinate system.
+        //To do this we rotate it with the same angle and axis that the
+        //prev1-prev2 displacement vector has from the z-axis.
+        struct vector z = {{0, 0, 1}};
+        struct vector displacement;
+        struct vector rot_axis;
+        double angle;
+        vsub(&displacement, &prev1->position, &prev2->position);
+        vcross(&rot_axis, &displacement, &z);
+        angle = acos(vdot(&displacement, &z) / vmag(&displacement));
+
+        vrot_axis(&unit_offset, &rot_axis, &unit_offset, -angle);
+        vadd(&a->position, &unit_offset, &prev1->position);
     }
 }
 
