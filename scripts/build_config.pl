@@ -63,6 +63,7 @@ my @templates = map {
     Bio::Protein::Poing2::Template->new(
         alignment => $aln,
         model     => $model,
+        query     => $query,
 )} @{$options{template}};
 
 my $poing2 = Bio::Protein::Poing2->new(

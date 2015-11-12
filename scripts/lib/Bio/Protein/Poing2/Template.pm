@@ -51,10 +51,34 @@ do not take the fourmers as constraints.
 
 =back
 
+=head1 ATTRIBUTES
+
+The constructor of this class takes the following attributes:
+
+=over
+
+=item C<alignment> (Mandatory string)
+
+Path of a FASTA alignment file containing the alignment of the query to this
+template.
+
+=item C<model> (Mandatory string)
+
+Path of a PDB file containing the homology model built for this template.
+
+=item C<query> (Optional L<Bio::Protein::Poing2::Query> object)
+
+If supplied, all the atom IDs of this template will be the same as those in the
+query. If atoms are present in the template that are not present in the query,
+they will be discarded.
+
+=back
+
 =cut
 
 has alignment => (is => 'ro', isa => 'Str', required => 1);
 has model     => (is => 'ro', isa => 'Str', required => 1);
+has query     => (is => 'ro', isa => 'Maybe[Bio::Protein::Poing2::Query]', required => 0);
 has fourmers  => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_fourmers');
 has pairs     => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_pairwise_springs');
 has residues  => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_residues');
@@ -68,6 +92,9 @@ sub _read_residues {
 
     my $residues = Bio::Protein::Poing2::IO::PDB::read_pdb($self->model);
     $residues = $bb_filter->filter($residues);
+
+    #If we have a query, remap the residues.
+    $residues = $self->_remap_atoms($residues) if $self->query;
     return $residues;
 }
 
@@ -212,6 +239,28 @@ sub closest_residue {
         return $r2 if $r2;
     }
     return undef;
+}
+
+#Remap atom IDs to match those of a query. Expects a ::Query object
+
+sub _remap_atoms {
+    my ($self, $residues) = @_;
+
+    for my $resi(keys %{$residues}){
+        my @replacement_atoms = ();
+
+        for my $atom(@{$residues->{$resi}->atoms}){
+            #Check if the atom exists in the query
+            my $qres = $self->query->residues->{$resi};
+            if($qres){
+                my $qatom = $qres->atom_by_name($atom->name);
+                $atom->index($qatom->index);
+                push @replacement_atoms, $atom;
+            }
+        }
+        $residues->{$resi}->atoms(\@replacement_atoms);
+    }
+    return $residues;
 }
 
 __PACKAGE__->meta->make_immutable;
