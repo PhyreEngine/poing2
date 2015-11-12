@@ -146,86 +146,45 @@ int main(int argc, char **argv){
      * and enable/disable springs. */
     enum state three_state = NORMAL;
 
-    /* Run. */
+    //Make a copy of our model to act as the current state
     struct model state;
+    memcpy(&state, model, sizeof(state));
+
+    //Count the number of snapshots written
+    size_t num_snapshots = 0;
+
+    //If we are simulating synthesis, the current state will start with no
+    //atoms and no residues.
+    if(model->do_synthesis){
+        state.num_atoms = 0;
+        state.num_residues = 0;
+    }
+
     unsigned long i=0;
-    while(model->time < model->until){
+    while(state.time < state.until){
+        //Calculate the number of synthesised atoms from the current time
+        int num_synthed = (int)(state.time / state.synth_time) + 1;
 
-        /* Do synth steps */
-        model_synth(&state, model);
-        leapfrog_push(&state);
-
-
-        if(model->threestate && state.num_residues > 0){
-            int num_syn  = state.time / state.synth_time;
-            double dt    = state.timestep;
-            double since = state.time - (num_syn * state.synth_time);
-            struct residue *res  = &state.residues[state.num_residues - 1];
-            struct residue *prev = NULL;
-            if(state.num_residues > 1)
-                prev = &state.residues[state.num_residues - 2];
-
-            /*
-             * We begin by fixing all atoms except those in the newly
-             * synthesised residue, just to make our life a bit easier. Then,
-             * we disable all springs except back to the previous residue.
-             *
-             * After a little bit (1/2 of the synthesis time, we unfreeze the
-             * atoms and re-enable springs.
-             */
-            if(since < model->synth_time / 2 && three_state == NORMAL){
-                for(size_t i=0; i < state.num_atoms - 1; i++)
-                    state.atoms[i].fixed = true;
-
-                //Disable springs
-                struct residue *recent = &state.residues[state.num_residues - 1];
-                for(size_t i=0; i < state.num_linear_springs; i++){
-
-                    //Allow springs only if they are part of the backbone
-                    struct atom *a1 = state.linear_springs[i].a;
-                    struct atom *a2 = state.linear_springs[i].b;
-
-                    if(strcmp(a1->name, "CA") == 0 && strcmp(a2->name, "CA") == 0)
-                        state.linear_springs[i].enabled = false;
-                }
-                //Set state
-                three_state = FROZEN;
-            }else if(since > model->synth_time / 2 && three_state == FROZEN){
-                for(size_t i=0; i < state.num_atoms - 1; i++)
-                    state.atoms[i].fixed = false;
-                for(size_t i=0; i < state.num_linear_springs; i++)
-                    state.linear_springs[i].enabled = true;
-                three_state = NORMAL;
-            }
+        //If we have too few atoms, synthesise the next one
+        if(num_synthed > state.num_atoms && state.num_atoms < model->num_atoms){
+            size_t new_atom_idx = state.num_atoms;
+            state.num_atoms++;
+            state.num_residues = state.atoms[new_atom_idx].residue_idx + 1;
+            model_synth_atom(&state, new_atom_idx, DEFAULT_MAX_SYNTH_ANGLE);
         }
 
-
-
-        /* Print snapshot at the correct times. */
-        if(snapshot > 0 &&
-                (int)(state.time / snapshot) > (int)(model->time / snapshot)){
-            printf("MODEL     %lu\n", ++i);
+        //Write PDB file if required
+        if(snapshot > 0 && (int)(state.time / snapshot) > num_snapshots){
+            printf("MODEL     %lu\n", ++num_snapshots);
             model_pdb(stdout, &state, print_connect);
             printf("ENDMDL\n");
-
-            /* Also print KE if the output file was supplied. */
-            if(kinetic){
-                double ke = 0;
-                for(size_t j=0; j < state.num_residues; j++){
-                    for(size_t k=0; k < state.residues[j].num_atoms; k++){
-                        struct atom *atom = &state.residues[j].atoms[k];
-                        ke += 0.5* atom->mass * vdot(
-                                &atom->velocity, &atom->velocity);
-                    }
-                }
-                fprintf(kinetic_out, "%f\t%f\n", state.time, ke);
-                fflush(kinetic_out);
-            }
         }
-        model->time = state.time;
+
+        //Push atoms
+        leapfrog_push(&state);
     }
-    if(kinetic)
-        fclose(kinetic_out);
+
+
     steric_grid_free(steric_grid);
     model_free(model);
     return 0;
