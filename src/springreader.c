@@ -162,6 +162,7 @@ int read_atoms(cJSON *root, struct model *m){
 
         struct atom *a = &m->atoms[i];
         atom_init(a, id->valueint, name->valuestring);
+        a->residue_idx = residue->valueint - 1;
         atom_set_atom_description(a, desc);
     }
     return 0;
