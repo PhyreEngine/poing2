@@ -113,7 +113,7 @@ sub TO_JSON {
     );
 
     #Serialise the sequence into a flat string
-    my @seq = map {$self->query->residues->{$_}}
+    my @seq = map {$self->query->residues->{$_}->oneletter}
         sort {$a <=> $b} keys %{$self->query->residues};
     $json{sequence} = join q{}, @seq;
 
