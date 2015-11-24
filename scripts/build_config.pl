@@ -32,6 +32,10 @@ option can be repeated as many times as necessary.
 
 Psipred SS2 file containing a secondary structure prediction.
 
+=item B<-v>, B<--verbose>
+
+Be a little more verbose about what the script is doing.
+
 =item B<-h>, B<--help>
 
 Display this help text.
@@ -48,24 +52,28 @@ Getopt::Long::Configure(qw(bundling no_ignore_case));
 GetOptions(\%options,
     'help|h',
     'template|t=s@',
+    'verbose|v',
     'ss|s=s',
 ) or pod2usage(2);
 pod2usage(-verbose => 2, -noperldoc => 1, -exitval => 1) if $options{help};
 
 my $query_file = shift || pod2usage('No sequence provided.');
 
+print STDERR "Parsing query\n" if $options{verbose};
 my $query = Bio::Protein::Poing2::Query->new(
     sequence => $query_file,
     ss       => $options{ss},
 );
 my @templates = map {
     my ($aln, $model) = split q{=};
+    print STDERR "Parsing $model\n" if $options{verbose};
     Bio::Protein::Poing2::Template->new(
         alignment => $aln,
         model     => $model,
         query     => $query,
 )} @{$options{template}};
 
+print STDERR "Combining templates and query\n" if $options{verbose};
 my $poing2 = Bio::Protein::Poing2->new(
     query     => $query,
     templates => \@templates,
