@@ -9,9 +9,6 @@ use Bio::Protein::Poing2::LinearSpring;
 use Bio::Protein::Poing2;
 use Moose;
 
-#Allow overloading to string
-use overload q{""} => 'threeletter';
-
 #Atoms for a course representation
 our %coarse_sidechain = (
     A => [qw(ALA)], C => [qw(CYS)], D => [qw(ASP)], E => [qw(GLU)],
