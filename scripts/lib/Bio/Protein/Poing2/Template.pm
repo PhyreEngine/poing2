@@ -11,6 +11,7 @@ use Bio::Protein::Poing2::Filter::Atom::Backbone;
 use Bio::Protein::Poing2::Filter::Residue::Known;
 use Bio::Protein::Poing2::Filter::Aln::Known;
 use List::Util qw(min max);
+use List::BinarySearch qw(binsearch_pos);
 use Moose;
 
 =head1 NAME
@@ -92,33 +93,23 @@ sub _read_residues {
     #We only want the backbone atoms
     my $bb_filter = Bio::Protein::Poing2::Filter::Atom::Backbone->new();
 
+    #Discard any unknown residues
+    my $known_filter = Bio::Protein::Poing2::Filter::Residue::Known->new();
+
     my $residues = Bio::Protein::Poing2::IO::PDB::read_pdb($self->model);
     $residues = $bb_filter->filter($residues);
+    $residues = $known_filter->filter($residues);
 
     #If we have a query, remap the residues.
     $residues = $self->_remap_atoms($residues) if $self->query;
+
     return $residues;
 }
 
-sub _build_handedness {
+sub sorted_residues {
     my ($self) = @_;
-
-    my $residues = $self->residues;
-    my $springs = $self->pairs;
-
-    my @res_idx = sort {$a <=> $b} keys %{$residues};
-    for my $spring(@{$springs}){
-        my $r1 = $spring->atom_1->residue->index;
-        my $r2 = $spring->atom_2->residue->index;
-
-        my $sep = int(($r2->index - $r1->index) / 3);
-        my $inner = $self->closest_residue($r1 + $sep)->atom_by_name('CA');
-        my $outer = $self->closest_residue($r2 - $sep)->atom_by_name('CA');
-        next if(!$inner || !$outer);
-
-        $spring->inner_atom($inner);
-        $spring->outer_atom($outer);
-    }
+    $self->{sorted_residues} ||= [sort {$a <=> $b} keys %{$self->residues}];
+    return $self->{sorted_residues};
 }
 
 sub _build_pairwise_springs {
@@ -134,14 +125,29 @@ sub _build_pairwise_springs {
         my $a1 = $res1->atom_by_name('CA');
 
         for my $r2(sort {$a <=> $b} keys %{$res}){
-            next if $r1 == $r2;
+            next if $r1 >= $r2;
             my $res2 = $res->{$r2};
             my $a2 = $res2->atom_by_name('CA');
 
             #Inner and outer atoms for handedness determination
-            my $sep = int(($r2 - $r1) / 3);
-            my $inner = $self->closest_residue($r1 + $sep)->atom_by_name('CA');
-            my $outer = $self->closest_residue($r2 - $sep)->atom_by_name('CA');
+            my ($inner, $outer);
+
+            if(abs($r2 - $r1) > 4){
+                my $sep = int(($r2 - $r1) / 4);
+                $inner = $self->closest_residue(
+                    $r1 + $sep,
+                    round => 'up',
+                )->atom_by_name('CA');
+                $outer = $self->closest_residue(
+                    $r2 - $sep,
+                    round => 'down',
+                )->atom_by_name('CA');
+
+                if($inner == $a1 || $outer == $a2 || $inner == $outer){
+                    $inner = undef;
+                    $outer = undef;
+                }
+            }
 
             my $pair = Bio::Protein::Poing2::LinearSpring->new(
                 atom_1 => $a1,
@@ -232,18 +238,24 @@ sub build_fourmer {
 
 #Find the closest residue that actually exists in the template
 sub closest_residue {
-    my ($self, $resi) = @_;
+    my ($self, $resi, %args) = @_;
 
-    my $first_resi = min(keys %{$self->residues});
-    my $last_resi  = max(keys %{$self->residues});
-    for(my $i=0; $resi - $i >= $first_resi || $resi + $i <= $last_resi; $i++){
-        #Prefer lower numbers
-        my $r1 = $self->residues->{$resi - $i};
-        my $r2 = $self->residues->{$resi + $i};
-        return $r1 if $r1;
-        return $r2 if $r2;
+    my $round = $args{round} || 'up';
+    if($self->{closest}{$round}{$resi}){
+        return $self->{closest}{$round}{$resi};
     }
-    return undef;
+
+    my $residues = $self->sorted_residues;
+
+    my $pos = binsearch_pos {$a <=> $b} $resi, @{$residues};
+    if($args{round}){
+        if($args{round} eq 'down'){
+            $pos = $pos - 1 if $residues->[$pos - 1];
+        }
+    }
+    my $res = $self->residues->{$residues->[$pos]};
+    $self->{closest}{$round}{$resi} = $res;
+    return $res;
 }
 
 #Remap atom IDs to match those of a query. Expects a ::Query object

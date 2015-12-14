@@ -93,8 +93,10 @@ sub threeletter {
 
 sub atom_by_name {
     my ($self, $name) = @_;
-    my @matching = grep {$_->name eq $name} @{$self->atoms};
-    return @matching > 0 ? $matching[0] : undef;
+    if(!$self->{atoms_by_name}){
+        $self->{atoms_by_name}{$_->name} = $_ for @{$self->atoms};
+    }
+    return $self->{atoms_by_name}{$name};
 }
 
 =item C<add_sidechain([$index])>: Add a sidechain atom to this residue.

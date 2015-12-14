@@ -4,6 +4,7 @@ use warnings;
 use utf8;
 use Moose;
 use Bio::Protein::Poing2::Ramachandran;
+use List::Util qw(min max);
 
 =head1 NAME
 
@@ -42,13 +43,20 @@ sub _build_rama {
 
     my @rama = ();
 
-    #If the next residue is a proline, mark the current residue as PRE_PROLINE
+    my $min = min keys %{$self->residues};
+    my $max = max keys %{$self->residues};
+
     for my $index (sort {$a <=> $b} keys %{$self->residues}){
+        #Skip the first and last residues, as we can't determine a phi/psi
+        #angle for those
+        next if $index == $min || $index == $max;
+
         my $resi      = $self->residues->{$index};
         my $next_resi = $self->residues->{$index + 1};
 
         my $rama = undef;
 
+        #If the next residue is a proline, mark the current residue as PRE_PROLINE
         if($next_resi && $next_resi->threeletter eq 'PRO'){
             $rama = Bio::Protein::Poing2::Ramachandran->new(
                 residue => $resi,

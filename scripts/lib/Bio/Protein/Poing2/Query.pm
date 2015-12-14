@@ -40,6 +40,11 @@ has residues => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_seq
 has angles   => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_bb_angles');
 has ramachandran => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_ramachandran');
 
+sub length {
+    my ($self) = @_;
+    return scalar(keys %{$self->residues});
+}
+
 sub _read_sequence {
     my ($self) = @_;
 
