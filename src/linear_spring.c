@@ -62,7 +62,7 @@ bool linear_spring_active(struct linear_spring *s){
         vcross(&cross, &ab, &ai);
         double dot = vdot(&cross, &oa);
         bool rh = (dot > 0) ? true : false;
-        if(rh && !s->right_handed || !rh && s->right_handed)
+        if((rh && !s->right_handed) || (!rh && s->right_handed))
             return false;
 
     }
