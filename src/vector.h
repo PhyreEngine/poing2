@@ -2,6 +2,7 @@
 #define VECTOR_H_
 
 #include <math.h>
+#include <stdlib.h>
 
 #define N 3
 typedef double real;
@@ -43,6 +44,11 @@ inline void vmul(struct vector *dst, struct vector *v1, double s){
         dst->c[i] = v1->c[i] * s;
 }
 
+inline void vmul_elems(struct vector *dst, struct vector *v1, double s){
+    for(size_t i=0; i < N; i++)
+        dst->c[i] = v1->c[i] * s;
+}
+
 
 inline void vdiv(struct vector *dst, struct vector *v1, double s){
     for(size_t i=0; i < N; i++)
@@ -79,9 +85,17 @@ inline double vdot(struct vector *v1, struct vector *v2){
     return s;
 }
 
-inline double vmag(struct vector *v1){
-    return sqrt(vdot(v1, v1));
+inline double vmag_sq(struct vector *v1){
+    double sum = 0;
+    for(size_t i=0; i < N; i++)
+        sum += v1->c[i] * v1->c[i];
+    return sum;
 }
+
+inline double vmag(struct vector *v1){
+    return sqrt(vmag_sq(v1));
+}
+
 
 /**
  * Find a random vector within a given azimuthal angle.

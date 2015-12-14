@@ -30,6 +30,7 @@ extern inline void vdiv(struct vector *dst, struct vector *v1, double s);
 extern inline void vcross(struct vector *dst, struct vector *v1, struct vector *v2);
 extern inline double vdot(struct vector *v1, struct vector *v2);
 extern inline double vmag(struct vector *v1);
+extern inline double vmag_sq(struct vector *v1);
 extern inline void vector_rand(struct vector *dst, double min_phi, double max_phi);
 extern inline void vector_spherical_coords(struct vector *dst, struct vector *v);
 extern inline void vrot_x(struct vector *dst, struct vector *v, double theta);
