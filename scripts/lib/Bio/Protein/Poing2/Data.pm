@@ -36,7 +36,7 @@ our $PI = 4 * atan2(1, 1);
 
 =cut
 
-my @AA1 = qw(A C D E F G H I K L M N P Q R S T V W Y Z B);
+my @AA1 = qw(A C D E F G H I K L M N P Q R S T V W Y Z B X);
 
 
 =item C<@AA3>: Array of three-letter AA codes;
@@ -44,7 +44,7 @@ my @AA1 = qw(A C D E F G H I K L M N P Q R S T V W Y Z B);
 =cut
 
 my @AA3 = qw(ALA CYS ASP GLU PHE GLY HIS ILE LYS LEU MET ASN PRO GLN ARG SER THR
-             VAL TRP TYR GLX ASX);
+             VAL TRP TYR GLX ASX UNK);
 
 =item C<%one2three>: Hash of single-letter AA codes to three-letter codes.
 

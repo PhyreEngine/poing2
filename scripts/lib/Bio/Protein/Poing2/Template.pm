@@ -8,6 +8,8 @@ use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::Fourmer;
 use Bio::Protein::Poing2::Ramachandran;
 use Bio::Protein::Poing2::Filter::Atom::Backbone;
+use Bio::Protein::Poing2::Filter::Residue::Known;
+use Bio::Protein::Poing2::Filter::Aln::Known;
 use List::Util qw(min max);
 use Moose;
 
@@ -156,9 +158,12 @@ sub _build_pairwise_springs {
 
 sub _read_alignment {
     my ($self) = @_;
-    return Bio::Protein::Poing2::IO::FastaAlignment::read_fasta(
+    my $filter = Bio::Protein::Poing2::Filter::Aln::Known->new();
+    my $aln = Bio::Protein::Poing2::IO::FastaAlignment::read_fasta(
         $self->alignment
     );
+    $aln = $filter->filter($aln);
+    return $aln;
 }
 
 sub _build_fourmers {
