@@ -33,9 +33,7 @@ void rama_free_data();
 enum rama_constraint_type rama_parse_type(const char *type);
 void rama_init(struct rama_constraint *rama,
         const struct model *m,
-        struct residue *residue,
-        struct residue *next_residue,
-        struct residue *prev_residue,
+        size_t residue_idx,
         const char *type,
         float constant);
 void rama_random_init(struct rama_constraint *rama);

@@ -214,26 +214,43 @@ error:
  */
 void rama_init(struct rama_constraint *rama,
         const struct model *m,
-        struct residue *residue,
-        struct residue *next_residue,
-        struct residue *prev_residue,
+        size_t residue_idx,
         const char *type,
         float constant){
 
     rama->type = rama_parse_type(type);
     rama->enabled = true;
 
-    struct atom *phi_prev_C  = residue_get_atom(m, prev_residue, "C");
-    struct atom *phi_N  = residue_get_atom(m, residue, "N");
-    struct atom *phi_CA = residue_get_atom(m, residue, "CA");
-    struct atom *phi_C  = residue_get_atom(m, residue, "C");
-    //TODO: Get a good constant
-    rama->phi = torsion_spring_alloc(phi_prev_C, phi_N, phi_CA, phi_C, 0, constant);
+    //Find the atoms we want. Doing a linear search is slow, but this only has
+    //to be done once for each residue at start up.
+    struct atom *phi_prev_C, *phi_N, *phi_CA, *phi_C;
+    phi_prev_C = phi_N = phi_CA = phi_C = NULL;
 
-    struct atom *psi_N  = residue_get_atom(m, residue, "N");
-    struct atom *psi_CA = residue_get_atom(m, residue, "CA");
-    struct atom *psi_C  = residue_get_atom(m, residue, "C");
-    struct atom *psi_next_N = residue_get_atom(m, next_residue, "N");
+    struct atom *psi_N, *psi_CA, *psi_C, *psi_next_N;
+    psi_N = psi_CA = psi_C = psi_next_N = NULL;
+
+    for(size_t i=0; i < m->num_atoms; i++){
+        struct atom *a = &m->atoms[i];
+        if(a->residue_idx == residue_idx - 1){
+            if(strcmp(a->name, "C"))
+                phi_prev_C = a;
+        }else if(a->residue_idx == residue_idx){
+            if(strcmp(a->name, "N") == 0){
+                phi_N = a;
+                psi_N = a;
+            }else if(strcmp(a->name, "CA") == 0){
+                phi_CA = a;
+                psi_CA = a;
+            }else if(strcmp(a->name, "C") == 0){
+                phi_C = a;
+                psi_C = a;
+            }
+        }else if(a->residue_idx == residue_idx + 1){
+            if(strcmp(a->name, "N") == 0)
+                psi_next_N = a;
+        }
+    }
+    rama->phi = torsion_spring_alloc(phi_prev_C, phi_N, phi_CA, phi_C, 0, constant);
     rama->psi = torsion_spring_alloc(psi_N, psi_CA, psi_C, psi_next_N, 0, constant);
 }
 

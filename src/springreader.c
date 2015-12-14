@@ -435,14 +435,8 @@ int read_rama(cJSON *root, struct model *m){
                     "Ramachandran constraint %lu contains out-of-range residues\n",
                     i);
 
-        struct residue *res      = &m->residues[residue - 1];
-        struct residue *prev_res = &m->residues[residue - 2];
-        struct residue *next_res = &m->residues[residue];
-
         struct rama_constraint *r = &m->rama_constraints[i];
-        rama_init(r, m,
-                res, next_res, prev_res,
-                type, constant_f);
+        rama_init(r, m, residue - 1, type, constant_f);
 
     }
     return 0;
