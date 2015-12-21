@@ -13,6 +13,10 @@
 #include "torsion_spring.h"
 
 static void add_torsion_force(struct torsion_spring *spring);
+static double model_get_separation(
+        const struct model *restrict m,
+        const struct atom *restrict a,
+        const struct atom *restrict b);
 
 /**
  * Allocate memory for a model structure.
@@ -28,6 +32,7 @@ struct model *model_alloc(){
     m->num_torsion_springs = 0;
     m->num_rama_constraints = 0;
     m->num_bond_angles = 0;
+    m->num_constraints = 0;
     m->num_residues = 0;
     m->num_atoms = 0;
     m->residues = NULL;
@@ -35,6 +40,7 @@ struct model *model_alloc(){
     m->linear_springs = NULL;
     m->torsion_springs = NULL;
     m->bond_angles = NULL;
+    m->constraints = NULL;
     m->time = 0;
     m->until = 0;
     m->timestep = 0.1;
@@ -62,6 +68,7 @@ void model_free(struct model *m){
     free(m->torsion_springs);
     free(m->bond_angles);
     free(m->rama_constraints);
+    free(m->constraints);
     free(m);
 }
 
@@ -302,6 +309,17 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
                 bytes_written += res;
             }
         }
+        for(size_t i=0; i < m->num_constraints; i++){
+            struct constraint *s = &m->constraints[i];
+            struct atom *a = &m->atoms[s->a];
+            struct atom *b = &m->atoms[s->b];
+            if(a->synthesised && b->synthesised){
+                int res = fprintf(out, conect_fmt, a->id, b->id);
+                if(res < 0)
+                    return res;
+                bytes_written += res;
+            }
+        }
     }
     return bytes_written;
 }
@@ -335,7 +353,7 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
     struct atom *prev1 = NULL;
     struct atom *prev2 = NULL;
 
-    for(size_t i=idx - 1; idx > 0 && i >= 0 && !prev1 && !prev2; i--){
+    for(int i=idx - 1; idx > 0 && i >= 0 && !prev2; i--){
         if(m->atoms[i].backbone){
             if(prev1)
                 prev2 = &m->atoms[i];
@@ -353,7 +371,7 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
         //backbone atom, or on the x-y plane for a non-backbone atom.
 
         //First, find the required distance between this and the previous atom
-        double separation = a->radius + prev1->radius;
+        double separation = model_get_separation(m, a, prev1);
 
         struct vector unit_offset;
         if(a->backbone){
@@ -378,7 +396,7 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
 
         //We want to do the same as before, but then we want to rotate it such
         //that the vector between the previous two atoms is the new z-axis.
-        double separation = a->radius + prev1->radius;
+        double separation = model_get_separation(m, a, prev1);
         struct vector unit_offset;
         if(a->backbone){
             vector_rand(&unit_offset, 0, max_angle / 180 * M_PI);
@@ -388,7 +406,6 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
                     (90 + max_angle) / 180 * M_PI);
         }
         vmul_by(&unit_offset, separation);
-        vadd_to(&unit_offset, &prev1->position);
 
         //So we have our vector, but we need to rotate our coordinate system.
         //To do this we rotate it with the same angle and axis that the
@@ -404,5 +421,25 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
         vrot_axis(&unit_offset, &rot_axis, &unit_offset, -angle);
         vadd(&a->position, &unit_offset, &prev1->position);
     }
+}
+
+//If the model contains a constraint with these atoms, use that distance as
+//the desired distance. We just do a linear search because this function
+//will be called relatively infrequently.
+//
+//If no constraint is found, return the sum of the atom radii.
+double model_get_separation(
+        const struct model *restrict m,
+        const struct atom *restrict a,
+        const struct atom *restrict b){
+
+    for(size_t i=0; i < m->num_constraints; i++){
+        const struct atom *c_a = &m->atoms[m->constraints[i].a];
+        const struct atom *c_b = &m->atoms[m->constraints[i].b];
+        if((a == c_a && b == c_b) || (a == c_b && b == c_a)){
+            return m->constraints[i].distance;
+        }
+    }
+    return a->radius + b->radius;
 }
 

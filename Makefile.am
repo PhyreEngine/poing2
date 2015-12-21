@@ -4,7 +4,7 @@ poing2_deps=src/rk4.c src/leapfrog.c src/model.c src/residue.c \
 			   src/linear_spring.c src/torsion_spring.c src/springreader.c \
 			   src/bond_angle.c \
 			   src/vector.c src/sterics.c data/AA.c data/atoms.c \
-			   src/rama.c src/cJSON/cJSON.c
+			   src/rama.c src/cJSON/cJSON.c src/rattle.c
 poing2_CFLAGS=$(OPENMP_CFLAGS)
 poing2_SOURCES=src/poing.c $(poing2_deps)
 

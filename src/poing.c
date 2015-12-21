@@ -9,8 +9,7 @@
 #include <unistd.h>
 #include "springreader.h"
 #include "model.h"
-#include "rk4.h"
-#include "leapfrog.h"
+#include "rattle.h"
 #include "sterics.h"
 #include "linear_spring.h"
 
@@ -181,7 +180,7 @@ int main(int argc, char **argv){
         }
 
         //Push atoms
-        leapfrog_push(&state);
+        rattle_push(&state);
     }
 
 

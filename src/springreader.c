@@ -38,6 +38,7 @@ static int read_springs(cJSON *root, struct model *m);
 static int read_angles(cJSON *root, struct model *m);
 static int read_torsions(cJSON *root, struct model *m);
 static int read_rama(cJSON *root, struct model *m);
+static int read_constraints(cJSON *root, struct model *m);
 
 static int check_mandatory_keys(cJSON *root, const char **keys, size_t nkeys,
     const char *fmt);
@@ -74,12 +75,13 @@ struct model * springreader_parse_str(const char *str){
     set_bool_if_set(root, "shield_drag", &m->shield_drag);
     set_bool_if_set(root, "do_synthesis", &m->do_synthesis);
 
-    if(read_residues(root, m)) goto free_copy;
-    if(read_atoms(root, m))    goto free_copy;
-    if(read_springs(root, m))  goto free_copy;
-    if(read_angles(root, m))   goto free_copy;
-    if(read_torsions(root, m)) goto free_copy;
-    if(read_rama(root, m))     goto free_copy;
+    if(read_residues(root, m))    goto free_copy;
+    if(read_atoms(root, m))       goto free_copy;
+    if(read_springs(root, m))     goto free_copy;
+    if(read_angles(root, m))      goto free_copy;
+    if(read_torsions(root, m))    goto free_copy;
+    if(read_rama(root, m))        goto free_copy;
+    if(read_constraints(root, m)) goto free_copy;
 
     free(copy);
     return m;
@@ -160,7 +162,7 @@ int read_atoms(cJSON *root, struct model *m){
             goto_err(free_atoms, "Residue index %d out of range at atom %lu\n",
                     residue->valueint, i+1);
 
-        struct atom *a = &m->atoms[i];
+        struct atom *a = &m->atoms[id->valueint-1];
         atom_init(a, id->valueint, name->valuestring);
         a->residue_idx = residue->valueint - 1;
         atom_set_atom_description(a, desc);
@@ -171,6 +173,61 @@ free_atoms:
     free(m->atoms);
 error:
     return -1;
+}
+
+int read_constraints(cJSON *root, struct model *m){
+    cJSON *constraints = cJSON_GetObjectItem(root, "constraints");
+
+    //It's valid to have no springs, so this isn't an error
+    if(!constraints)
+        return 0;
+
+    //Find the number of springs we have and malloc an array
+    int nsprings = cJSON_GetArraySize(constraints);
+    m->num_constraints = nsprings;
+    m->constraints = malloc(sizeof(*m->constraints) * nsprings);
+    if(!m->constraints)
+        goto_perror(alloc_err, "Error allocating constraints array\n");
+
+    const char *mandatory[2] = {"atoms", "distance"};
+    size_t i=0;
+    for(cJSON *spring = constraints->child; spring; spring = spring->next, i++){
+        int fail = check_mandatory_keys(spring, mandatory, 2,
+                "Constraint no. %d missing key '%s'\n");
+        if(fail)
+            goto free_springs;
+
+        cJSON *atoms    = cJSON_GetObjectItem(spring, "atoms");
+        cJSON *distance = cJSON_GetObjectItem(spring, "distance");
+
+        if(atoms->type != cJSON_Array)
+            goto_err(free_springs,
+                    "Key 'atoms' must be an array in spring %lu\n", i+1);
+        if(cJSON_GetArraySize(atoms) != 2)
+            goto_err(free_springs,
+                    "Key 'atoms' must contain 2 atoms in spring %lu\n", i+1);
+
+        for(cJSON *a = atoms->child; a; a = a->next){
+            if(a->valueint - 1 < 0 || a->valueint - 1 >= m->num_atoms)
+                goto_err(free_springs,
+                        "Atom %d does not exist in spring %lu\n",
+                        a->valueint, i + 1);
+        }
+
+        int a1 = cJSON_GetArrayItem(atoms, 0)->valueint - 1;
+        int a2 = cJSON_GetArrayItem(atoms, 1)->valueint - 1;
+
+        struct constraint *s = &m->constraints[i];
+        s->a = a1;
+        s->b = a2;
+        s->distance = distance->valuedouble;
+    }
+    return 0;
+
+free_springs:
+    free(m->constraints);
+alloc_err:
+    return 1;
 }
 
 int read_springs(cJSON *root, struct model *m){

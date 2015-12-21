@@ -56,6 +56,12 @@ struct steric_grid;
     "%f %f "\
     "%f %f %f %f %f %f %f %f %f %f %f %f\n"
 
+struct constraint {
+    //Atom indices
+    size_t a, b;
+    float distance;
+};
+
 /**
  * Represents a model of a protein, with residues and springs.
  */
@@ -72,6 +78,8 @@ struct model {
     size_t num_bond_angles;
     ///Number of Ramachandran constraints
     size_t num_rama_constraints;
+    ///Number of hard constraints
+    size_t num_constraints;
 
     ///Residues
     struct residue *residues;
@@ -85,6 +93,8 @@ struct model {
     struct bond_angle_spring *bond_angles;
     ///Ramachandran constraints
     struct rama_constraint *rama_constraints;
+    ///Hard constraints
+    struct constraint *constraints;
 
     ///Current time
     double time;
