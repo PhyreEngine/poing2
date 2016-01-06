@@ -416,6 +416,7 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
         double angle;
         vsub(&displacement, &prev1->position, &prev2->position);
         vcross(&rot_axis, &displacement, &z);
+        vdiv_by(&rot_axis, vmag(&rot_axis));
         angle = acos(vdot(&displacement, &z) / vmag(&displacement));
 
         vrot_axis(&unit_offset, &rot_axis, &unit_offset, -angle);
