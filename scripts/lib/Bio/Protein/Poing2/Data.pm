@@ -98,6 +98,12 @@ our %backbone = (
     O  => 1,
 );
 
+=item B<@backbone_order>: Backbone atoms in order.
+
+=cut
+
+our @backbone_order = qw(N CA C O);
+
 =item C<%BB_BB_len>: Backbone-backbone distances, stored as a hashref of
 distances.
 

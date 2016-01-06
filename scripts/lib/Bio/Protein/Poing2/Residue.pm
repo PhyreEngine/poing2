@@ -145,7 +145,7 @@ Returns the index of the next atom.
 
 sub init_fine_bb {
     my ($self, $start) = @_;
-    $self->init_atoms([keys %Bio::Protein::Poing2::Data::backbone], $start);
+    $self->init_atoms(\@Bio::Protein::Poing2::Data::backbone_order, $start);
     return ($start // 1) + @{$self->atoms};
 }
 
