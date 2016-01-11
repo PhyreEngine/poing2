@@ -18,6 +18,12 @@ static double model_get_separation(
         const struct atom *restrict a,
         const struct atom *restrict b);
 
+static void apply_spring_force(struct model *m);
+static void apply_torsion_force(struct model *m);
+static void apply_rama_force(struct model *m);
+static void apply_angle_force(struct model *m);
+static void apply_drag_force(struct model *m);
+
 /**
  * Allocate memory for a model structure.
  *
@@ -73,164 +79,15 @@ void model_free(struct model *m){
 }
 
 void model_accumulate_forces(struct model *m){
-    struct vector force;
-    struct vector tmp;
-
-    struct linear_spring *linear_springs = m->linear_springs;
-    struct torsion_spring *torsion_springs = m->torsion_springs;
-    struct bond_angle_spring *bond_angles = m->bond_angles;
-
     //Begin by zeroing out any existing forces
     for(size_t i=0; i < m->num_atoms; i++)
         vector_zero(&m->atoms[i].force);
 
-    //Then go through all springs and accumulate forces on the residues
-    #pragma omp parallel for shared(linear_springs)
-    for(size_t i=0; i < m->num_linear_springs; i++){
-        struct linear_spring *s = &linear_springs[i];
-
-        if(s->a->synthesised && s->b->synthesised){
-            if(!s->a->fixed){
-                linear_spring_force(&force, s, A);
-                vadd_to(&s->a->force, &force);
-            }
-
-            if(!s->b->fixed){
-                linear_spring_force(&force, s, B);
-                vadd_to(&s->b->force, &force);
-            }
-
-            //Print debug information
-            if(m->debug && m->debug->linear
-                    && (int)(m->time / m->debug->interval) > m->debug->nprinted){
-                struct vector force_a, force_b;
-                struct vector displacement;
-                linear_spring_force(&force_a, s, A);
-                linear_spring_force(&force_b, s, B);
-                vsub(&displacement, &s->a->position, &s->b->position);
-
-                fprintf(m->debug->linear, DEBUG_LINEAR_FMT,
-                        m->time,
-                        s->a->id, s->a->name,
-                        s->b->id, s->b->name,
-                        (s->enabled ? "enabled" : "disabled"),
-                        s->distance, vmag(&displacement), 
-                        force_a.c[0], force_a.c[1], force_a.c[2],
-                        force_b.c[0], force_b.c[1], force_b.c[2]);
-            }
-        }
-    }
-
-    //Torsion springs
-    #pragma omp parallel for shared(torsion_springs)
-    for(size_t i=0; i < m->num_torsion_springs; i++){
-        struct torsion_spring *s = &torsion_springs[i];
-        add_torsion_force(s);
-
-        if(m->debug && m->debug->torsion
-            && (int)(m->time / m->debug->interval) > m->debug->nprinted){
-            if(!s->a1->synthesised || !s->a2->synthesised
-                    || !s->a3->synthesised || !s->a4->synthesised)
-                continue;
-
-
-
-            struct vector spring_forces[4];
-            torsion_spring_force_new(
-                    &spring_forces[0],
-                    &spring_forces[1],
-                    &spring_forces[2],
-                    &spring_forces[3],
-                    s);
-                fprintf(m->debug->torsion, DEBUG_TORSION_FMT,
-                        m->time,
-                        s->a1->id, s->a1->name,
-                        s->a2->id, s->a2->name,
-                        s->a3->id, s->a3->name,
-                        s->a4->id, s->a4->name,
-                        (s->enabled ? "enabled" : "disabled"),
-                        s->angle, torsion_spring_angle(s),
-                        spring_forces[0].c[0],
-                        spring_forces[0].c[1],
-                        spring_forces[0].c[2],
-                        spring_forces[1].c[0],
-                        spring_forces[1].c[1],
-                        spring_forces[1].c[2],
-                        spring_forces[2].c[0],
-                        spring_forces[2].c[1],
-                        spring_forces[2].c[2],
-                        spring_forces[3].c[0],
-                        spring_forces[3].c[1],
-                        spring_forces[3].c[2]);
-        }
-    }
-
-    //Ramachandran constraints
-    for(size_t i=0; i < m->num_rama_constraints; i++){
-        struct rama_constraint *rama = &m->rama_constraints[i];
-        if(rama_is_synthesised(rama)){
-            rama_get_closest(rama);
-            if(rama->enabled){
-                add_torsion_force(rama->phi);
-                add_torsion_force(rama->psi);
-            }
-        }
-    }
-
-    //Bond angle constraints
-    #pragma omp parallel for shared(torsion_springs)
-    for(size_t i=0; i < m->num_bond_angles; i++){
-        struct bond_angle_spring *s = &bond_angles[i];
-
-        if(s->a1->synthesised
-                && s->a2->synthesised
-                && s->a3->synthesised){
-
-            struct vector spring_forces[3];
-            bond_angle_force(
-                    &spring_forces[0],
-                    &spring_forces[1],
-                    &spring_forces[2],
-                    s);
-
-            if(!s->a1->fixed)
-                vadd_to(&s->a1->force, &spring_forces[0]);
-            if(!s->a2->fixed)
-                vadd_to(&s->a2->force, &spring_forces[1]);
-            if(!s->a3->fixed)
-                vadd_to(&s->a3->force, &spring_forces[2]);
-
-            //Print debug information
-            if(m->debug && m->debug->angle
-                && (int)(m->time / m->debug->interval) > m->debug->nprinted){
-                fprintf(m->debug->angle, DEBUG_ANGLE_FMT,
-                        m->time,
-                        s->a1->id, s->a1->name,
-                        s->a2->id, s->a2->name,
-                        s->a3->id, s->a3->name,
-                        (s->enabled ? "enabled" : "disabled"),
-                        s->angle, bond_angle_angle(s),
-                        spring_forces[0].c[0],
-                        spring_forces[0].c[1],
-                        spring_forces[0].c[2],
-                        spring_forces[1].c[0],
-                        spring_forces[1].c[1],
-                        spring_forces[1].c[2],
-                        spring_forces[2].c[0],
-                        spring_forces[2].c[1],
-                        spring_forces[2].c[2]);
-            }
-        }
-    }
-
-    //If we're not using the fancy drag force, apply the drag force now.
-    if(!m->shield_drag){
-        for(size_t i=0; i < m->num_atoms; i++){
-            vector_copy_to(&tmp, &m->atoms[i].velocity);
-            vmul_by(&tmp, m->drag_coefficient);
-            vadd_to(&m->atoms[i].force, &tmp);
-        }
-    }
+    apply_spring_force(m);
+    apply_torsion_force(m);
+    apply_rama_force(m);
+    apply_angle_force(m);
+    apply_drag_force(m);
 
     //Steric, water and drag forces
     if(m->steric_grid){
@@ -442,5 +299,172 @@ double model_get_separation(
         }
     }
     return a->radius + b->radius;
+}
+
+void apply_spring_force(struct model *m){
+    struct vector force;
+    struct linear_spring *linear_springs = m->linear_springs;
+
+    //Then go through all springs and accumulate forces on the residues
+    #pragma omp parallel for shared(linear_springs)
+    for(size_t i=0; i < m->num_linear_springs; i++){
+        struct linear_spring *s = &linear_springs[i];
+
+        if(s->a->synthesised && s->b->synthesised){
+            if(!s->a->fixed){
+                linear_spring_force(&force, s, A);
+                vadd_to(&s->a->force, &force);
+            }
+
+            if(!s->b->fixed){
+                linear_spring_force(&force, s, B);
+                vadd_to(&s->b->force, &force);
+            }
+
+            //Print debug information
+            if(m->debug && m->debug->linear
+                    && (int)(m->time / m->debug->interval) > m->debug->nprinted){
+                struct vector force_a, force_b;
+                struct vector displacement;
+                linear_spring_force(&force_a, s, A);
+                linear_spring_force(&force_b, s, B);
+                vsub(&displacement, &s->a->position, &s->b->position);
+
+                fprintf(m->debug->linear, DEBUG_LINEAR_FMT,
+                        m->time,
+                        s->a->id, s->a->name,
+                        s->b->id, s->b->name,
+                        (s->enabled ? "enabled" : "disabled"),
+                        s->distance, vmag(&displacement), 
+                        force_a.c[0], force_a.c[1], force_a.c[2],
+                        force_b.c[0], force_b.c[1], force_b.c[2]);
+            }
+        }
+    }
+}
+
+void apply_torsion_force(struct model *m){
+    struct torsion_spring *torsion_springs = m->torsion_springs;
+
+    //Torsion springs
+    #pragma omp parallel for shared(torsion_springs)
+    for(size_t i=0; i < m->num_torsion_springs; i++){
+        struct torsion_spring *s = &torsion_springs[i];
+        add_torsion_force(s);
+
+        if(m->debug && m->debug->torsion
+            && (int)(m->time / m->debug->interval) > m->debug->nprinted){
+            if(!s->a1->synthesised || !s->a2->synthesised
+                    || !s->a3->synthesised || !s->a4->synthesised)
+                continue;
+
+
+
+            struct vector spring_forces[4];
+            torsion_spring_force_new(
+                    &spring_forces[0],
+                    &spring_forces[1],
+                    &spring_forces[2],
+                    &spring_forces[3],
+                    s);
+                fprintf(m->debug->torsion, DEBUG_TORSION_FMT,
+                        m->time,
+                        s->a1->id, s->a1->name,
+                        s->a2->id, s->a2->name,
+                        s->a3->id, s->a3->name,
+                        s->a4->id, s->a4->name,
+                        (s->enabled ? "enabled" : "disabled"),
+                        s->angle, torsion_spring_angle(s),
+                        spring_forces[0].c[0],
+                        spring_forces[0].c[1],
+                        spring_forces[0].c[2],
+                        spring_forces[1].c[0],
+                        spring_forces[1].c[1],
+                        spring_forces[1].c[2],
+                        spring_forces[2].c[0],
+                        spring_forces[2].c[1],
+                        spring_forces[2].c[2],
+                        spring_forces[3].c[0],
+                        spring_forces[3].c[1],
+                        spring_forces[3].c[2]);
+        }
+    }
+}
+
+void apply_rama_force(struct model *m){
+    //Ramachandran constraints
+    for(size_t i=0; i < m->num_rama_constraints; i++){
+        struct rama_constraint *rama = &m->rama_constraints[i];
+        if(rama_is_synthesised(rama)){
+            rama_get_closest(rama);
+            if(rama->enabled){
+                add_torsion_force(rama->phi);
+                add_torsion_force(rama->psi);
+            }
+        }
+    }
+
+}
+
+void apply_angle_force(struct model *m){
+    struct bond_angle_spring *bond_angles = m->bond_angles;
+
+    //Bond angle constraints
+    #pragma omp parallel for shared(torsion_springs)
+    for(size_t i=0; i < m->num_bond_angles; i++){
+        struct bond_angle_spring *s = &bond_angles[i];
+
+        if(s->a1->synthesised
+                && s->a2->synthesised
+                && s->a3->synthesised){
+
+            struct vector spring_forces[3];
+            bond_angle_force(
+                    &spring_forces[0],
+                    &spring_forces[1],
+                    &spring_forces[2],
+                    s);
+
+            if(!s->a1->fixed)
+                vadd_to(&s->a1->force, &spring_forces[0]);
+            if(!s->a2->fixed)
+                vadd_to(&s->a2->force, &spring_forces[1]);
+            if(!s->a3->fixed)
+                vadd_to(&s->a3->force, &spring_forces[2]);
+
+            //Print debug information
+            if(m->debug && m->debug->angle
+                && (int)(m->time / m->debug->interval) > m->debug->nprinted){
+                fprintf(m->debug->angle, DEBUG_ANGLE_FMT,
+                        m->time,
+                        s->a1->id, s->a1->name,
+                        s->a2->id, s->a2->name,
+                        s->a3->id, s->a3->name,
+                        (s->enabled ? "enabled" : "disabled"),
+                        s->angle, bond_angle_angle(s),
+                        spring_forces[0].c[0],
+                        spring_forces[0].c[1],
+                        spring_forces[0].c[2],
+                        spring_forces[1].c[0],
+                        spring_forces[1].c[1],
+                        spring_forces[1].c[2],
+                        spring_forces[2].c[0],
+                        spring_forces[2].c[1],
+                        spring_forces[2].c[2]);
+            }
+        }
+    }
+}
+
+void apply_drag_force(struct model *m){
+    struct vector tmp;
+    //If we're not using the fancy drag force, apply the drag force now.
+    if(!m->shield_drag){
+        for(size_t i=0; i < m->num_atoms; i++){
+            vector_copy_to(&tmp, &m->atoms[i].velocity);
+            vmul_by(&tmp, m->drag_coefficient);
+            vadd_to(&m->atoms[i].force, &tmp);
+        }
+    }
 }
 
