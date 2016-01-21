@@ -63,6 +63,7 @@ struct model *model_alloc(){
     m->debug = NULL;
     m->fix_before = -1;
     m->record_time = m->timestep * 10;
+    m->max_jitter = 0.01;
     return m;
 }
 

@@ -69,6 +69,7 @@ struct model * springreader_parse_str(const char *str){
     set_double_if_set(root, "max_synth_angle", &m->max_synth_angle);
     set_double_if_set(root, "until", &m->until);
     set_double_if_set(root, "record_time", &m->record_time);
+    set_double_if_set(root, "max_jitter", &m->max_jitter);
     set_bool_if_set(root, "use_sterics", &m->use_sterics);
     set_bool_if_set(root, "fix", &m->fix);
     set_bool_if_set(root, "threestate", &m->threestate);

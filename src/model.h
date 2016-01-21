@@ -126,6 +126,9 @@ struct model {
     ///Record the position at this time step;
     double record_time;
 
+    ///Freeze atoms with jitter below this
+    double max_jitter;
+
     ///Fix residues after allowing them to reach equilibrium
     bool fix;
 

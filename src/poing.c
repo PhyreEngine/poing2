@@ -195,7 +195,7 @@ int main(int argc, char **argv){
             record_add(&prev_positions, &state);
             for(size_t i=0; i < state.num_atoms; i++){
                 if(prev_positions.nrecords[i] == prev_positions.max_records)
-                    if(prev_positions.avg_jitter[i] < 0.01)
+                    if(prev_positions.avg_jitter[i] < model->max_jitter)
                         state.atoms[i].fixed = true;
             }
         }
