@@ -422,7 +422,7 @@ int read_torsions(cJSON *root, struct model *m){
         int a4 = cJSON_GetArrayItem(atoms, 3)->valueint - 1;
         double constant_f = (constant)
             ? constant->valuedouble
-            : DEFAULT_BOND_ANGLE_CONST;
+            : DEFAULT_TORSION_CONST;
 
         struct torsion_spring *s = &m->torsion_springs[i];
         torsion_spring_init(s,
