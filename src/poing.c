@@ -174,9 +174,7 @@ int main(int argc, char **argv){
 
         //Write PDB file if required
         if(snapshot > 0 && (int)(state.time / snapshot) > num_snapshots){
-            printf("MODEL     %lu\n", ++num_snapshots);
-            model_pdb(stdout, &state, print_connect);
-            printf("ENDMDL\n");
+            model_pdb(stdout, &state, print_connect, &num_snapshots);
         }
 
         //Push atoms

@@ -137,9 +137,10 @@ static void add_torsion_force(struct torsion_spring *s){
 const char *atom_fmt   = "ATOM  %5d  %-3s %-3s  %4d%1s   %8.3f%8.3f%8.3f\n";
 const char *conect_fmt = "CONECT% 5d% 5d\n";
 
-int model_pdb(FILE *out, const struct model *m, bool conect){
-
+int model_pdb(FILE *out, const struct model *m, bool conect, int *n){
     int bytes_written = 0;
+
+    bytes_written += fprintf(out, "MODEL     %lu\n", ++(*n));
     for(size_t i=0; i < m->num_atoms; i++){
         struct atom *a    = &m->atoms[i];
         struct residue *r = &m->residues[a->residue_idx];
@@ -178,6 +179,7 @@ int model_pdb(FILE *out, const struct model *m, bool conect){
             }
         }
     }
+    bytes_written += fprintf(out, "ENDMDL\n");
     return bytes_written;
 }
 
