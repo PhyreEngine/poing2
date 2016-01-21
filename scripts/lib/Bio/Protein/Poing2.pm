@@ -172,6 +172,7 @@ sub TO_JSON {
         shield_drag => \$self->shield_drag,
         use_sterics => \$self->use_sterics,
         use_water   => \$self->use_water,
+        drag_coefficient => $self->drag_coefficient + 0,
         atoms   => [],
         linear  => [],
         angle   => [],
