@@ -201,6 +201,19 @@ void torsion_spring_force_new(
     vsub(&G, &s->a2->position, &s->a3->position);
     vsub(&H, &s->a4->position, &s->a3->position);
 
+    //Abort if either of the two angles are nearly 180 degrees
+    double FG_angle = fabs(
+            acos(vdot(&F, &G) / (vmag(&F) * vmag(&G))) / M_PI * 180);
+    double HG_angle = fabs(
+            acos(vdot(&H, &G) / (vmag(&H) * vmag(&G))) / M_PI * 180);
+    if(FG_angle < 10 || FG_angle > 170 || HG_angle < 10 || HG_angle > 170){
+        vector_zero(f1);
+        vector_zero(f2);
+        vector_zero(f3);
+        vector_zero(f4);
+        return;
+    }
+
     //Intermediate vectors, again named according to B&K
     struct vector A, B;
     vcross(&A, &F, &G);
