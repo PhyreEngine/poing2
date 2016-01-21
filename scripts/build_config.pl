@@ -56,6 +56,28 @@ Use simplified drag force. Default: Do not simplify.
 
 Do not bombard model. Default: Do bombardment.
 
+=item B<--fix-before> (Default: 50, disabled if B<--record-jitter> is false)
+
+Requires this many atoms, from the most-recently synthesised atom backwards, to
+remain free. The previous atoms may be fixed if their jitter becomes low enough.
+
+=item B<--record-time> (Default: 10 × timestep, disabled if B<--record-jitter> is false)
+
+Record the jitter at this time interval. Can be useful to avoid recording
+millions of points when operating with a large C<fix_before> and and
+C<synth_time> value.
+
+=item B<--max-jitter> (Default: 0.01 Å)
+
+Atoms with average jitter below this value are frozen if the B<--record-jitter>
+option is set.
+
+=item B<--record_jitter> (Default: false)
+
+Should jitter be recorded and atoms near equilibrium be frozen? If true, the
+B<--fix-before> B<record-time> and B<max-jitter> options are stored in the
+configuration.
+
 =item B<-h>, B<--help>
 
 Display this help text.
@@ -79,6 +101,12 @@ GetOptions(\%options,
     'no-shield-drag',
     'no-water',
     'no-sterics',
+
+    'fix-before=i',
+    'record-time=f',
+    'max-jitter=f',
+    'record-jitter'
+
 ) or pod2usage(2);
 pod2usage(-verbose => 2, -noperldoc => 1, -exitval => 1) if $options{help};
 
@@ -96,7 +124,7 @@ my @templates = map {
         query     => $query,
 )} @{$options{template}};
 
-my $poing2 = Bio::Protein::Poing2->new(
+my %poing2_args = (
     query     => $query,
     templates => \@templates,
     verbose   => $options{verbose},
@@ -109,5 +137,14 @@ my $poing2 = Bio::Protein::Poing2->new(
         Bio::Protein::Poing2::Filter::Pair::SeqSep->new(min_sep => 3),
     ],
 );
+if($options{'record-jitter'}){
+    $poing2_args{fix_before}    = $options{'fix-before'}  if $options{'fix-before'};
+    $poing2_args{record_time}   = $options{'record-time'} if $options{'record-time'};
+    $poing2_args{max_jitter}    = $options{'max-jitter'}  if $options{'max-jitter'};
+    $poing2_args{record_jitter} = 1;
+}
+
+my $poing2 = Bio::Protein::Poing2->new(%poing2_args);
+
 my $encoder = JSON::XS->new->convert_blessed->pretty;
 print $encoder->encode($poing2);

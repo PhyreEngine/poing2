@@ -78,6 +78,44 @@ Bombard the model with water molecules.
 
 has use_water => (is => 'ro', isa => 'Bool', default => 1);
 
+=item C<fix_before> (Default: 50, disabled if C<record_jitter> is false)
+
+Requires this many atoms, from the most-recently synthesised atom backwards, to
+remain free. The previous atoms may be fixed if their jitter becomes low enough.
+
+=cut
+
+has fix_before => (is => 'ro', isa => 'Int', default => 50);
+
+=item C<record_time> (Default: 10 × timestep, disabled if C<record_jitter> is false)
+
+Record the jitter at this time interval. Can be useful to avoid recording
+millions of points when operating with a large C<fix_before> and and
+C<synth_time> value.
+
+=cut
+
+has record_time => (is => 'ro', isa => 'Int', default => 50);
+
+=item C<max_jitter> (Default: 0.01 Å)
+
+Atoms with average jitter below this value are frozen if the C<record_jitter>
+option is set.
+
+=cut
+
+has max_jitter => (is => 'ro', isa => 'Num', default => 0.01);
+
+=item C<record_jitter> (Default: false)
+
+Should jitter be recorded and atoms near equilibrium be frozen? If true, the
+C<fix_before> C<record_time> and C<max_jitter> options are stored in the
+configuration.
+
+=cut
+
+has record_jitter => (is => 'ro', isa => 'Bool', default => 0);
+
 =item C<spring_filters>
 
 Filter linear springs with these filters.
@@ -179,6 +217,11 @@ sub TO_JSON {
         torsion => [],
         ramachandran => {},
     );
+    if($self->record_jitter){
+        $json{fix_before}  = $self->fix_before + 0;
+        $json{record_time} = $self->record_time + 0;
+        $json{max_jitter}  = $self->max_jitter + 0;
+    }
 
     #Serialise the sequence into a flat string
     print STDERR "Building query sequence\n" if $self->verbose;
