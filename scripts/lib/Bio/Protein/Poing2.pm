@@ -95,7 +95,12 @@ C<synth_time> value.
 
 =cut
 
-has record_time => (is => 'ro', isa => 'Int', default => 50);
+has record_time => (is => 'ro', isa => 'Num', lazy => 1, builder => '_build_record_time');
+
+sub _build_record_time {
+    my ($self) = @_;
+    return $self->timestep * 10;
+}
 
 =item C<max_jitter> (Default: 0.01 Å)
 
