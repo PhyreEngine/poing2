@@ -119,6 +119,13 @@ struct model {
     ///Maximum synthesis angle for new residues
     double max_synth_angle;
 
+    ///Fix all atoms before L-n if the jitter is low, where L is number of
+    //currently synthesised residues and n is this variablep.
+    int fix_before;
+
+    ///Record the position at this time step;
+    double record_time;
+
     ///Fix residues after allowing them to reach equilibrium
     bool fix;
 

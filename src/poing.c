@@ -12,6 +12,7 @@
 #include "rattle.h"
 #include "sterics.h"
 #include "linear_spring.h"
+#include "record.h"
 
 #ifdef _GNU_SOURCE
 #   include <fenv.h>
@@ -159,8 +160,18 @@ int main(int argc, char **argv){
         state.num_residues = 0;
     }
 
-    unsigned long i=0;
-    while(state.time < state.until){
+    struct record prev_positions;
+    int steps_per_record;
+    if(model->fix_before > 0){
+        //Calculate how many records to store based on the number of atoms that
+        //must be free, the synthesis time and the time between recording
+        //positions.
+        int nrecords = (model->fix_before * model->synth_time) / model->record_time;
+        steps_per_record = (int)(model->record_time / model->timestep);
+        record_init(&prev_positions, model, nrecords);
+    }
+
+    for(int nsteps = 0; state.time < state.until; nsteps++){
         //Calculate the number of synthesised atoms from the current time
         int num_synthed = (int)(state.time / state.synth_time) + 1;
 
@@ -179,6 +190,15 @@ int main(int argc, char **argv){
 
         //Push atoms
         rattle_push(&state);
+
+        if(model->fix_before > 0 && nsteps % steps_per_record == 0){
+            record_add(&prev_positions, &state);
+            for(size_t i=0; i < state.num_atoms; i++){
+                if(prev_positions.nrecords[i] == prev_positions.max_records)
+                    if(prev_positions.avg_jitter[i] < 0.01)
+                        state.atoms[i].fixed = true;
+            }
+        }
     }
 
 

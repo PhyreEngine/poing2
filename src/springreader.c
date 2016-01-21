@@ -68,12 +68,14 @@ struct model * springreader_parse_str(const char *str){
     set_double_if_set(root, "drag_coefficient", &m->drag_coefficient);
     set_double_if_set(root, "max_synth_angle", &m->max_synth_angle);
     set_double_if_set(root, "until", &m->until);
+    set_double_if_set(root, "record_time", &m->record_time);
     set_bool_if_set(root, "use_sterics", &m->use_sterics);
     set_bool_if_set(root, "fix", &m->fix);
     set_bool_if_set(root, "threestate", &m->threestate);
     set_bool_if_set(root, "use_water", &m->use_water);
     set_bool_if_set(root, "shield_drag", &m->shield_drag);
     set_bool_if_set(root, "do_synthesis", &m->do_synthesis);
+    set_int_if_set(root, "fix_before", &m->fix_before);
 
     if(read_residues(root, m))    goto free_copy;
     if(read_atoms(root, m))       goto free_copy;

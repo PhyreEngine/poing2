@@ -61,6 +61,8 @@ struct model *model_alloc(){
     m->threestate = false;
     m->do_synthesis = true;
     m->debug = NULL;
+    m->fix_before = -1;
+    m->record_time = m->timestep * 10;
     return m;
 }
 
