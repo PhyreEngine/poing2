@@ -244,7 +244,8 @@ sub TO_JSON {
     #Build linear springs
     #Start with backbone springs
     print STDERR "Building backbone springs\n" if $self->verbose;
-    push @{$json{linear}}, $_ for @{$self->query->backbone_springs};
+    push @{$json{constraints}}, $_ for @{$self->query->backbone_springs};
+
     #Then add springs from templates
     for my $template(@{$self->templates}){
         print STDERR "Building springs for ", $template->model, "\n"
