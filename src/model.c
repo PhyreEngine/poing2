@@ -359,6 +359,10 @@ void apply_torsion_force(struct model *m){
     #pragma omp parallel for shared(torsion_springs)
     for(size_t i=0; i < m->num_torsion_springs; i++){
         struct torsion_spring *s = &torsion_springs[i];
+
+        if(s->a1->fixed && s->a2->fixed && s->a3->fixed && s->a4->fixed)
+            continue;
+
         add_torsion_force(s);
 
         if(m->debug && m->debug->torsion
@@ -422,6 +426,9 @@ void apply_angle_force(struct model *m){
     #pragma omp parallel for shared(torsion_springs)
     for(size_t i=0; i < m->num_bond_angles; i++){
         struct bond_angle_spring *s = &bond_angles[i];
+
+        if(s->a1->fixed && s->a2->fixed && s->a3->fixed)
+            continue;
 
         if(s->a1->synthesised
                 && s->a2->synthesised
