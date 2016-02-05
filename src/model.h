@@ -173,7 +173,7 @@ struct model *model_alloc();
 void model_free(struct model *m);
 
 void model_accumulate_forces(struct model *m);
-int model_pdb(FILE *out, const struct model *m, bool conect);
+int model_pdb(FILE *out, const struct model *m, bool conect, int *n);
 void model_synth(struct model *state, const struct model *m);
 
 void model_synth_atom(const struct model *m, size_t idx, double max_angle);

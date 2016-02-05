@@ -153,7 +153,7 @@ int main(int argc, char **argv){
     memcpy(&state, model, sizeof(state));
 
     //Count the number of snapshots written
-    size_t num_snapshots = 0;
+    int num_snapshots = 0;
 
     //If we are simulating synthesis, the current state will start with no
     //atoms and no residues.
