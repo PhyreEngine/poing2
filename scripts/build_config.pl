@@ -57,6 +57,10 @@ Use simplified drag force. Default: Do not simplify.
 
 Do not bombard model. Default: Do bombardment.
 
+=item B<--bb-only>
+
+Only generate backbone atoms, not sidechains.
+
 =item B<--fix-before> (Default: 50, disabled if B<--record-jitter> is false)
 
 Requires this many atoms, from the most-recently synthesised atom backwards, to
@@ -106,6 +110,7 @@ GetOptions(\%options,
     'no-shield-drag',
     'no-water',
     'no-sterics',
+    'bb-only',
 
     'fix-before=i',
     'record-time=f',
@@ -122,6 +127,7 @@ my $query_file = shift || pod2usage('No sequence provided.');
 my $query = Bio::Protein::Poing2::Query->new(
     sequence => $query_file,
     ss       => $options{ss},
+    $options{'bb-only'} ? (bb_only => 1) : (),
 );
 my @templates = map {
     my ($aln, $model) = split q{=};

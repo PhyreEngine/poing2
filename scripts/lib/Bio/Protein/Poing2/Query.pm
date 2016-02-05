@@ -33,6 +33,7 @@ Ramachandran type. We can also make use of secondary structure prediction.
 
 has sequence => (is => 'ro', isa => 'Str', required => 1);
 has ss       => (is => 'ro', isa => 'Maybe[Str]');
+has bb_only  => (is => 'ro', isa => 'Bool', default => 0);
 
 has backbone_springs => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_backbone_springs');
 has backbone => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_backbone');
@@ -71,6 +72,9 @@ sub _build_backbone {
     my $atom_index = 1;
     for my $res_index(sort {$a <=> $b} keys %{$residues}){
         $atom_index = $residues->{$res_index}->init_fine_bb($atom_index);
+        if(!$self->bb_only){
+            $atom_index = $residues->{$res_index}->init_coarse_sc($atom_index);
+        }
     }
     return $residues;
 }
@@ -80,8 +84,16 @@ sub _build_backbone_springs {
 
     #Build the springs for the backbone
     my $springs = $self->_init_bb_springs(
-        \%Bio::Protein::Poing2::Data::fine_bb_links
+        \%Bio::Protein::Poing2::Data::fine_bb_links,
+        \%Bio::Protein::Poing2::Data::BB_BB_len,
     );
+    if(!$self->bb_only){
+        push @{$springs}, @{$self->_init_bb_springs(
+            \%Bio::Protein::Poing2::Data::CA_SC_links,
+            \%Bio::Protein::Poing2::Data::CA_SC_len,
+        )};
+    };
+
     return $springs;
 }
 
@@ -98,15 +110,16 @@ sub _build_ramachandran {
     );
 }
 
-=item C<_init_bb_springs($links)>:
+=item C<_init_bb_springs($links, $lengths)>:
 
-Initialise backbone springs according to some link specification. See, for
-example, C<%Bio::Protein::Poing2::Data::fine_bb_links>.
+Initialise backbone springs according to some link and length specification.
+See, for example, C<%Bio::Protein::Poing2::Data::fine_bb_links> and
+C<%Bio::Protein::Poing2::Data::BB_BB_len>;
 
 =cut
 
 sub _init_bb_springs {
-    my ($self, $links) = @_;
+    my ($self, $links, $lengths) = @_;
 
     my @springs = ();
     for my $res_i_idx(sort {$a <=> $b} keys %{$self->backbone}){
@@ -124,11 +137,13 @@ sub _init_bb_springs {
 
                 #Add spring between atoms i and j
                 my $atom_j = $res_j->atom_by_name($link->{atom});
-                push @springs, Bio::Protein::Poing2::LinearSpring->new(
-                    atom_1 => $atom_i,
-                    atom_2 => $atom_j,
-                    distance => $Bio::Protein::Poing2::Data::BB_BB_len{$atom_i_name}->{$link->{atom}},
-                );
+                if($atom_j){
+                    push @springs, Bio::Protein::Poing2::LinearSpring->new(
+                        atom_1 => $atom_i,
+                        atom_2 => $atom_j,
+                        distance => $lengths->{$atom_i_name}->{$link->{atom}},
+                    );
+                }
             }
         }
     }

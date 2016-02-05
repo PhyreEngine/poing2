@@ -132,7 +132,8 @@ If C<$start> is supplied, the index of the added atoms begins at C<$start>.
 
 sub init_coarse_bb {
     my ($self, $start) = @_;
-    $self->init_atoms(['CA'], $start);
+    my $natoms = $self->init_atoms(['CA'], $start);
+    return ($start // 1) + $natoms;
 }
 
 =item C<init_fine_bb([$start])>: Add fine backbone atoms.
@@ -145,8 +146,10 @@ Returns the index of the next atom.
 
 sub init_fine_bb {
     my ($self, $start) = @_;
-    $self->init_atoms(\@Bio::Protein::Poing2::Data::backbone_order, $start);
-    return ($start // 1) + @{$self->atoms};
+    my $natoms = $self->init_atoms(
+        \@Bio::Protein::Poing2::Data::backbone_order,
+        $start);
+    return ($start // 1) + $natoms;
 }
 
 =item C<init_coarse_sc([$start])>: Add coarse sidechain atoms.
@@ -157,10 +160,16 @@ If C<$start> is supplied, the index of the added atoms begins at C<$start>.
 
 sub init_coarse_sc {
     my ($self, $start) = @_;
-    $self->init_atoms($coarse_sidechain{$self->oneletter}, $start);
+    my $natoms = $self->init_atoms(
+        $coarse_sidechain{$self->oneletter},
+        $start);
+    return ($start // 1) + $natoms;
 }
 
 =item C<init_atoms($list, [$start]): Add atoms in C<$list>.
+
+Returns the number of atoms added (which may be less than C<@{$list}>, because
+duplicate atoms are ignored).
 
 =cut
 
@@ -172,6 +181,7 @@ sub init_atoms {
     my %current = map {$_->name => $_} @{$self->atoms};
 
     #Add atoms
+    my $i = 0;
     for my $name(@{$atom_names}){
         next if $current{$name};
 
@@ -180,7 +190,9 @@ sub init_atoms {
             name => $name,
             index => $start++,
         ));
+        $i++;
     }
+    return $i;
 }
 
 =item C<internal_springs()>: Get internal springs for this residue.
