@@ -9,6 +9,7 @@ use Bio::Protein::Poing2;
 use Bio::Protein::Poing2::Query;
 use Bio::Protein::Poing2::Template;
 use Bio::Protein::Poing2::Filter::Pair::SeqSep;
+use Bio::Protein::Poing2::Filter::Pair::MaxDistance;
 use JSON::XS;
 
 =head1 NAME
@@ -78,6 +79,10 @@ Should jitter be recorded and atoms near equilibrium be frozen? If true, the
 B<--fix-before> B<record-time> and B<max-jitter> options are stored in the
 configuration.
 
+=item B<--max-distance> I<DISTANCE>
+
+Keep springs with a distance less than or equal to I<DISTANCE> Angstroms.
+
 =item B<-h>, B<--help>
 
 Display this help text.
@@ -105,7 +110,9 @@ GetOptions(\%options,
     'fix-before=i',
     'record-time=f',
     'max-jitter=f',
-    'record-jitter'
+    'record-jitter',
+
+    'max-distance=f',
 
 ) or pod2usage(2);
 pod2usage(-verbose => 2, -noperldoc => 1, -exitval => 1) if $options{help};
@@ -124,6 +131,15 @@ my @templates = map {
         query     => $query,
 )} @{$options{template}};
 
+my @filters = (
+    Bio::Protein::Poing2::Filter::Pair::SeqSep->new(min_sep => 3),
+);
+if($options{'max-distance'}){
+    push @filters, Bio::Protein::Poing2::Filter::Pair::MaxDistance->new(
+        distance => $options{'max-distance'},
+    );
+}
+
 my %poing2_args = (
     query     => $query,
     templates => \@templates,
@@ -133,9 +149,7 @@ my %poing2_args = (
     $options{'no-water'}    ? (use_water   => 0                     ) : (),
     $options{'no-sterics'}  ? (use_sterics => 0                     ) : (),
     $options{'shield_drag'} ? (shield_drag => 0                     ) : (),
-    spring_filters => [
-        Bio::Protein::Poing2::Filter::Pair::SeqSep->new(min_sep => 3),
-    ],
+    spring_filters => \@filters,
 );
 if($options{'record-jitter'}){
     $poing2_args{fix_before}    = $options{'fix-before'}  if $options{'fix-before'};
