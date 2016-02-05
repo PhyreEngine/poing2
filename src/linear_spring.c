@@ -92,3 +92,15 @@ void linear_spring_force(
 
     vmul(dst, &displacement, (distance - s->distance) * s->constant);
 }
+
+double linear_spring_energy(struct linear_spring *s){
+    struct vector displacement;
+    vsub(&displacement, &s->b->position, &s->a->position);
+    double distance = vmag(&displacement);
+    double delta_r = distance - s->distance;
+    return s->constant * delta_r*delta_r;
+}
+
+bool linear_spring_synthesised(struct linear_spring *s){
+    return s->a->synthesised && s->b->synthesised;
+}

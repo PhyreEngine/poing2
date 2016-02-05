@@ -24,6 +24,9 @@ static void apply_rama_force(struct model *m);
 static void apply_angle_force(struct model *m);
 static void apply_drag_force(struct model *m);
 
+static void model_move_along_vector(struct model *m, double alpha,
+        struct vector *r, struct vector *p);
+
 /**
  * Allocate memory for a model structure.
  *
@@ -473,3 +476,149 @@ void apply_drag_force(struct model *m){
     }
 }
 
+double model_energy(struct model *m){
+    double energy = 0;
+
+    for(size_t i = 0; i < m->num_linear_springs; i++)
+        if(linear_spring_synthesised(&m->linear_springs[i]))
+            if(linear_spring_active(&m->linear_springs[i]))
+                energy += linear_spring_energy(&m->linear_springs[i]);
+
+    for(size_t i = 0; i < m->num_bond_angles; i++)
+        if(bond_angle_synthesised(&m->bond_angles[i]))
+            energy += bond_angle_energy(&m->bond_angles[i]);
+
+    for(size_t i = 0; i < m->num_torsion_springs; i++)
+        if(torsion_spring_synthesised(&m->torsion_springs[i]))
+            energy += torsion_spring_energy(&m->torsion_springs[i]);
+
+    return energy;
+}
+
+double constraint_energy(struct constraint *c, struct model *m){
+    //Model this as a quadratic potential with a high constant
+    struct atom *a = &m->atoms[c->a];
+    struct atom *b = &m->atoms[c->b];
+
+    struct vector displacement;
+    vsub(&displacement, &a->position, &b->position);
+    double distance = vmag(&displacement);
+
+    double k = 1;
+    double dr = distance - c->distance;
+    return k * dr*dr;
+}
+
+void constraint_force(struct constraint *c, struct model *m){
+    //Model this as a quadratic potential with a high constant
+    struct atom *a = &m->atoms[c->a];
+    struct atom *b = &m->atoms[c->b];
+
+    struct vector displacement;
+    vsub(&displacement, &a->position, &b->position);
+    double distance = vmag(&displacement);
+
+    double k = 1;
+    double dr = distance - c->distance;
+
+    struct vector force_a, force_b;
+    vmul(&force_a, &displacement, -dr * k);
+    vmul(&force_b, &force_a, -1);
+
+    vadd_to(&a->force, &force_a);
+    vadd_to(&b->force, &force_b);
+}
+
+bool constraint_is_synthesised(struct constraint *c, struct model *m){
+    struct atom *a = &m->atoms[c->a];
+    struct atom *b = &m->atoms[c->b];
+    return a->synthesised && b->synthesised;
+}
+
+static int m_i = 0;
+void model_minim(struct model *m){
+    double precision = 0.01;
+    double movement = DBL_MAX;
+
+    //We are going to do an inexact line search.
+
+    //Constant in Armijo–Goldstein condition
+    const double c = 0.5;
+
+    //Multiplicative factor when reducing step size
+    const double tau = 0.5;
+
+    //Energy of system after proposed step
+    double curr_energy;
+    //Total distance moved by all atoms
+    double moved;
+
+    int n = 0;
+    do {
+        //Just bail out if we try more than a hundred moves
+        if(++n > 100)
+            break;
+
+        //Get the direction to move in. We are just going to use the negative
+        //gradient for a simple steepest descent algorithm.
+        struct vector p[m->num_atoms];
+        //We will also store the initial position.
+        struct vector r[m->num_atoms];
+
+        //Get the initial energy so we can compare it to the energy after any
+        //proposed movements to see if the Wolfe conditions are satisfied. More
+        //specifically, because we are using the backtracking line search, we check
+        //to see if the Armijo–Goldstein condition is satisfied.
+        double init_energy = model_energy(m);
+
+        //Get the force. This is equivalent to the negative gradient. Store it in p.
+        //We also need to get \f[ \vec{p}^{T} \grad f(\vec{x}) \f]. We are just
+        //using the negative gradient, so this is just the dot product \f[ \vec{p}
+        //\cdot \vec{p}. \f]
+
+        double total_move = 0;
+        double pdot = 0;
+        model_accumulate_forces(m);
+
+        //Manually add force due to constraints
+        for(size_t i=0; i < m->num_constraints; i++){
+            if(constraint_is_synthesised(&m->constraints[i], m)){
+                constraint_force(&m->constraints[i], m);
+                init_energy += constraint_energy(&m->constraints[i], m);
+            }
+        }
+
+        for(size_t i=0; i < m->num_atoms; i++){
+            vector_copy_to(&p[i], &m->atoms[i].force);
+            vector_copy_to(&r[i], &m->atoms[i].position);
+            double p_sq = vmag_sq(&p[i]);
+            pdot += p_sq;
+            total_move += sqrt(p_sq);
+        }
+        //Get an initial step size
+        double step_size = 1;
+
+        while(true){
+            model_move_along_vector(m, step_size, r, p);
+            curr_energy = model_energy(m);
+            if(init_energy - curr_energy < - step_size * c * pdot)
+                step_size *= tau;
+            else
+                break;
+        }
+        moved = total_move * step_size;
+    }while(moved > precision);
+}
+
+//Move the model along the direction vector p (with step size alpha), starting at position r.
+void model_move_along_vector(struct model *m, double alpha,
+        struct vector *r, struct vector *p){
+
+    for(size_t i=0; i < m->num_atoms; i++){
+        struct vector dr;
+        vector_copy_to(&m->atoms[i].position, &r[i]);
+        vector_copy_to(&dr, &p[i]);
+        vmul_by(&dr, alpha);
+        vadd_to(&m->atoms[i].position, &dr);
+    }
+}

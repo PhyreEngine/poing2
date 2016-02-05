@@ -272,3 +272,14 @@ void torsion_spring_force_new(
     vmul_by(f3, s->constant);
     vmul_by(f4, s->constant);
 }
+
+double torsion_spring_energy(struct torsion_spring *s){
+    double angle = torsion_spring_angle(s) / 180 * M_PI;
+    double target = s->angle / 180 * M_PI;
+    return -s->constant * cos(angle - target);
+}
+
+bool torsion_spring_synthesised(struct torsion_spring *s){
+    return s->a1->synthesised && s->a2->synthesised
+        && s->a3->synthesised && s->a4->synthesised;
+}

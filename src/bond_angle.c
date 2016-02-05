@@ -54,6 +54,13 @@ double bond_angle_angle(struct bond_angle_spring *s){
     return acos(cos_theta) * 180 / M_PI;
 }
 
+double bond_angle_energy(struct bond_angle_spring *s){
+    double angle = bond_angle_angle(s) / 180 * M_PI;
+    double target = s->angle;
+    return s->constant * (angle - target) * (angle - target);
+}
+
+
 void bond_angle_force(
         struct vector *f1,
         struct vector *f2,
@@ -116,4 +123,8 @@ void bond_angle_force(
     vmul(f3, &dcostheta_drk, constant);
     vadd(f2, f1, f3);
     vmul_by(f2, -1);
+}
+
+bool bond_angle_synthesised(struct bond_angle_spring *b){
+    return b->a1->synthesised && b->a2->synthesised && b->a3->synthesised;
 }

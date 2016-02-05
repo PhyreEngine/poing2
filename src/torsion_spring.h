@@ -41,6 +41,8 @@ void torsion_spring_force_new(
         struct vector *f3,
         struct vector *f4,
         struct torsion_spring *s);
+double torsion_spring_energy(struct torsion_spring *s);
+bool torsion_spring_synthesised(struct torsion_spring *s);
 
 #endif /* TORSION_SPRING_H_ */
 

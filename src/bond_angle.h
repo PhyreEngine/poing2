@@ -26,10 +26,12 @@ void bond_angle_spring_init(
 void bond_angle_spring_free(struct bond_angle_spring *s);
 
 double bond_angle_angle(struct bond_angle_spring *s);
+double bond_angle_energy(struct bond_angle_spring *s);
 void bond_angle_force(
         struct vector *f1,
         struct vector *f2,
         struct vector *f3,
         struct bond_angle_spring *s);
+bool bond_angle_synthesised(struct bond_angle_spring *b);
 
 #endif /* BOND_ANGLE_H_ */

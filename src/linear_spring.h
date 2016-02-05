@@ -38,9 +38,11 @@ void linear_spring_free(struct linear_spring *s);
 
 bool linear_spring_active(struct linear_spring *s);
 
+double linear_spring_energy(struct linear_spring *s);
 void linear_spring_force(
         struct vector *dst,
         struct linear_spring *s,
         enum unit on);
+bool linear_spring_synthesised(struct linear_spring *s);
 
 #endif //LINEAR_SPRING_H_

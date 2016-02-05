@@ -177,6 +177,8 @@ int model_pdb(FILE *out, const struct model *m, bool conect);
 void model_synth(struct model *state, const struct model *m);
 
 void model_synth_atom(const struct model *m, size_t idx, double max_angle);
+double model_energy(struct model *m);
+void model_minim(struct model *m);
 
 #endif /* MODEL_H_ */
 
