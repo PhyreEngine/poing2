@@ -35,7 +35,7 @@ has until => (is => 'ro', isa => 'Num', lazy => 1, builder => '_build_until');
 
 sub _build_until {
     my ($self) = @_;
-    return $self->synth_time * ($self->query->length + 5);
+    return $self->synth_time * (($self->query->length + 5) * 5);
 }
 
 =item C<synth_time> (Default: 500)
