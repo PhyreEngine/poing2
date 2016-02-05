@@ -284,8 +284,9 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
         vdiv_by(&rot_axis, vmag(&rot_axis));
         angle = acos(vdot(&displacement, &z) / vmag(&displacement));
 
-        vrot_axis(&unit_offset, &rot_axis, &unit_offset, -angle);
-        vadd(&a->position, &unit_offset, &prev1->position);
+        struct vector vout;
+        vrot_axis(&vout, &rot_axis, &unit_offset, -angle);
+        vadd(&a->position, &vout, &prev1->position);
     }
 }
 
