@@ -60,10 +60,10 @@ sub _find_files {
 }
 
 sub _files_in_dir {
-    my ($self, $dir) = @_;
+    my ($self, $d) = @_;
 
     #Expand path
-    $dir = glob($dir);
+    my ($dir) = glob($d);
 
     my %files = (
         ALANINE     => "$dir/boundary-ala-nosec.data",
