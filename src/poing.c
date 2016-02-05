@@ -49,7 +49,7 @@ const char *usage_str =
 int snapshot = -1;
 bool print_connect = true;
 bool fixed_seed = false;
-int random_seed = 0;
+unsigned int random_seed = 0;
 char *kinetic = NULL;
 
 struct model_debug debug_opts = {NULL, NULL, NULL, NULL, 0, 0};
@@ -119,7 +119,9 @@ int main(int argc, char **argv){
     model->debug = &debug_opts;
 
     if(!fixed_seed){
-        srand(time(NULL) * getpid());
+        unsigned int seed = time(NULL) * getpid();
+        srand(seed);
+        printf("REMARK RANDOM SEED %u\n", seed);
     }else{
         srand(random_seed);
     }
