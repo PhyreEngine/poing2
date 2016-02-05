@@ -118,8 +118,8 @@ void rama_random_init(struct rama_constraint *rama){
     float psi = ((float)random()) / RAND_MAX * 360;
 
     //Round to nearest grid point.
-    int phi_grid = (int)(phi + 0.5);
-    int psi_grid = (int)(psi + 0.5);
+    int phi_grid = (int)(phi + 0.5) % 360;
+    int psi_grid = (int)(psi + 0.5) % 360;
 
     struct phi_psi **points = rama_data(rama->type);
     struct phi_psi closest = (*points)[phi_grid * 360 + psi_grid];
@@ -177,8 +177,8 @@ int rama_get_closest(struct rama_constraint *rama){
 
     //Round to nearest grid point. Remember that the grid goes from 0--360, not
     //-180--180.
-    int phi_grid = (int)(phi_f + 180 + 0.5);
-    int psi_grid = (int)(psi_f + 180 + 0.5);
+    int phi_grid = (int)(phi_f + 180 + 0.5) % 360;
+    int psi_grid = (int)(psi_f + 180 + 0.5) % 360;
 
     struct phi_psi **points = rama_data(rama->type);
     if(!points){
