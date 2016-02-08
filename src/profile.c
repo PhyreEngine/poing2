@@ -31,4 +31,7 @@ void profile_end_internal(struct profile *profiler, const char *fmt, ...){
     vfprintf(profiler->out, fmt, ap);
 
     va_end(ap);
+
+    //Record start again so we don't have to keep calling profile_start
+    clock_gettime(CLOCK_MONOTONIC_RAW, &profiler->start);
 }
