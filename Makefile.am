@@ -12,7 +12,7 @@ poing2_SOURCES=src/poing.c $(poing2_deps)
 
 check_PROGRAMS=test_springreader test_vector \
 			   test_linear_spring test_torsion_spring \
-			   test_rk4 test_model test_residue \
+			   test_model \
 			   test_sterics test_bond_angle \
 			   test_record test_profile
 TESTS=test_springreader test_vector \
@@ -33,42 +33,22 @@ test_springreader_CFLAGS=$(OPENMP_CFLAGS)
 test_springreader_SOURCES=t/springreader.c t/tap.c $(poing2_deps)
 
 test_vector_CFLAGS=$(OPENMP_CFLAGS)
-test_vector_SOURCES=t/vector.c src/vector.c t/tap.c
+test_vector_SOURCES=t/vector.c t/tap.c $(poing2_deps)
 
 test_linear_spring_CFLAGS=$(OPENMP_CFLAGS)
-test_linear_spring_SOURCES=t/linear_spring.c src/linear_spring.c \
-						   src/sterics.c \
-						   src/vector.c src/residue.c t/tap.c
+test_linear_spring_SOURCES=t/linear_spring.c t/tap.c $(poing2_deps)
 
 test_torsion_spring_CFLAGS=$(OPENMP_CFLAGS)
-test_torsion_spring_SOURCES=t/torsion_spring.c src/torsion_spring.c \
-							src/sterics.c \
-							src/vector.c src/residue.c t/tap.c
+test_torsion_spring_SOURCES=t/torsion_spring.c t/tap.c $(poing2_deps)
 
 test_bond_angle_CFLAGS=$(OPENMP_CFLAGS)
-test_bond_angle_SOURCES=t/bond_angle.c src/bond_angle.c \
-							src/sterics.c \
-							src/vector.c src/residue.c t/tap.c
-
-test_rk4_CFLAGS=$(OPENMP_CFLAGS)
-test_rk4_SOURCES=t/rk4.c src/rk4.c src/model.c src/residue.c \
-				 src/linear_spring.c src/torsion_spring.c src/bond_angle.c \
-				 src/springreader.c src/sterics.c \
-				 src/vector.c t/tap.c data/atoms.c
+test_bond_angle_SOURCES=t/bond_angle.c t/tap.c $(poing2_deps)
 
 test_model_CFLAGS=$(OPENMP_CFLAGS)
 test_model_SOURCES=t/model.c t/tap.c $(poing2_deps)
 
-test_residue_CFLAGS=$(OPENMP_CFLAGS)
-test_residue_SOURCES=t/residue.c src/model.c src/residue.c src/vector.c \
-				   src/linear_spring.c src/torsion_spring.c src/springreader.c \
-				   src/sterics.c t/tap.c data/atoms.c src/bond_angle.c
-
 test_sterics_CFLAGS=$(OPENMP_CFLAGS)
-test_sterics_SOURCES=t/sterics.c src/model.c src/residue.c src/vector.c \
-				   src/linear_spring.c src/torsion_spring.c src/springreader.c \
-				   src/sterics.c t/tap.c data/atoms.c src/bond_angle.c \
-				   src/rama.c
+test_sterics_SOURCES=t/sterics.c t/tap.c $(poing2_deps)
 
 data/atoms.c: data/atoms.gperf
 	gperf $< --output-file $@

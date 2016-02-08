@@ -132,7 +132,7 @@ void check_model(struct model *m){
 }
 
 int main(int argc, char **argv){
-    plan(74);
+    plan(80);
 
     struct model *ms = springreader_parse_str(json);
     if(!ms)

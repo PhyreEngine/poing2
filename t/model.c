@@ -38,9 +38,10 @@ int main(int argc, char **argv){
                     atom_description_lookup("O", 1));
         }
     }
+    int npdb = 0;
     for(size_t i=0; i < natoms; i++)
         model_synth_atom(m, i, 20);
-    model_pdb(stdout, m, false);
+    model_pdb(stdout, m, false, &npdb);
     return 0;
 }
 

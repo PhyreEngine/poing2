@@ -14,20 +14,17 @@ void is_vector(struct vector *v1, struct vector *v2,
 
 int main(){
     plan(30);
-    struct residue *a, *b;
     struct linear_spring *s;
+    struct atom a;
+    struct atom b;
+    atom_init(&a, 1, "CA");
+    atom_init(&b, 1, "CA");
+    atom_set_atom_description(&a, atom_description_lookup("CA", 2));
+    atom_set_atom_description(&b, atom_description_lookup("CA", 2));
 
-    struct atom a_atoms[1];
-    struct atom b_atoms[1];
-    a = residue_alloc(1);
-    b = residue_alloc(2);
-    a->num_atoms = b->num_atoms = 1;
-    a->atoms = a_atoms;
-    b->atoms = b_atoms;
-
-    vector_fill(&a->atoms[0].position, -0.5, 0, 0);
-    vector_fill(&b->atoms[0].position, +0.5, 0, 0);
-    s = linear_spring_alloc(1, 1.0, &a_atoms[0], &b_atoms[0]);
+    vector_fill(&a.position, -0.5, 0, 0);
+    vector_fill(&b.position, +0.5, 0, 0);
+    s = linear_spring_alloc(1, 1.0, &a, &b);
 
     struct vector result;
     struct vector force;
@@ -74,8 +71,8 @@ int main(){
     s->constant = 1.0;
     s->cutoff   = 0.5;
     s->distance = 1.0;
-    vector_fill(&a->atoms[0].position, -1, 0, 0);
-    vector_fill(&b->atoms[0].position, +1, 0, 0);
+    vector_fill(&a.position, -1, 0, 0);
+    vector_fill(&b.position, +1, 0, 0);
     vector_fill(&result, 0, 0, 0);
     linear_spring_force(&force, s, A);
     is_vector(&force, &result, 1e-10, "Force = 0 past cutoff");
