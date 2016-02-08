@@ -13,11 +13,17 @@ void is_vector(struct vector *v1, struct vector *v2,
 }
 
 int main(int argc, char **argv){
-    plan(30);
+    plan(9);
     struct bond_angle_spring *s;
 
     struct atom a1, a2, a3;
 
+    /*
+     * a1
+     * |
+     * |
+     * a2----a3
+     */
     vector_fill(&a1.position,  0, 1, 0);
     vector_fill(&a2.position,  0, 0, 0);
     vector_fill(&a3.position,  1, 0, 0);
@@ -31,6 +37,17 @@ int main(int argc, char **argv){
     vector_zero(&f3);
 
     bond_angle_force(&f1, &f2, &f3, s);
+    cmp_ok(f1.c[0], ">=", 0, "a1 moving right");
+    cmp_ok(f1.c[1], "<=", 0, "a1 moving down");
+    fis(f1.c[2], 0, 1e-3, "a1 approximately stationary in z");
+
+    cmp_ok(f2.c[0], "<=", 0, "a2 moving left");
+    cmp_ok(f2.c[1], "<=", 0, "a2 moving down");
+    fis(f2.c[2], 0, 1e-3, "a2 approximately stationary in z");
+
+    cmp_ok(f3.c[0], "<=", 0, "a3 moving left");
+    cmp_ok(f3.c[1], ">=", 0, "a3 moving up");
+    fis(f3.c[2], 0, 1e-3, "a3 approximately stationary in z");
 
     done_testing();
 }
