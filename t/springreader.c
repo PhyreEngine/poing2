@@ -131,7 +131,7 @@ void check_model(struct model *m){
     ok(abs(m->bond_angles[0].constant - 0.1) < 1e9, "Constant correct");
 }
 
-int main(int argc, char **argv){
+int main(){
     plan(80);
 
     struct model *ms = springreader_parse_str(json);

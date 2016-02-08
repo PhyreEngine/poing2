@@ -12,7 +12,7 @@ void is_vector(struct vector *v1, struct vector *v2,
         fis(v1->c[i], v2->c[i], epsilon, "%s: element %d", text, i);
 }
 
-int main(int argc, char **argv){
+int main(){
     plan(9);
     struct bond_angle_spring *s;
 

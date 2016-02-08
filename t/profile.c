@@ -4,7 +4,7 @@
 #include "../src/profile.h"
 #include "tap.h"
 
-int main(int argc, char **argv){
+int main(){
     plan(3);
 
     char buffer[1024];

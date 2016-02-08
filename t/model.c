@@ -7,7 +7,7 @@
 #include "tap.h"
 
 
-int main(int argc, char **argv){
+int main(){
     plan(8);
 
     size_t natoms = 20;

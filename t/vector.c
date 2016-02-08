@@ -9,7 +9,7 @@ void is_vector(struct vector *v1, struct vector *v2, double epsilon, const char 
         fis(v1->c[i], v2->c[i], epsilon, "%s: element %d", text, i);
 }
 
-int main(int argc, char **argv){
+int main(){
     plan(62);
 
     struct vector zero = {.c = {0.0, 0.0, 0.0}};
