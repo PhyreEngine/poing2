@@ -5,7 +5,7 @@
 #include "tap.h"
 
 int main(int argc, char **argv){
-    plan(6);
+    plan(3);
 
     char buffer[1024];
     FILE *mem = fmemopen(buffer, 1024, "w");
