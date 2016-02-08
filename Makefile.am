@@ -5,7 +5,7 @@ poing2_deps=src/rk4.c src/leapfrog.c src/model.c src/residue.c \
 			   src/bond_angle.c \
 			   src/vector.c src/sterics.c data/atoms.c data/AA.c \
 			   src/rama.c src/cJSON/cJSON.c src/rattle.c \
-			   src/record.c
+			   src/record.c src/profile.c
 poing2_CFLAGS=$(OPENMP_CFLAGS)
 poing2_SOURCES=src/poing.c $(poing2_deps)
 
@@ -14,15 +14,17 @@ check_PROGRAMS=test_springreader test_vector \
 			   test_linear_spring test_torsion_spring \
 			   test_rk4 test_model test_residue \
 			   test_sterics test_bond_angle \
-			   test_record
+			   test_record test_profile
 TESTS=test_springreader test_vector \
 	  test_linear_spring test_torsion_spring \
 	  test_model test_residue \
 	  test_sterics test_bond_angle \
-	  test_record
+	  test_record test_profile
 
 CLEANFILES=data/AA.c data/AA.h data/atoms.c data/atoms.h
 
+test_profile_CFLAGS=$(OPENMP_CFLAGS)
+test_profile_SOURCES=t/profile.c t/tap.c $(poing2_deps)
 
 test_record_CFLAGS=$(OPENMP_CFLAGS)
 test_record_SOURCES=t/record.c t/tap.c $(poing2_deps)
