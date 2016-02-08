@@ -452,7 +452,7 @@ void apply_angle_force(struct model *m){
     struct bond_angle_spring *bond_angles = m->bond_angles;
 
     //Bond angle constraints
-    #pragma omp parallel for shared(torsion_springs)
+    #pragma omp parallel for shared(bond_angles)
     for(size_t i=0; i < m->num_bond_angles; i++){
         struct bond_angle_spring *s = &bond_angles[i];
 
