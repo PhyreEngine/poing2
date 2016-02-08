@@ -80,6 +80,7 @@ char * get_options(int argc, char **argv){
         switch(c){
             case 'h':
                 usage(NULL, 1);
+                break;
             case 's':
                 snapshot = atoi(optarg);
                 break;
