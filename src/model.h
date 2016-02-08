@@ -7,55 +7,10 @@
 
 struct residue;
 struct profile;
+struct model_debug;
 
 #define DEFAULT_MAX_SYNTH_ANGLE 1
 struct steric_grid;
-
-#define DEBUG_LINEAR_FIELDS \
-    "time " \
-    "a.id a.name b.id b.name " \
-    "enabled " \
-    "equilibrium distance " \
-    "force.a.x force.a.y force.a.z " \
-    "force.b.x force.b.y force.b.z\n"
-#define DEBUG_LINEAR_FMT \
-    "%f " \
-    "%d %s %d %s " \
-    "%s " \
-    "%f %f " \
-    "%f %f %f " \
-    "%f %f %f\n"
-
-#define DEBUG_ANGLE_FIELDS \
-    "time " \
-    "a.id a.name b.id b.name c.id c.name " \
-    "enabled " \
-    "equilibrium angle " \
-    "force.a.x force.a.y force.a.z " \
-    "force.b.x force.b.y force.b.z " \
-    "force.c.x force.c.y force.c.z\n"
-#define DEBUG_ANGLE_FMT \
-    "%f " \
-    "%d %s %d %s %d %s " \
-    "%s " \
-    "%f %f "\
-    "%f %f %f %f %f %f %f %f %f\n"
-
-#define DEBUG_TORSION_FIELDS \
-    "time " \
-    "a.id a.name b.id b.name c.id c.name d.id d.name " \
-    "enabled " \
-    "equilibrium angle " \
-    "force.a.x force.a.y force.a.z " \
-    "force.b.x force.b.y force.b.z " \
-    "force.c.x force.c.y force.c.z " \
-    "force.d.x force.d.y force.d.z\n"
-#define DEBUG_TORSION_FMT \
-    "%f " \
-    "%d %s %d %s %d %s %d %s " \
-    "%s " \
-    "%f %f "\
-    "%f %f %f %f %f %f %f %f %f %f %f %f\n"
 
 struct constraint {
     //Atom indices
@@ -154,23 +109,6 @@ struct model {
 
     ///Optional profiler
     struct profile *profiler;
-};
-
-///Different output files for debugging information
-struct model_debug {
-    ///File to print debug info about linear springs
-    FILE *linear;
-    ///File to print debug info about bond angle springs
-    FILE *angle;
-    ///File to print debug info about torsion springs
-    FILE *torsion;
-    ///File to print debug info about Ramachandran constraints
-    FILE *rama;
-
-    ///Print results at this timestep interval
-    double interval;
-    ///Number of times we have printed
-    size_t nprinted;
 };
 
 struct model *model_alloc();

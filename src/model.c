@@ -15,6 +15,7 @@
 #include "bond_angle.h"
 #include "rama.h"
 #include "torsion_spring.h"
+#include "debug.h"
 
 #ifdef HAVE_CLOCK_GETTIME
 #include "profile.h"
@@ -134,11 +135,6 @@ void model_accumulate_forces(struct model *m){
             drag_force(m, m->steric_grid);
             profile(m, "shielded drag");
         }
-    }
-
-    if(m->debug && m->debug->angle
-        && (int)(m->time / m->debug->interval) > m->debug->nprinted){
-        m->debug->nprinted++;
     }
 }
 
@@ -362,23 +358,8 @@ void apply_spring_force(struct model *m){
             }
 
             //Print debug information
-            if(m->debug && m->debug->linear
-                    && (int)(m->time / m->debug->interval) > m->debug->nprinted){
-                struct vector force_a, force_b;
-                struct vector displacement;
-                linear_spring_force(&force_a, s, A);
-                linear_spring_force(&force_b, s, B);
-                vsub(&displacement, &s->a->position, &s->b->position);
-
-                fprintf(m->debug->linear, DEBUG_LINEAR_FMT,
-                        m->time,
-                        s->a->id, s->a->name,
-                        s->b->id, s->b->name,
-                        (s->enabled ? "enabled" : "disabled"),
-                        s->distance, vmag(&displacement), 
-                        force_a.c[0], force_a.c[1], force_a.c[2],
-                        force_b.c[0], force_b.c[1], force_b.c[2]);
-            }
+            if(m->debug)
+                debug_linear(m, s);
         }
     }
 }
@@ -398,42 +379,8 @@ void apply_torsion_force(struct model *m){
 
         add_torsion_force(s);
 
-        if(m->debug && m->debug->torsion
-            && (int)(m->time / m->debug->interval) > m->debug->nprinted){
-            if(!s->a1->synthesised || !s->a2->synthesised
-                    || !s->a3->synthesised || !s->a4->synthesised)
-                continue;
-
-
-
-            struct vector spring_forces[4];
-            torsion_spring_force_new(
-                    &spring_forces[0],
-                    &spring_forces[1],
-                    &spring_forces[2],
-                    &spring_forces[3],
-                    s);
-                fprintf(m->debug->torsion, DEBUG_TORSION_FMT,
-                        m->time,
-                        s->a1->id, s->a1->name,
-                        s->a2->id, s->a2->name,
-                        s->a3->id, s->a3->name,
-                        s->a4->id, s->a4->name,
-                        (s->enabled ? "enabled" : "disabled"),
-                        s->angle, torsion_spring_angle(s),
-                        spring_forces[0].c[0],
-                        spring_forces[0].c[1],
-                        spring_forces[0].c[2],
-                        spring_forces[1].c[0],
-                        spring_forces[1].c[1],
-                        spring_forces[1].c[2],
-                        spring_forces[2].c[0],
-                        spring_forces[2].c[1],
-                        spring_forces[2].c[2],
-                        spring_forces[3].c[0],
-                        spring_forces[3].c[1],
-                        spring_forces[3].c[2]);
-        }
+        if(m->debug)
+            debug_torsion(m, s);
     }
 }
 
@@ -484,25 +431,8 @@ void apply_angle_force(struct model *m){
                 vadd_to(&s->a3->force, &spring_forces[2]);
 
             //Print debug information
-            if(m->debug && m->debug->angle
-                && (int)(m->time / m->debug->interval) > m->debug->nprinted){
-                fprintf(m->debug->angle, DEBUG_ANGLE_FMT,
-                        m->time,
-                        s->a1->id, s->a1->name,
-                        s->a2->id, s->a2->name,
-                        s->a3->id, s->a3->name,
-                        (s->enabled ? "enabled" : "disabled"),
-                        s->angle, bond_angle_angle(s),
-                        spring_forces[0].c[0],
-                        spring_forces[0].c[1],
-                        spring_forces[0].c[2],
-                        spring_forces[1].c[0],
-                        spring_forces[1].c[1],
-                        spring_forces[1].c[2],
-                        spring_forces[2].c[0],
-                        spring_forces[2].c[1],
-                        spring_forces[2].c[2]);
-            }
+            if(m->debug)
+                debug_angle(m, s);
         }
     }
 }
