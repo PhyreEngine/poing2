@@ -18,7 +18,7 @@ check_PROGRAMS=test_springreader test_vector \
 			   test_record
 TESTS=test_springreader test_vector \
 	  test_linear_spring test_torsion_spring \
-	  test_model test_residue \
+	  test_model \
 	  test_sterics test_bond_angle \
 	  test_record
 
