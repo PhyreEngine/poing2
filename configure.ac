@@ -15,6 +15,15 @@ AC_GNU_SOURCE
 
 AM_MISSING_PROG([GPERF], [gperf])
 AC_SEARCH_LIBS([cos], [m], [], [AC_MSG_ERROR([Could not find cosine function])])
+AC_SEARCH_LIBS([clock_gettime], [rt],
+               [
+                AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [Used for profiler])
+                AM_CONDITIONAL([HAVE_CLOCK_GETTIME_AM], [true])
+               ],
+               [
+                AC_MSG_WARN([Could not find clock_gettime function])
+                AM_CONDITIONAL([HAVE_CLOCK_GETTIME_AM], [false])
+               ])
 
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT

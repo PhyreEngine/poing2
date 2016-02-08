@@ -14,6 +14,10 @@
 #include "linear_spring.h"
 #include "record.h"
 
+#ifdef HAVE_CLOCK_GETTIME
+#   include "profile.h"
+#endif
+
 #ifdef _GNU_SOURCE
 #   include <fenv.h>
 #endif
@@ -30,9 +34,12 @@ static struct option opts[] = { {"help",     no_argument,       0, 'h'},
     {"debug-linear",  required_argument, 0, 'l'},
     {"debug-angle",   required_argument, 0, 'a'},
     {"debug-torsion", required_argument, 0, 't'},
+#ifdef HAVE_CLOCK_GETTIME
+    {"profile", required_argument, 0, 'p'},
+#endif
     {0, 0, 0, 0}
 };
-const char *opt_str = "hs:u:s:k:r:l:a:t:";
+const char *opt_str = "hs:u:s:k:r:l:a:t:p:";
 
 const char *usage_str =
 "Usage: poing [OPTIONS] <SPEC>\n"
@@ -45,12 +52,16 @@ const char *usage_str =
 "  -r, --seed=S       Use fixed random seed S.\n"
 "  -k, --kinetic=F    Write kinetic energies to file F.\n"
 "      --no-connect   Do not print CONECT records for each spring.\n"
+#ifdef HAVE_CLOCK_GETTIME
+"  -p, --profile=F    Write profiling information to file F.\n"
+#endif
 ;
 int snapshot = -1;
 bool print_connect = true;
 bool fixed_seed = false;
 unsigned int random_seed = 0;
 char *kinetic = NULL;
+FILE *profile_file = NULL;
 
 struct model_debug debug_opts = {NULL, NULL, NULL, NULL, 0, 0};
 
@@ -90,6 +101,13 @@ char * get_options(int argc, char **argv){
                 break;
             case 't':
                 debug_file(&debug_opts.torsion, optarg, DEBUG_TORSION_FIELDS);
+                break;
+            case 'p':
+                profile_file = fopen(optarg, "w");
+                if(!profile_file){
+                    perror("Error opening profile file");
+                    exit(1);
+                }
                 break;
         }
     }
@@ -143,6 +161,15 @@ int main(int argc, char **argv){
          steric_grid = steric_grid_alloc(6);
         model->steric_grid = steric_grid;
     }
+
+    #ifdef HAVE_CLOCK_GETTIME
+    //Start a profiler if required
+    struct profile profiler;
+    if(profile_file){
+        model->profiler = &profiler;
+        profile_init(model->profiler, profile_file);
+    }
+    #endif
 
         /* If we're doing a three-state synthesis then fix/unfix residues
      * and enable/disable springs. */

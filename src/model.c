@@ -3,6 +3,10 @@
 #include <stdbool.h>
 #include <string.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "model.h"
 #include "vector.h"
 #include "sterics.h"
@@ -11,6 +15,10 @@
 #include "bond_angle.h"
 #include "rama.h"
 #include "torsion_spring.h"
+
+#ifdef HAVE_CLOCK_GETTIME
+#include "profile.h"
+#endif
 
 static void add_torsion_force(struct torsion_spring *spring);
 static double model_get_separation(
@@ -23,6 +31,7 @@ static void apply_torsion_force(struct model *m);
 static void apply_rama_force(struct model *m);
 static void apply_angle_force(struct model *m);
 static void apply_drag_force(struct model *m);
+static void profile(struct model *m, const char *msg);
 
 static void model_move_along_vector(struct model *m, double alpha,
         struct vector *r, struct vector *p);
@@ -67,6 +76,7 @@ struct model *model_alloc(){
     m->fix_before = -1;
     m->record_time = m->timestep * 10;
     m->max_jitter = 0.01;
+    m->profiler = NULL;
     return m;
 }
 
@@ -89,22 +99,41 @@ void model_accumulate_forces(struct model *m){
     for(size_t i=0; i < m->num_atoms; i++)
         vector_zero(&m->atoms[i].force);
 
+    #ifdef HAVE_CLOCK_GETTIME
+    if(m->profiler)
+        profile_start(m->profiler);
+    #endif
+
     apply_spring_force(m);
+    profile(m, "linear");
+
     apply_torsion_force(m);
+    profile(m, "torsion");
+
     apply_rama_force(m);
+    profile(m, "rama");
+
     apply_angle_force(m);
+    profile(m, "angle");
+
     apply_drag_force(m);
+    profile(m, "drag");
 
     //Steric, water and drag forces
     if(m->steric_grid){
         steric_grid_update(m->steric_grid, m);
+        profile(m, "steric grid update");
 
-        if(m->use_sterics)
+        if(m->use_sterics){
             steric_grid_forces(m->steric_grid, m);
-        if(m->use_water)
+            profile(m, "steric force");
+        }if(m->use_water){
             water_force(m, m->steric_grid);
-        if(m->shield_drag)
+            profile(m, "water force");
+        }if(m->shield_drag){
             drag_force(m, m->steric_grid);
+            profile(m, "shielded drag");
+        }
     }
 
     if(m->debug && m->debug->angle
@@ -629,4 +658,12 @@ void model_move_along_vector(struct model *m, double alpha,
         vmul_by(&dr, alpha);
         vadd_to(&m->atoms[i].position, &dr);
     }
+}
+
+//Convenience function for profiling to avoid typing the ifdef out
+void profile(struct model *m, const char *msg){
+    #ifdef HAVE_CLOCK_GETTIME
+    if(m->profiler)
+        profile_end(m->profiler, "%g\t%s\t%lld\n", m->time, msg);
+    #endif
 }

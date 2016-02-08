@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 struct residue;
+struct profile;
 
 #define DEFAULT_MAX_SYNTH_ANGLE 1
 struct steric_grid;
@@ -150,6 +151,9 @@ struct model {
 
     ///Optional files to write debugging information to
     struct model_debug *debug;
+
+    ///Optional profiler
+    struct profile *profiler;
 };
 
 ///Different output files for debugging information
