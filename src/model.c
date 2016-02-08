@@ -344,7 +344,9 @@ void apply_spring_force(struct model *m){
     struct linear_spring *linear_springs = m->linear_springs;
 
     //Then go through all springs and accumulate forces on the residues
+    #ifdef HAVE_OPENMP
     #pragma omp parallel for shared(linear_springs)
+    #endif
     for(size_t i=0; i < m->num_linear_springs; i++){
         struct linear_spring *s = &linear_springs[i];
 
@@ -385,7 +387,9 @@ void apply_torsion_force(struct model *m){
     struct torsion_spring *torsion_springs = m->torsion_springs;
 
     //Torsion springs
+    #ifdef HAVE_OPENMP
     #pragma omp parallel for shared(torsion_springs)
+    #endif
     for(size_t i=0; i < m->num_torsion_springs; i++){
         struct torsion_spring *s = &torsion_springs[i];
 
@@ -452,7 +456,9 @@ void apply_angle_force(struct model *m){
     struct bond_angle_spring *bond_angles = m->bond_angles;
 
     //Bond angle constraints
+    #ifdef HAVE_OPENMP
     #pragma omp parallel for shared(bond_angles)
+    #endif
     for(size_t i=0; i < m->num_bond_angles; i++){
         struct bond_angle_spring *s = &bond_angles[i];
 

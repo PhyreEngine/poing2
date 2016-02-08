@@ -25,6 +25,11 @@ AC_SEARCH_LIBS([clock_gettime], [rt],
                 AM_CONDITIONAL([HAVE_CLOCK_GETTIME_AM], [false])
                ])
 
+dnl Set the HAVE_OPENMP flag if using openmp
+AS_IF([test -n "$OPENMP_CFLAGS"],
+      [AC_DEFINE([HAVE_OPENMP], [1], [Check for OpenMP])],
+      [])
+
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT
 
