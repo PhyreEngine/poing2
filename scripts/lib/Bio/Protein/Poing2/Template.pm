@@ -178,6 +178,10 @@ sub _build_fourmers {
     #Build fourmers for all omega angles, and for phi/psi angles for which the
     #Ramachandran type has not changed.
 
+    $self->{phi}   ||= [];
+    $self->{psi}   ||= [];
+    $self->{omega} ||= [];
+
     my @fourmers = ();
     my $done = 0;
     my $nres = keys %{$self->residues};
