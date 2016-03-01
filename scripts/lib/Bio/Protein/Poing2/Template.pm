@@ -227,6 +227,8 @@ sub build_fourmer {
         my $residue = $self->residues->{$index + $atom_spec->{increment}};
         next unless $residue;
         my $atom = $residue->atom_by_name($atom_spec->{atom});
+        #Atom may not exist even if the residue does (CA traces, etc)
+        next unless $atom;
         push @atoms, $atom;
     }
     if(@atoms == 4){
