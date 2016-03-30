@@ -25,7 +25,8 @@ static void add_torsion_force(struct torsion_spring *spring);
 static double model_get_separation(
         const struct model *restrict m,
         const struct atom *restrict a,
-        const struct atom *restrict b);
+        const struct atom *restrict b,
+        struct atom **restrict place_near);
 
 static void apply_spring_force(struct model *m);
 static void apply_torsion_force(struct model *m);
@@ -263,7 +264,8 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
         //backbone atom, or on the x-y plane for a non-backbone atom.
 
         //First, find the required distance between this and the previous atom
-        double separation = model_get_separation(m, a, prev1);
+        struct atom *place_near = prev1;
+        double separation = model_get_separation(m, a, prev1, &place_near);
 
         struct vector unit_offset;
         if(a->backbone){
@@ -280,7 +282,7 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
         vmul_by(&unit_offset, separation);
 
         //Add to the previous atom's coordinates
-        vadd_to(&unit_offset, &prev1->position);
+        vadd_to(&unit_offset, &place_near->position);
 
         //Copy into the new atom's coords
         vector_copy_to(&a->position, &unit_offset);
@@ -288,7 +290,8 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
 
         //We want to do the same as before, but then we want to rotate it such
         //that the vector between the previous two atoms is the new z-axis.
-        double separation = model_get_separation(m, a, prev1);
+        struct atom *place_near = prev1;
+        double separation = model_get_separation(m, a, prev1, &place_near);
         struct vector unit_offset;
         if(a->backbone){
             vector_rand(&unit_offset, 0, max_angle / 180 * M_PI);
@@ -313,7 +316,7 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
 
         struct vector vout;
         vrot_axis(&vout, &rot_axis, &unit_offset, -angle);
-        vadd(&a->position, &vout, &prev1->position);
+        vadd(&a->position, &vout, &place_near->position);
     }
 }
 
@@ -325,12 +328,17 @@ void model_synth_atom(const struct model *m, size_t idx, double max_angle){
 double model_get_separation(
         const struct model *restrict m,
         const struct atom *restrict a,
-        const struct atom *restrict b){
+        const struct atom *restrict b,
+        struct atom **restrict place_near){
 
     for(size_t i=0; i < m->num_constraints; i++){
-        const struct atom *c_a = &m->atoms[m->constraints[i].a];
-        const struct atom *c_b = &m->atoms[m->constraints[i].b];
-        if((a == c_a && b == c_b) || (a == c_b && b == c_a)){
+        struct atom *c_a = &m->atoms[m->constraints[i].a];
+        struct atom *c_b = &m->atoms[m->constraints[i].b];
+        if(a == c_a && c_b->synthesised){
+            *place_near = c_b;
+            return m->constraints[i].distance;
+        }else if(a == c_b && c_a->synthesised){
+            *place_near = c_a;
             return m->constraints[i].distance;
         }
     }
