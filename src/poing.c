@@ -216,7 +216,7 @@ int main(int argc, char **argv){
         int num_synthed = (int)(state.time / state.synth_time) + 1;
 
         //If we have too few atoms, synthesise the next one
-        if(num_synthed > state.num_atoms && state.num_atoms < model->num_atoms){
+        if(model->do_synthesis && num_synthed > state.num_atoms && state.num_atoms < model->num_atoms){
             size_t new_atom_idx = state.num_atoms;
             state.num_atoms++;
             state.num_residues = state.atoms[new_atom_idx].residue_idx + 1;
