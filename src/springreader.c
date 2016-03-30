@@ -151,6 +151,7 @@ int read_atoms(cJSON *root, struct model *m){
         cJSON *id      = cJSON_GetObjectItem(atom, "id");
         cJSON *name    = cJSON_GetObjectItem(atom, "name");
         cJSON *residue = cJSON_GetObjectItem(atom, "residue");
+        cJSON *position = cJSON_GetObjectItem(atom, "position");
 
         struct atom_description *desc = atom_description_lookup(
                 name->valuestring, strlen(name->valuestring));
@@ -169,6 +170,15 @@ int read_atoms(cJSON *root, struct model *m){
         atom_init(a, id->valueint, name->valuestring);
         a->residue_idx = residue->valueint - 1;
         atom_set_atom_description(a, desc);
+        if(!m->do_synthesis)
+            a->synthesised = true;
+
+        if(position){
+            a->position.c[0] = cJSON_GetArrayItem(position, 0)->valuedouble;
+            a->position.c[1] = cJSON_GetArrayItem(position, 1)->valuedouble;
+            a->position.c[2] = cJSON_GetArrayItem(position, 2)->valuedouble;
+        }
+
     }
     return 0;
 
