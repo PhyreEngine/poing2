@@ -35,7 +35,7 @@ has atom_1 => (is => 'ro', required => 1);
 has atom_2 => (is => 'ro', required => 1);
 
 #Inner and outer are used to compute handedness
-has handedness => (is => 'ro', lazy => 1, builder => '_build_handedness', init_arg => undef);
+has handedness => (is => 'ro', lazy => 1, builder => '_build_handedness');
 has inner_atom => (is => 'rw', isa => 'Maybe[Bio::Protein::Poing2::Atom]', required => 0);
 has outer_atom => (is => 'rw', isa => 'Maybe[Bio::Protein::Poing2::Atom]', required => 0);
 

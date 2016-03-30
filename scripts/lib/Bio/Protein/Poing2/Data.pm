@@ -109,6 +109,34 @@ our %backbone = (
     O  => 1,
 );
 
+=item B<%SC_angles>: Sidechain angles. Only proline is really special.
+
+=cut
+
+our %SC_angles = (
+    ALA => 110.2205,
+    ARG => 110.5078,
+    ASN => 110.3937,
+    ASP => 110.3816,
+    CYS => 110.4102,
+    GLN => 110.4914,
+    GLU => 110.4259,
+    GLY => 110.1317,
+    HIS => 110.4651,
+    ILE => 111.1666,
+    LEU => 110.1939,
+    LYS => 110.4617,
+    MET => 110.5773,
+    PHE => 110.5342,
+    PRO => 103.6294,
+    SER => 110.3574,
+    THR => 111.1417,
+    TRP => 110.3800,
+    TYR => 110.4236,
+    VAL => 111.2750,
+);
+
+
 =item B<@backbone_order>: Backbone atoms in order.
 
 =cut

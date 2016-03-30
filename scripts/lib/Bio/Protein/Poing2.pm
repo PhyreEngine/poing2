@@ -244,7 +244,8 @@ sub TO_JSON {
     #Build linear springs
     #Start with backbone springs
     print STDERR "Building backbone springs\n" if $self->verbose;
-    push @{$json{constraints}}, $_ for @{$self->query->backbone_springs};
+    push @{$json{constraints}}, $_ for @{$self->query->backbone_constraints};
+    push @{$json{linear}}, $_ for @{$self->query->backbone_springs};
 
     #Then add springs from templates
     for my $template(@{$self->templates}){
@@ -259,6 +260,7 @@ sub TO_JSON {
     #Add angles from query
     print STDERR "Building bond angles\n" if $self->verbose;
     push @{$json{angle}}, $_ for @{$self->query->angles};
+    push @{$json{torsion}}, $_ for @{$self->query->fourmers};
 
     #Add torsion angles from each template
     for my $template(@{$self->templates}){
