@@ -23,8 +23,6 @@ struct linear_spring {
     bool right_handed;
 };
 
-enum unit { A, B };
-
 struct linear_spring * linear_spring_alloc(
         double distance, double constant,
         struct atom *a, struct atom *b);
@@ -40,9 +38,8 @@ bool linear_spring_active(struct linear_spring *s);
 
 double linear_spring_energy(struct linear_spring *s);
 void linear_spring_force(
-        struct vector *dst,
-        struct linear_spring *s,
-        enum unit on);
+        struct vector *f1, struct vector *f2,
+        struct linear_spring *s);
 bool linear_spring_synthesised(struct linear_spring *s);
 
 #endif //LINEAR_SPRING_H_

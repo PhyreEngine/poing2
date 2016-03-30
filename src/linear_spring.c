@@ -72,25 +72,25 @@ bool linear_spring_active(struct linear_spring *s){
 }
 
 void linear_spring_force(
-        struct vector *dst, struct linear_spring *s, enum unit on){
+        struct vector *f1, struct vector *f2,
+        struct linear_spring *s){
 
     struct vector displacement;
     //Don't apply if outside the cutoffs
     if(!linear_spring_active(s)){
-        vector_zero(dst);
+        vector_zero(f1);
+        vector_zero(f2);
         return;
     }
 
-    if(on == A)
-        vsub(&displacement, &s->b->position, &s->a->position);
-    else
-        vsub(&displacement, &s->a->position, &s->b->position);
+    vsub(&displacement, &s->b->position, &s->a->position);
 
     //Normalise displacement to get direction
     double distance = vmag(&displacement);
     vdiv_by(&displacement, distance);
 
-    vmul(dst, &displacement, (distance - s->distance) * s->constant);
+    vmul(f1, &displacement, (distance - s->distance) * s->constant);
+    vmul(f2, f1, -1);
 }
 
 double linear_spring_energy(struct linear_spring *s){

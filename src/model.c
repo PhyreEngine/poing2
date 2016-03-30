@@ -346,7 +346,7 @@ double model_get_separation(
 }
 
 void apply_spring_force(struct model *m){
-    struct vector force;
+    struct vector force1, force2;
     struct linear_spring *linear_springs = m->linear_springs;
 
     //Then go through all springs and accumulate forces on the residues
@@ -357,15 +357,14 @@ void apply_spring_force(struct model *m){
         struct linear_spring *s = &linear_springs[i];
 
         if(s->a->synthesised && s->b->synthesised){
-            if(!s->a->fixed){
-                linear_spring_force(&force, s, A);
-                vadd_to(&s->a->force, &force);
-            }
+            if(!s->a->fixed || !s->b->fixed)
+                linear_spring_force(&force1, &force2, s);
 
-            if(!s->b->fixed){
-                linear_spring_force(&force, s, B);
-                vadd_to(&s->b->force, &force);
-            }
+            if(!s->a->fixed)
+                vadd_to(&s->a->force, &force1);
+
+            if(!s->b->fixed)
+                vadd_to(&s->b->force, &force2);
 
             //Print debug information
             if(m->debug)
