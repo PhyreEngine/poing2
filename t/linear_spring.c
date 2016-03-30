@@ -27,45 +27,41 @@ int main(){
     s = linear_spring_alloc(1, 1.0, &a, &b);
 
     struct vector result;
-    struct vector force;
+    struct vector force1, force2;
 
     //At equilibrium
     vector_fill(&result, 0, 0, 0);
-    linear_spring_force(&force, s, A);
-    is_vector(&force, &result, 1e-10, "Force = 0 on A");
-    linear_spring_force(&force, s, B);
-    is_vector(&force, &result, 1e-10, "Force = 0 on B");
+    linear_spring_force(&force1, &force2, s);
+    is_vector(&force1, &result, 1e-10, "Force = 0 on A");
+    is_vector(&force2, &result, 1e-10, "Force = 0 on B");
 
     //Pushing outwards
     s->distance = 2.0;
     vector_fill(&result, -1, 0, 0);
-    linear_spring_force(&force, s, A);
-    is_vector(&force, &result, 1e-10, "Force = (-1, 0, 0) on A");
+    linear_spring_force(&force1, &force2, s);
+    is_vector(&force1, &result, 1e-10, "Force = (-1, 0, 0) on A");
 
     vector_fill(&result, +1, 0, 0);
-    linear_spring_force(&force, s, B);
-    is_vector(&force, &result, 1e-10, "Force = (+1, 0, 0) on B");
+    is_vector(&force2, &result, 1e-10, "Force = (+1, 0, 0) on B");
 
     //Pulling inwards
     s->distance = 0.5;
     vector_fill(&result, +0.5, 0, 0);
-    linear_spring_force(&force, s, A);
-    is_vector(&force, &result, 1e-10, "Force = (+0.5, 0, 0) on A");
+    linear_spring_force(&force1, &force2, s);
+    is_vector(&force1, &result, 1e-10, "Force = (+0.5, 0, 0) on A");
 
     vector_fill(&result, -0.5, 0, 0);
-    linear_spring_force(&force, s, B);
-    is_vector(&force, &result, 1e-10, "Force = (-0.5, 0, 0) on B");
+    is_vector(&force2, &result, 1e-10, "Force = (-0.5, 0, 0) on B");
 
     //With a different spring constant
     s->constant = 2.0;
     s->distance = 2.0;
     vector_fill(&result, -2, 0, 0);
-    linear_spring_force(&force, s, A);
-    is_vector(&force, &result, 1e-10, "Force = (-2, 0, 0) on A");
+    linear_spring_force(&force1, &force2, s);
+    is_vector(&force1, &result, 1e-10, "Force = (-2, 0, 0) on A");
 
     vector_fill(&result, +2, 0, 0);
-    linear_spring_force(&force, s, B);
-    is_vector(&force, &result, 1e-10, "Force = (+2, 0, 0) on B");
+    is_vector(&force2, &result, 1e-10, "Force = (+2, 0, 0) on B");
 
     //Using cutoffs
     s->constant = 1.0;
@@ -74,13 +70,13 @@ int main(){
     vector_fill(&a.position, -1, 0, 0);
     vector_fill(&b.position, +1, 0, 0);
     vector_fill(&result, 0, 0, 0);
-    linear_spring_force(&force, s, A);
-    is_vector(&force, &result, 1e-10, "Force = 0 past cutoff");
+    linear_spring_force(&force1, &force2, s);
+    is_vector(&force1, &result, 1e-10, "Force = 0 past cutoff");
 
     s->cutoff = 2.5;
     vector_fill(&result, 1, 0, 0);
-    linear_spring_force(&force, s, A);
-    is_vector(&force, &result, 1e-10, "Force applied within cutoff");
+    linear_spring_force(&force1, &force2, s);
+    is_vector(&force1, &result, 1e-10, "Force applied within cutoff");
 
     done_testing();
 }
