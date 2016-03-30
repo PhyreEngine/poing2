@@ -109,6 +109,9 @@ struct model {
 
     ///Optional profiler
     struct profile *profiler;
+
+    ///Map of bonds. To check if (i, j) are bonded, check the i,jth cell.
+    bool **bond_map;
 };
 
 struct model *model_alloc();
@@ -121,6 +124,8 @@ void model_synth(struct model *state, const struct model *m);
 void model_synth_atom(const struct model *m, size_t idx, double max_angle);
 double model_energy(struct model *m);
 void model_minim(struct model *m);
+void model_build_bond_map(struct model *m);
+bool model_is_bonded(struct model *m, int i, int j);
 
 #endif /* MODEL_H_ */
 
