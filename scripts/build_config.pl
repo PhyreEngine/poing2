@@ -87,6 +87,10 @@ configuration.
 
 Keep springs with a distance less than or equal to I<DISTANCE> Angstroms.
 
+=item B<--explicit-ss>
+
+Add explicit springs and torsion constraints for predicted SS elements.
+
 =item B<-h>, B<--help>
 
 Display this help text.
@@ -118,6 +122,7 @@ GetOptions(\%options,
     'record-jitter',
 
     'max-distance=f',
+    'explicit-ss',
 
 ) or pod2usage(2);
 pod2usage(-verbose => 2, -noperldoc => 1, -exitval => 1) if $options{help};
@@ -127,7 +132,8 @@ my $query_file = shift || pod2usage('No sequence provided.');
 my $query = Bio::Protein::Poing2::Query->new(
     sequence => $query_file,
     ss       => $options{ss},
-    $options{'bb-only'} ? (bb_only => 1) : (),
+    $options{'bb-only'}     ? (bb_only => 1)     : (),
+    $options{'explicit-ss'} ? (explicit_ss => 1) : (),
 );
 my @templates = map {
     my ($aln, $model) = split q{=};
