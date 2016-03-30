@@ -39,6 +39,7 @@ static int read_angles(cJSON *root, struct model *m);
 static int read_torsions(cJSON *root, struct model *m);
 static int read_rama(cJSON *root, struct model *m);
 static int read_constraints(cJSON *root, struct model *m);
+static int read_atom_definitions(cJSON *root);
 
 static int check_mandatory_keys(cJSON *root, const char **keys, size_t nkeys,
     const char *fmt);
@@ -85,6 +86,7 @@ struct model * springreader_parse_str(const char *str){
     if(read_torsions(root, m))    goto free_copy;
     if(read_rama(root, m))        goto free_copy;
     if(read_constraints(root, m)) goto free_copy;
+    if(read_atom_definitions(root)) goto free_copy;
 
     free(copy);
     return m;
@@ -622,5 +624,41 @@ close_file:
     fclose(f);
 bail:
     return NULL;
+}
+
+int read_atom_definitions(cJSON *root){
+    cJSON *atom_descriptions = cJSON_GetObjectItem(root, "atom_descriptions");
+    //If not set, we'll just use the default definitions
+    if(!atom_descriptions)
+        return 0;
+    if(atom_descriptions->type != cJSON_Object)
+        goto_err(error, "The key 'atom_descriptions' must be an object.");
+
+    for(cJSON* def = atom_descriptions->child; def; def = def->next){
+        char *res_type = def->string;
+        struct atom_description *desc = atom_description_lookup(
+                res_type, strlen(res_type));
+        if(!desc)
+            goto_err(error, "Unknown atom type %s\n", res_type);
+
+        for(cJSON *prop = def->child; prop; prop = prop->next){
+            char *prop_name = prop->string;
+            double val = prop->valuedouble;
+            if(strcmp(prop_name, "mass") == 0){
+                desc->mass = val;
+            }else if(strcmp(prop_name, "steric_radius") == 0){
+                desc->steric_radius = val;
+            }else if(strcmp(prop_name, "hydrophobicity") == 0){
+                desc->hydrophobicity = val;
+            }else{
+                goto_err(error, "Unknown atom property %s\n", prop_name);
+            }
+        }
+    }
+    return 0;
+
+
+error:
+    return 1;
 }
 

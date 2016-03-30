@@ -15,6 +15,9 @@ const char *json =
 "    \"timestep\": 0.01,\n"
 "    \"synth_time\": 100,\n"
 "    \"drag_coefficient\": 0.1,\n"
+"    \"atom_descriptions\": {\n"
+"        \"GLU\" : {\"steric_radius\" : 0.5}\n"
+"    },\n"
 "    \"atoms\": [\n"
 "        {\"id\": 1, \"name\": \"CA\",  \"residue\": 1},\n"
 "        {\"id\": 2, \"name\": \"GLU\", \"residue\": 1},\n"
@@ -83,6 +86,9 @@ void check_model(struct model *m){
     fis(m->synth_time, 100, 1e-10, "Synth time");
     fis(m->drag_coefficient, 0.1, 1e-10, "Drag coefficient");
 
+    struct atom_description *desc = atom_description_lookup("GLU", 3);
+    fis(desc->steric_radius, 0.5, 1e-10, "Set atom description");
+
     //3 springs
     cmp_ok(m->num_linear_springs, "==",  3, "Read three linear springs");
     cmp_ok(m->num_torsion_springs, "==", 1, "Read one torsion spring");
@@ -132,7 +138,7 @@ void check_model(struct model *m){
 }
 
 int main(){
-    plan(80);
+    plan(82);
 
     struct model *ms = springreader_parse_str(json);
     if(!ms)
