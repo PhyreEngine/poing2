@@ -137,6 +137,7 @@ int main(int argc, char **argv){
     struct model *model = springreader_parse_file(spec);
     if(!model)
         return 2;
+    model_build_bond_map(model);
 
     //Set up debugging if any of the debug params was set
     if(do_debug){
@@ -167,7 +168,8 @@ int main(int argc, char **argv){
     /* Initialise steric grid if it is being used. */
     struct steric_grid *steric_grid = NULL;
     if(model->use_sterics || model->use_water || model->shield_drag){
-         steric_grid = steric_grid_alloc(6);
+        steric_grid = malloc(sizeof(*steric_grid));
+        steric_grid_init(steric_grid, 100, 6.03, model->num_atoms);
         model->steric_grid = steric_grid;
     }
 
@@ -239,8 +241,6 @@ int main(int argc, char **argv){
         }
     }
 
-
-    steric_grid_free(steric_grid);
     model_free(model);
     return 0;
 }

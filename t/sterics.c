@@ -22,70 +22,45 @@ bool increment(struct atom *a, struct atom *b, void *data){
 }
 
 int main(){
-    plan(10);
+    plan(9);
 
-    const char *springs =
-        "[PDB]\n"
-        "ATOM      1  CA  ALA A   1       0.000   0.000   0.000\n"
-        "ATOM      2 ALA  ALA A   1       0.000   0.000   0.000\n"
-        "ATOM      3  CA  ALA A   2       0.000   0.000   0.000\n"
-        "ATOM      4 ALA  ALA A   2       0.000   0.000   0.000\n"
-        ;
-
-    const char *atom_names[4] = {"N", "C", "CA", "O"};
     struct atom atoms[4];
     for(int i=0; i < 4; i++){
-        atom_init(&atoms[i], i+1, atom_names[i]);
-        atom_set_atom_description(&atoms[i],
-                atom_description_lookup(
-                    atom_names[i], strlen(atom_names[i])));
         vector_zero(&atoms[i].force);
+        atoms[i].radius = 1;
     }
     struct model *m = model_alloc();
     m->atoms = atoms;
     m->num_atoms = 4;
 
+    vector_fill(&atoms[0].position, -1, 0, 0);
+    vector_fill(&atoms[1].position, 1, -1, 0);
+    vector_fill(&atoms[2].position, 0, 0, 1);
+    vector_fill(&atoms[3].position, 1, 1, -1);
 
+    //Check that the origin makes sense with these atoms
+    struct steric_grid grid;
+    steric_grid_init(&grid, 10, 5, m->num_atoms);
+    steric_grid_find_origin(&grid, m);
+    ok(grid.origin.c[0] < -1.0, "Grid origin x");
+    ok(grid.origin.c[1] < -1.0, "Grid origin y");
+    ok(grid.origin.c[2] < -1.0, "Grid origin z");
+
+    //Now try some basic force tests
+    m->num_atoms = 2;
     vector_fill(&atoms[0].position, 0, 0, 0);
     vector_fill(&atoms[1].position, 1, 0, 0);
-    vector_fill(&atoms[2].position, 0, 0, 1);
-    vector_fill(&atoms[3].position, 1, 1, 1);
 
-    struct steric_grid grid;
-    steric_grid_init(&grid, 1.5);
     steric_grid_update(&grid, m);
-    is_vector(
-            &grid.min,
-            vector_alloc(0-GRID_BUFFER, 0-GRID_BUFFER, 0-GRID_BUFFER),
-            1e-10, "Minimum grid point");
-    is_vector(
-            &grid.max,
-            vector_alloc(1+GRID_BUFFER, 1+GRID_BUFFER, 1+GRID_BUFFER),
-            1e-10, "Maximum grid point");
-
+    steric_grid_build_ilists(&grid, m);
     steric_grid_forces(&grid, m);
-    ok(atoms[0].force.c[0] < 0, "CA1 pushed in -x");
 
-    int num_nearby = 0;
-    steric_grid_foreach_nearby(&grid, &atoms[0],
-            increment, &num_nearby);
-    cmp_ok(num_nearby, "==", 3, "Three nearby atoms");
-
-    //Lower cell size and see how many atoms we find
-    grid.cell_size = 0.5;
-    steric_grid_update(&grid, m);
-    num_nearby = 0;
-    steric_grid_foreach_nearby(&grid, &atoms[0],
-            increment, &num_nearby);
-    cmp_ok(num_nearby, "==", 0, "found 0 atoms in nearby cells");
-
-    //Move an atom closer and ensure we find it
-    atoms[1].position.c[0] = 0.2;
-    num_nearby = 0;
-    steric_grid_update(&grid, m);
-    steric_grid_foreach_nearby(&grid, &atoms[0],
-            increment, &num_nearby);
-    cmp_ok(num_nearby, "==", 1, "found 1 atom in nearby cells");
+    ok(atoms[0].force.c[0] < 0, "Forced into the -x direction");
+    ok(atoms[1].force.c[0] > 0, "Forced into the +x direction");
+    fis(atoms[0].force.c[1], 0, 1e-6, "Y component = 0");
+    fis(atoms[0].force.c[2], 0, 1e-6, "Z component = 0");
+    fis(atoms[1].force.c[1], 0, 1e-6, "Y component = 0");
+    fis(atoms[1].force.c[2], 0, 1e-6, "Z component = 0");
 
     done_testing();
 }

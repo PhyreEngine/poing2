@@ -9,43 +9,42 @@
 #include "model.h"
 #include "vector.h"
 
-//The grid is essentially a hash table, and we are nearly guaranteed to have
-//collisions (it's a feature). We use a linked list to store the atoms in each
-//cell.
-struct atom_in_cell {
-    struct atom *a;
-    struct atom_in_cell *next;
+struct atom_list {
+    size_t atom_idx;
+    struct atom_list *next;
 };
 
 struct steric_grid {
-    struct vector min, max;
-    ///Length, width and height
-    struct vector size;
-    double cell_size;
-    struct atom_in_cell **atom_grid;
+    //Size (in cells) in each direction.
+    size_t size_in_cells;
 
-    size_t ncells;
+    //Calculated dynamically on each update step.
+    struct vector origin;
+
+    //Size (in Angstroms) of each cell.
+    double cell_size;
+
+    //We store a list of atoms in each cell.
+    struct atom_list **cells;
+
+    //Store an explicit interaction list for each atom. Do this by storing the
+    //index of the cell the atom is in.
+    size_t *interaction_list;
+
+    //Pool of atom lists to avoid repeated malloc/free cycles
+    struct atom_list *list_buf;
+    size_t list_buf_idx;
 };
 
-struct steric_grid *steric_grid_alloc(double cell_size);
-void steric_grid_init(struct steric_grid *grid, double cell_size);
-void steric_grid_free(struct steric_grid *grid);
-void steric_grid_update(struct steric_grid *grid, struct model *model);
-void steric_grid_forces(struct steric_grid *grid, struct model *model);
-size_t steric_grid_index(struct steric_grid *grid, struct atom *a);
-void steric_grid_coords(struct steric_grid *grid, struct atom *a, int *dst);
-void steric_force(struct atom *a, struct atom *b);
-void steric_grid_free_atoms(struct steric_grid *grid, size_t index);
-
-void steric_grid_add_atom(struct steric_grid *grid, struct atom *a);
-
-void steric_grid_foreach_nearby(
-        struct steric_grid *grid, struct atom *a,
-        bool (*lambda)(struct atom *a, struct atom *b, void *data),
-        void *data);
+void steric_grid_init(struct steric_grid *grid, size_t size_in_cells, double cell_size, size_t num_atoms);
+void steric_grid_find_origin(struct steric_grid *g, struct model *m);
+void steric_grid_update(struct steric_grid *g, struct model *m);
+struct atom_list *steric_grid_interaction_list(struct steric_grid *g, size_t atom_index);
+void steric_grid_build_ilists(struct steric_grid *g, struct model *m);
+void steric_grid_forces(struct steric_grid *g, struct model *m);
 
 void water_force(struct model *m, struct steric_grid *grid);
-void drag_force(struct model *m, struct steric_grid *grid);
+
 
 #endif /* STERICS_H_ */
 

@@ -78,6 +78,7 @@ struct model *model_alloc(){
     m->record_time = m->timestep * 10;
     m->max_jitter = 0.01;
     m->profiler = NULL;
+    m->bond_map = NULL;
     return m;
 }
 
@@ -123,6 +124,7 @@ void model_accumulate_forces(struct model *m){
     //Steric, water and drag forces
     if(m->steric_grid){
         steric_grid_update(m->steric_grid, m);
+        steric_grid_build_ilists(m->steric_grid, m);
         profile(m, "steric grid update");
 
         if(m->use_sterics){
@@ -602,4 +604,29 @@ void profile(struct model *m, const char *msg){
     if(m->profiler)
         profile_end(m->profiler, "%g\t%s\t%lld\n", m->time, msg);
     #endif
+}
+
+void model_build_bond_map(struct model *m){
+    //Build a proper 2d array (because we might have a reduced num_atoms to
+    //throw off any row/col calculations)
+    m->bond_map = malloc(sizeof(bool*) * m->num_atoms);
+    for(int i=0; i < m->num_atoms; i++){
+        m->bond_map[i] = malloc(sizeof(bool) * m->num_atoms);
+        for(int j=0; j < m->num_atoms; j++){
+            m->bond_map[i][j] = false;
+        }
+    }
+
+    //Now add bonds for constraints
+    for(int i=0; i < m->num_constraints; i++){
+        struct constraint *c = m->constraints + i;
+        m->bond_map[c->a][c->b] = true;
+        m->bond_map[c->b][c->a] = true;
+    }
+}
+
+bool model_is_bonded(struct model *m, int i, int j){
+    if(!m->bond_map)
+        return false;
+    return m->bond_map[i][j];
 }

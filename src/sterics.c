@@ -1,212 +1,156 @@
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
+#include <float.h>
 #include "sterics.h"
 
 #define cube(x)   ((x) * (x) * (x))
 #define square(x) ((x) * (x))
 
-unsigned long long called = 0;
-static int min(int a, int b);
-static int max(int a, int b);
+static inline size_t coords(struct steric_grid *grid, size_t x, size_t y, size_t z);
+static struct vector buf = {.c = {GRID_BUFFER, GRID_BUFFER, GRID_BUFFER}};
 
-//only needed because the generic callback passed to steric_grid_foreach_nearby
-//ought to take an extra parameter. This just calls steric_force.
-static bool steric_force_lambda(struct atom *a, struct atom *b, void *na);
-
-static bool is_kick_good(struct atom *a, struct atom *b, void *data);
-struct is_kick_good_args {
-    bool *is_good;
-    struct vector *kick_point;
-};
-static bool should_apply_drag(struct atom *a, struct atom *b, void *data);
-static size_t coords_to_index(struct steric_grid *grid, int coords[3]);
-
-struct steric_grid *steric_grid_alloc(double cell_size){
-    struct steric_grid *sg = malloc(sizeof(struct steric_grid));
-    steric_grid_init(sg, cell_size);
-    return sg;
-}
-
-void steric_grid_init(struct steric_grid *grid, double cell_size){
-    vector_zero(&grid->size);
+void steric_grid_init(struct steric_grid *grid, size_t size_in_cells, double cell_size, size_t num_atoms){
+    grid->size_in_cells = size_in_cells;
     grid->cell_size = cell_size;
-    grid->atom_grid = NULL;
+
+    //We need this many cells:
+    size_t ncells = cube(size_in_cells);
+
+    //Initialise linked list buffer
+    grid->list_buf = malloc(num_atoms * sizeof(*grid->list_buf));
+    grid->list_buf_idx = 0;
+
+    grid->interaction_list = malloc(num_atoms * sizeof(*grid->interaction_list));
+    grid->cells = malloc(ncells * sizeof(*grid->cells));
+    //Initialise everything to have zero atoms
+    for(size_t i=0; i < ncells; i++)
+        grid->cells[i] = NULL;
+    for(size_t i=0; i < num_atoms; i++)
+        grid->interaction_list[i] = 0;
 }
 
-void steric_grid_free(struct steric_grid *grid){
+//Small utility function to convert 3d coordinates into the block array format.
+static inline size_t coords(struct steric_grid *grid, size_t x, size_t y, size_t z){
+    return x + y * grid->size_in_cells + z * square(grid->size_in_cells);
 }
 
-/** Generate a lattice with all atoms arranged on it.
- *
- * This will be used for calculating short-range forces like steric effects.
- * The grid will be split into cells each containing a list of atoms falling
- * into that cell. The size of the cells is fixed and chosen to correspond to
- * the steric cut-off.
- *
- * To update the grid, we first scan through the atoms and work out the minimum
- * and maximum values in all dimensions. This allows us to determine how many
- * cells we need in each dimension. If the memory allocated to this steric grid
- * is insufficient, we realloc it to expand.
- */
-void steric_grid_update(struct steric_grid *grid, struct model *model){
-    vector_fill(&grid->min, INFINITY, INFINITY, INFINITY);
-    vector_fill(&grid->max, -INFINITY, -INFINITY, -INFINITY);
-
-    //Find maximum extent of grid in all directions
-    for(size_t i=0; i < model->num_atoms; i++){
-        vmin_elems(&grid->min, &model->atoms[i].position);
-        vmax_elems(&grid->max, &model->atoms[i].position);
-    }
-    //Bail if no atoms have been synthed
-    if(model->num_atoms == 0)
-        return;
-
-    //It's best to add a small buffer to the edges here to avoid weird
-    //singularities
-    for(size_t i=0; i < N; i++){
-        grid->max.c[i] += 0.01;
-        grid->min.c[i] -= 0.01;
-    }
-
-    //Find the number of cells required in each dimension and total number
-    size_t num_old_cells = 1;
-    size_t num_new_cells = 1;
-    for(size_t i=0; i < N; i++){
-        num_old_cells *= grid->size.c[i];
-
-        double extent = (grid->max.c[i] - grid->min.c[i]);
-        grid->size.c[i] = ceil(extent / grid->cell_size);
-        num_new_cells *= grid->size.c[i];
-    }
-    //Free old buckets
-    for(size_t i=0; i < num_old_cells; i++)
-        steric_grid_free_atoms(grid, i);
-
-    //Realloc if necessary
-    grid->ncells = num_new_cells;
-    if(num_new_cells > num_old_cells)
-        grid->atom_grid = realloc(grid->atom_grid,
-                sizeof(*grid->atom_grid) * num_new_cells);
-
-    //Zero out each grid cell
-    for(size_t i=0; i < num_new_cells; i++)
-        grid->atom_grid[i] = NULL;
-
-    for(size_t i=0; i < model->num_atoms; i++){
-        struct atom *a = &model->atoms[i];
-        steric_grid_add_atom(grid, a);
-    }
+//Function to convert coordinates in Angstroms to grid cell coords
+static inline void ang2cell(struct steric_grid *grid, struct vector *v, size_t *x, size_t *y, size_t *z){
+    *x = (size_t)((v->c[0] - grid->origin.c[0]) / grid->cell_size);
+    *y = (size_t)((v->c[1] - grid->origin.c[1]) / grid->cell_size);
+    *z = (size_t)((v->c[2] - grid->origin.c[2]) / grid->cell_size);
 }
 
-//Free linked list of atoms at cell
-void steric_grid_free_atoms(struct steric_grid *grid, size_t index){
-    struct atom_in_cell *tmp;
-    while(grid->atom_grid[index]){
-        tmp = grid->atom_grid[index];
-        grid->atom_grid[index] = grid->atom_grid[index]->next;
-        free(tmp);
+//Min and max functions
+static inline int min(double a, double b){
+    return (a < b) ? a : b;
+}
+static inline int man(double a, double b){
+    return (a > b) ? a : b;
+}
+
+//Find the origin of the grid by locating the lowest dimension of each atom
+void steric_grid_find_origin(struct steric_grid *g, struct model *m){
+    vector_fill(&g->origin, DBL_MAX, DBL_MAX, DBL_MAX);
+    for(size_t i=0; i < m->num_atoms; i++)
+        vmin_elems(&g->origin, &m->atoms[i].position);
+    vsub_to(&g->origin, &buf);
+}
+
+//Add atom to cell i (in block coords)
+void add_atom(struct steric_grid *grid, size_t cell_index, size_t atom_idx){
+    //Get a linked list object from the buffer
+    struct atom_list *list = grid->list_buf + (grid->list_buf_idx++);
+
+    list->next = grid->cells[cell_index];
+    list->atom_idx = atom_idx;
+    grid->cells[cell_index] = list;
+}
+
+//Set the interaction list for the atom at atom_index (in the model) to the
+//list of atoms in the cell at cell_index
+static void update_ilist(struct steric_grid *grid, size_t atom_index, size_t cell_index){
+    grid->interaction_list[atom_index] = cell_index;
+}
+
+void free_linked_list(struct atom_list *list){
+    while(list){
+        struct atom_list *next = list->next;
+        free(list);
+        list = next;
     }
 }
 
-//Add atom to grid. We alloc a new atom_in_cell struct and add it to the head
-//of the linked list.
-void steric_grid_add_atom(struct steric_grid *grid, struct atom *a){
-    //Find coords
+void steric_grid_update(struct steric_grid *g, struct model *m){
+    size_t x, y, z;
+    size_t cell_index;
 
-    size_t grid_index = steric_grid_index(grid, a);
-    struct atom_in_cell *container = malloc(sizeof(struct atom_in_cell));
-    container->a = a;
-    container->next = grid->atom_grid[grid_index];
-    grid->atom_grid[grid_index] = container;
-}
+    //Reset buffer
+    g->list_buf_idx = 0;
 
-size_t steric_grid_index(struct steric_grid *grid, struct atom *a){
-    int coords[N];
-    steric_grid_coords(grid, a, coords);
-    return coords_to_index(grid, coords);
-}
+    //Reset each cell
+    for(size_t i=0; i < m->num_atoms; i++){
+        size_t cell_idx = g->interaction_list[i];
+        g->cells[cell_idx] = NULL;
+    }
 
-size_t coords_to_index(struct steric_grid *grid, int coords[3]){
-    size_t index = coords[0]
-        + grid->size.c[0] * coords[1]
-        + grid->size.c[0] * grid->size.c[1] * coords[2];
-    return index;
-}
+    //Find origin
+    steric_grid_find_origin(g, m);
 
-
-void steric_grid_coords(struct steric_grid *grid, struct atom *a, int *dst){
-    /*
-     * Consider an atom a on a line:
-     *
-     *             a
-     * |----|----|----|----|----|----|
-     * min       <--d->             max
-     *
-     * The grid cell of a is 2, given by floor( (x(a) - min) / d).
-     */
-    for(size_t i=0; i < N; i++)
-        dst[i] = (int)((a->position.c[i] - grid->min.c[i]) / grid->cell_size);
-}
-
-void steric_grid_forces(struct steric_grid *grid, struct model *model){
-    for(size_t i=0; i < model->num_atoms; i++){
-        //Get the list of nearby atoms; that is, all atoms in this cell or
-        //the surrounding cells
-        struct atom *a = &model->atoms[i]; //grid->atom_grid[i][j];
-        if(a->fixed)
-            continue;
-        steric_grid_foreach_nearby(grid, a, steric_force_lambda, NULL);
+    //Add atoms to cells
+    for(size_t i=0; i < m->num_atoms; i++){
+        //Angstroms to cell coordinates
+        ang2cell(g, &m->atoms[i].position, &x, &y, &z);
+        //To block coordinates
+        cell_index = coords(g, x, y, z);
+        //Add atom to linked list
+        add_atom(g, cell_index, i);
     }
 }
 
-void steric_grid_foreach_nearby(
-        struct steric_grid *grid, struct atom *a,
-        bool (*lambda)(struct atom *a, struct atom *b, void *data),
-        void *data){
-    int r[3];
-    steric_grid_coords(grid, a, r);
+void steric_grid_build_ilists(struct steric_grid *g, struct model *m){
+    size_t x, y, z;
+    size_t cell_index;
 
-    for(int i=max(0, r[0]-1); i <= min(grid->size.c[0]-1, r[0]+1); i++){
-        for(int j=max(0, r[1]-1); j <= min(grid->size.c[1]-1, r[1]+1); j++){
-            for(int k=max(0, r[2]-1); k <= min(grid->size.c[2]-1, r[2]+1); k++){
-                int coords[3] = {i, j, k};
-                int index = coords_to_index(grid, coords);
+    for(size_t i=0; i < m->num_atoms; i++){
+        //Angstroms to cell coordinates
+        ang2cell(g, &m->atoms[i].position, &x, &y, &z);
+        //To block coordinates
+        cell_index = coords(g, x, y, z);
+        //Add atom to linked list
+        update_ilist(g, i, cell_index);
+    }
+}
 
-                struct atom_in_cell *c;
-                for(c = grid->atom_grid[index]; c; c = c->next){
-                    if(c->a == a)
-                        continue;
+struct atom_list *steric_grid_interaction_list(struct steric_grid *g, size_t atom_index){
+    return g->cells[g->interaction_list[atom_index]];
+}
 
-                    bool cont = (*lambda)(a, c->a, data);
-                    if(!cont)
-                        return;
-                }
+void steric_grid_forces(struct steric_grid *g, struct model *m){
+    struct vector displacement;
+    struct atom_list *l = NULL;
+    for(size_t i=0; i < m->num_atoms; i++){
+        struct atom *a = m->atoms + i;
+
+        for(l = g->cells[g->interaction_list[i]]; l; l = l->next){
+            struct atom *b = m->atoms + l->atom_idx;
+            if(a == b)
+                continue;
+
+            vsub(&displacement, &b->position, &a->position);
+            double dist = vmag(&displacement);
+            if(!model_is_bonded(m, i, l->atom_idx) && dist < a-> radius + b->radius){
+                //Find the distance by which the constraints are violated
+                double excess = a->radius + b->radius - dist;
+                //Convert to unit vector pointing in direction of force
+                vdiv_by(&displacement, vmag(&displacement));
+                //Apply constants
+                vmul_by(&displacement, -STERIC_FORCE_CONSTANT * excess);
+                //Apply to atom a
+                vadd_to(&a->force, &displacement);
             }
         }
-    }
-}
-
-static bool steric_force_lambda(struct atom *a, struct atom *b, void *na){
-    steric_force(a, b);
-    return true;
-}
-
-void steric_force(struct atom *a, struct atom *b){
-    called++;
-    struct vector displacement;
-    vsub(&displacement, &a->position, &b->position);
-    double dist = vmag(&displacement);
-    if(dist < a->radius + b->radius){
-        double excess = (dist - (a->radius + b->radius));
-        vmul_by(&displacement,
-                STERIC_FORCE_CONSTANT
-                * excess / dist);
-
-
-        //Only apply in one direction; because of the way we are iterating over
-        //the atoms, this function will be called with the other atom as a
-        vmul_by(&displacement, -1);
-        vadd_to(&a->force, &displacement);
     }
 }
 
@@ -217,7 +161,7 @@ void steric_force(struct atom *a, struct atom *b){
 #define COS_DRAG_BLOCK_ANGLE 0.80901699437494745
 #define KICK_VELOCITY 0.08
 
-void water_force(struct model *m, struct steric_grid *grid){
+void water_force(struct model *m, struct steric_grid *g){
     for(size_t i=0; i < m->num_atoms; i++){
         struct atom *a = &m->atoms[i];
         if(a->fixed)
@@ -237,10 +181,22 @@ void water_force(struct model *m, struct steric_grid *grid){
         vmul_by(&kick_point, a->radius);
         vadd_to(&kick_point, &a->position);
 
+        struct vector displacement;
         if(do_kick){
             bool good = true;
-            struct is_kick_good_args args = {&good, &kick_point};
-            steric_grid_foreach_nearby(grid, a, is_kick_good, &args);
+            struct atom_list *l;
+            for(l = g->cells[g->interaction_list[i]]; l; l = l->next){
+                struct atom *b = m->atoms + l->atom_idx;
+                if(a == b)
+                    continue;
+
+                vsub(&displacement, &kick_point, &b->position);
+                if(vmag(&displacement) < b->radius + WATER_RADIUS){
+                    good = false;
+                    break;
+                }
+            }
+
             if(good){
                 vmul_by(&kick, KICK_VELOCITY);
                 vadd_to(&a->force, &kick);
@@ -249,59 +205,37 @@ void water_force(struct model *m, struct steric_grid *grid){
     }
 }
 
-void drag_force(struct model *m, struct steric_grid *grid){
+void drag_force(struct model *m, struct steric_grid *g){
     for(size_t i=0; i < m->num_atoms; i++){
         struct atom *a = &m->atoms[i];
         if(a->fixed)
             continue;
 
-        struct vector drag;
-        vector_copy_to(&drag, &a->velocity);
+        struct vector displ, drag;
+        bool apply = true;
+        struct atom_list *l;
+        for(l = g->cells[g->interaction_list[i]]; l; l = l->next){
+            struct atom *b = m->atoms + l->atom_idx;
+            if(a == b)
+                continue;
 
-        if(vmag(&drag) > 0){
-            bool apply_drag = true;
-            steric_grid_foreach_nearby(grid, a, should_apply_drag, &apply_drag);
-            if(apply_drag){
-                vmul_by(&drag, m->drag_coefficient);
-                vadd_to(&a->force, &drag);
+            vsub(&displ, &b->position, &a->position);
+            double dist = vmag(&displ);
+
+            if(dist < DRAG_SHIELDING_DISTANCE){
+                double dot = vdot(&displ, &a->velocity);
+                if(dot / (dist * vmag(&a->velocity)) > COS_DRAG_BLOCK_ANGLE){
+                    apply = false;
+                    break;
+                }
             }
         }
-    }
-}
 
-bool is_kick_good(struct atom *a, struct atom *b, void *data){
-    struct is_kick_good_args *args = (struct is_kick_good_args *) data;
-
-    struct vector displ;
-    vsub(&displ, args->kick_point, &b->position);
-    if(vmag(&displ) < b->radius + WATER_RADIUS){
-        (*args->is_good) = false;
-        return false;
-    }
-    return true;
-}
-
-bool should_apply_drag(struct atom *a, struct atom *b, void *data){
-    bool *apply = (bool*) data;
-
-    struct vector displ;
-    vsub(&displ, &b->position, &a->position);
-    double dist = vmag(&displ);
-
-    if(dist < DRAG_SHIELDING_DISTANCE){
-        double dot = vdot(&displ, &a->velocity);
-        if(dot / (dist * vmag(&a->velocity)) > COS_DRAG_BLOCK_ANGLE){
-            (*apply) = false;
-            return false;
+        if(apply){
+            vector_copy_to(&drag, &a->velocity);
+            vmul_by(&drag, m->drag_coefficient);
+            vadd_to(&a->force, &drag);
         }
     }
-    return true;
 }
 
-int min(int a, int b){
-    return (a < b) ? a : b;
-}
-
-int max(int a, int b){
-    return (a > b) ? a : b;
-}
