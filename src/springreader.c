@@ -403,7 +403,7 @@ int read_torsions(cJSON *root, struct model *m){
     int nsprings = cJSON_GetArraySize(springs);
     m->num_torsion_springs = nsprings;
     m->torsion_springs = malloc(sizeof(*m->torsion_springs) * nsprings);
-    if(!m->bond_angles)
+    if(!m->torsion_springs)
         goto_perror(alloc_err, "Error allocating torsion springs array\n");
 
     const char *mandatory[2] = {"atoms", "angle"};
