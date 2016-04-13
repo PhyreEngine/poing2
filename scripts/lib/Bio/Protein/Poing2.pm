@@ -209,12 +209,15 @@ sub to_str {
 sub TO_JSON {
     my ($self) = @_;
 
+    #JSON::XS requires booleans to be a reference to either 0 or 1, so convert
+    #them explicitly.
     my %json = (
         synth_time  => $self->synth_time + 0,
         until       => $self->until + 0,
-        shield_drag => \$self->shield_drag,
-        use_sterics => \$self->use_sterics,
-        use_water   => \$self->use_water,
+        shield_drag => \($self->shield_drag ? 1 : 0),
+        use_sterics => \($self->use_sterics ? 1 : 0),
+        use_water   => \($self->use_water ? 1: 0),
+        do_synthesis=> \(($self->synth_time == 0) ? 0 : 1),
         drag_coefficient => $self->drag_coefficient + 0,
         atoms   => [],
         linear  => [],
