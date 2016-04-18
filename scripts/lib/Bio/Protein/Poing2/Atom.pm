@@ -45,8 +45,7 @@ values or set them to the values in C<$coords> if supplied.
 
 =cut
 
-has coords => (is => 'rw', default => sub { V(0, 0, 0) }
-);
+has coords => (is => 'rw', isa => 'Maybe[Math::Vector::Real]', default => undef);
 
 =item C<residue([$res]): Get/set the residue of the atom. This is optional,
 because an atom does not necessarily belong to a residue.
@@ -114,11 +113,13 @@ sub string_repr {
 
 sub TO_JSON {
     my ($self) = @_;
-    return {
+    my $repr = {
         id      => $self->index,
         name    => $self->name,
         residue => $self->residue->index,
     };
+    $repr->{position} = [@{$self->coords}] if $self->coords;
+    return $repr;
 }
 
 =back

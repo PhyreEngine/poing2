@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Bio::Protein::Poing2::IO::Fasta;
 use Bio::Protein::Poing2::IO::Psipred;
+use Bio::Protein::Poing2::IO::PDB;
 use Bio::Protein::Poing2::Residue;
 use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::Fourmer;
@@ -35,6 +36,8 @@ has sequence => (is => 'ro', isa => 'Str', required => 1);
 has ss       => (is => 'ro', isa => 'Maybe[Str]');
 has bb_only  => (is => 'ro', isa => 'Bool', default => 0);
 has explicit_ss  => (is => 'ro', isa => 'Bool', default => 0);
+
+has positions_file => (is => 'ro', isa => 'Maybe[Str]', default => undef);
 
 has backbone_constraints => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_backbone_constraints');
 has backbone_springs => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_backbone_springs');
@@ -78,6 +81,9 @@ sub _build_backbone {
         if(!$self->bb_only){
             $atom_index = $residues->{$res_index}->init_coarse_sc($atom_index);
         }
+    }
+    if($self->positions_file){
+        $self->_add_positions($residues);
     }
     return $residues;
 }
@@ -360,6 +366,25 @@ sub _build_sc_angles {
         }
     }
     return \@angles;
+}
+
+#Open the PDB file supplied as the "positions_file" argument and read positions
+#for each atom from that file. No error checking is done to make sure that all
+#atoms have a position set.
+sub _add_positions {
+    my ($self, $residues) = @_;
+
+    my $pdb_residues = Bio::Protein::Poing2::IO::PDB::read_pdb(
+        $self->positions_file);
+
+    for my $res_num(keys %{$pdb_residues}){
+        my $q_res = $residues->{$res_num} // next;
+
+        for my $atom(@{$pdb_residues->{$res_num}->atoms}){
+            my $q_atom = $q_res->atom_by_name($atom->name) // next;
+            $q_atom->coords($atom->coords);
+        }
+    }
 }
 
 

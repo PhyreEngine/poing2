@@ -91,6 +91,10 @@ Keep springs with a distance less than or equal to I<DISTANCE> Angstroms.
 
 Add explicit springs and torsion constraints for predicted SS elements.
 
+=item B<--position-from> I<FILE>
+
+Read atom positions from the PDB file I<FILE>.
+
 =item B<-h>, B<--help>
 
 Display this help text.
@@ -124,6 +128,7 @@ GetOptions(\%options,
     'max-distance=f',
     'explicit-ss',
 
+    'position-from=s',
 ) or pod2usage(2);
 pod2usage(-verbose => 2, -noperldoc => 1, -exitval => 1) if $options{help};
 
@@ -134,6 +139,7 @@ my $query = Bio::Protein::Poing2::Query->new(
     ss       => $options{ss},
     $options{'bb-only'}     ? (bb_only => 1)     : (),
     $options{'explicit-ss'} ? (explicit_ss => 1) : (),
+    $options{'position-from'} ? (positions_file => $options{'position-from'}) : (),
 );
 my @templates = map {
     my ($aln, $model) = split q{=};
