@@ -155,6 +155,17 @@ Print progress information to standard error.
 
 has verbose => (is => 'ro', isa => 'Bool', default => 1);
 
+=item C<atom_descriptions> [optional]
+
+Optional atom descriptions. These can be used to define the mass, steric radius
+and hydrophobicity of atom types. For example:
+
+    {CA => {mass => 12, steric_radius => 0.75, hydrophobicity => 0}}
+
+=cut
+
+has atom_descriptions => (is => 'ro', isa => 'HashRef', required => 0);
+
 
 use overload q{""} => \&to_str;
 
@@ -225,10 +236,14 @@ sub TO_JSON {
         torsion => [],
         ramachandran => {},
     );
+
     if($self->record_jitter){
         $json{fix_before}  = $self->fix_before + 0;
         $json{record_time} = $self->record_time + 0;
         $json{max_jitter}  = $self->max_jitter + 0;
+    }
+    if($self->atom_descriptions){
+        $json{atom_descriptions} = $self->atom_descriptions;
     }
 
     #Serialise the sequence into a flat string
