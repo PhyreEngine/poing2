@@ -54,6 +54,14 @@ Drag coefficient (when not using the shielded drag force).
 
 has drag_coefficient => (is => 'ro', isa => 'Num', default => -0.5);
 
+=item C<timestep> (Default: 0.1)
+
+Timestep for the simulation.
+
+=cut
+
+has timestep => (is => 'ro', isa => 'Num', default => 0.1);
+
 =item C<shield_drag> (Default: true)
 
 Use the shielded drag force.
@@ -230,6 +238,7 @@ sub TO_JSON {
         use_water   => \($self->use_water ? 1: 0),
         do_synthesis=> \(($self->synth_time == 0) ? 0 : 1),
         drag_coefficient => $self->drag_coefficient + 0,
+        timestep => $self->timestep + 0,
         atoms   => [],
         linear  => [],
         angle   => [],
