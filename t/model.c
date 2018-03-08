@@ -12,7 +12,7 @@ int main(){
 
     size_t natoms = 20;
     struct residue residues[1];
-    struct atom atoms[natoms];
+    struct atom atoms[natoms + 1];
 
     struct model *m = model_alloc();
     m->timestep = 1;
@@ -38,6 +38,19 @@ int main(){
                     atom_description_lookup("O", 1));
         }
     }
+
+    struct constraint con;
+    con.a = 0;
+    con.b = natoms;
+    con.distance = 5.0;
+    m->num_constraints = 1;
+    m->constraints = &con;
+
+    atom_init(&m->atoms[natoms], natoms+1, "O");
+    atom_set_atom_description(&m->atoms[natoms], atom_description_lookup("O", 1));
+    m->num_atoms++;
+    natoms++;
+
     int npdb = 0;
     for(size_t i=0; i < natoms; i++)
         model_synth_atom(m, i, 20);
