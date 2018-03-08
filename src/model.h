@@ -9,7 +9,7 @@ struct residue;
 struct profile;
 struct model_debug;
 
-#define DEFAULT_MAX_SYNTH_ANGLE 1
+#define DEFAULT_MAX_SYNTH_ANGLE 10
 struct steric_grid;
 
 struct constraint {
