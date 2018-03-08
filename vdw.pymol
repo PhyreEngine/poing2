@@ -1,4 +1,7 @@
-alter n. ca, vdw=1.0
+alter n. C,  vdw=0.750
+alter n. CA, vdw=0.750
+alter n. N,  vdw=0.684
+alter n. O,  vdw=0.457
 alter n. ALA & resn ALA, vdw=1.6
 alter n. CYS & resn CYS, vdw=2.3
 alter n. ASP & resn ASP, vdw=2.5
