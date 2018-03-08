@@ -36,6 +36,7 @@ has sequence => (is => 'ro', isa => 'Str', required => 1);
 has ss       => (is => 'ro', isa => 'Maybe[Str]');
 has bb_only  => (is => 'ro', isa => 'Bool', default => 0);
 has explicit_ss  => (is => 'ro', isa => 'Bool', default => 0);
+has hydrophobic_springs  => (is => 'ro', isa => 'Bool', default => 0);
 
 has positions_file => (is => 'ro', isa => 'Maybe[Str]', default => undef);
 
@@ -46,6 +47,8 @@ has residues => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_seq
 has angles   => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_angles');
 has ramachandran => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_ramachandran');
 has fourmers => (is => 'ro', lazy => 1, init_arg => undef, builder => '_init_bb_fourmers');
+
+with 'Bio::Protein::Poing2::Query::HydrophobicSprings';
 
 sub length {
     my ($self) = @_;
@@ -111,6 +114,9 @@ sub _build_backbone_springs {
     my $springs = [];
     if($self->ss && $self->explicit_ss){
         push @{$springs}, @{$self->_init_bb_ss_springs};
+    }
+    if($self->hydrophobic_springs){
+        push @{$springs}, @{$self->_build_hydrophobic_springs};
     }
 
     return $springs;

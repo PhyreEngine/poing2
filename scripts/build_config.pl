@@ -99,6 +99,10 @@ Read atom positions from the PDB file I<FILE>.
 
 Run stride on each template and add H bond springs and angles.
 
+=item B<--hydrophobic-springs>
+
+Add springs between each pair of hydrophobic residues.
+
 =item B<-h>, B<--help>
 
 Display this help text.
@@ -132,6 +136,7 @@ GetOptions(\%options,
     'max-distance=f',
     'explicit-ss',
     'add-hbonds',
+    'hydrophobic-springs',
 
     'position-from=s',
 ) or pod2usage(2);
@@ -144,6 +149,7 @@ my $query = Bio::Protein::Poing2::Query->new(
     ss       => $options{ss},
     $options{'bb-only'}     ? (bb_only => 1)     : (),
     $options{'explicit-ss'} ? (explicit_ss => 1) : (),
+    $options{'hydrophobic-springs'} ? (hydrophobic_springs => 1) : (),
     $options{'position-from'} ? (positions_file => $options{'position-from'}) : (),
 );
 my @templates = map {
