@@ -243,7 +243,7 @@ sub TO_JSON {
         linear  => [],
         angle   => [],
         torsion => [],
-        ramachandran => {},
+        ramachandran => {constraints => []},
     );
 
     if($self->record_jitter){
@@ -299,7 +299,9 @@ sub TO_JSON {
 
     #Ramachandran data and constraints
     print STDERR "Building Ramachandran constraints\n" if $self->verbose;
-    $json{ramachandran}->{constraints} = $self->query->ramachandran;
+    if($self->query->ramachandran){
+        $json{ramachandran}->{constraints} = $self->query->ramachandran;
+    }
     $json{ramachandran}->{data} = $self->rama_data;
 
     return \%json;
