@@ -45,8 +45,8 @@ has backbone_springs => (is => 'ro', lazy => 1, init_arg => undef, builder => '_
 has backbone => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_backbone');
 has residues => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_sequence');
 has angles   => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_angles');
-has fourmers => (is => 'ro', lazy => 1, init_arg => undef, builder => '_init_bb_fourmers');
 has ramachandran => (is => 'ro', lazy => 1, builder => '_build_ramachandran');
+has fourmers => (is => 'ro', lazy => 1, builder => '_init_bb_fourmers');
 
 with 'Bio::Protein::Poing2::Query::HydrophobicSprings';
 

@@ -290,11 +290,14 @@ sub TO_JSON {
     push @{$json{torsion}}, $_ for @{$self->query->fourmers};
 
     #Add torsion angles from each template
-    for my $template(@{$self->templates}){
-        print STDERR "Building torsions for ", $template->model, "\n"
-            if $self->verbose;
+    #Do not include these if they were explicitly disabled for the query
+    if(@{$self->query->fourmers} > 0){
+        for my $template(@{$self->templates}){
+            print STDERR "Building torsions for ", $template->model, "\n"
+                if $self->verbose;
 
-        push @{$json{torsion}}, $_ for @{$template->fourmers};
+            push @{$json{torsion}}, $_ for @{$template->fourmers};
+        }
     }
 
     #Ramachandran data and constraints
