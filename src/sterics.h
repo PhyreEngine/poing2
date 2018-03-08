@@ -44,6 +44,7 @@ void steric_grid_build_ilists(struct steric_grid *g, struct model *m);
 void steric_grid_forces(struct steric_grid *g, struct model *m);
 
 void water_force(struct model *m, struct steric_grid *grid);
+void drag_force(struct model *m, struct steric_grid *g);
 
 
 #endif /* STERICS_H_ */
