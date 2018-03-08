@@ -10,6 +10,7 @@
 #include "springreader.h"
 #include "model.h"
 #include "rattle.h"
+#include "leapfrog.h"
 #include "sterics.h"
 #include "linear_spring.h"
 #include "record.h"
