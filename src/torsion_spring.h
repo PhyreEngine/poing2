@@ -4,6 +4,8 @@
 #include "residue.h"
 #include "vector.h"
 
+#define DEFAULT_TORSION_CONST 0.1
+
 enum torsion_unit {R1, R4};
 
 struct torsion_spring {
