@@ -13,6 +13,8 @@ use Bio::Protein::Poing2::Filter::Residue::Known;
 use Bio::Protein::Poing2::Filter::Aln::Known;
 use List::Util qw(min max);
 use List::BinarySearch qw(binsearch_pos);
+use Carp;
+use autodie;
 use Moose;
 
 =head1 NAME

@@ -44,7 +44,7 @@ has backbone_constraints => (is => 'ro', lazy => 1, init_arg => undef, builder =
 has backbone_springs => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_backbone_springs');
 has backbone => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_backbone');
 has residues => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_sequence');
-has angles   => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_angles');
+has angles   => (is => 'ro', lazy => 1, builder => '_build_angles');
 has ramachandran => (is => 'ro', lazy => 1, builder => '_build_ramachandran');
 has fourmers => (is => 'ro', lazy => 1, builder => '_init_bb_fourmers');
 
