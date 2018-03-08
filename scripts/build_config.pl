@@ -95,6 +95,10 @@ Add explicit springs and torsion constraints for predicted SS elements.
 
 Read atom positions from the PDB file I<FILE>.
 
+=item B<--add-hbonds>
+
+Run stride on each template and add H bond springs and angles.
+
 =item B<-h>, B<--help>
 
 Display this help text.
@@ -127,6 +131,7 @@ GetOptions(\%options,
 
     'max-distance=f',
     'explicit-ss',
+    'add-hbonds',
 
     'position-from=s',
 ) or pod2usage(2);
@@ -147,6 +152,7 @@ my @templates = map {
         alignment => $aln,
         model     => $model,
         query     => $query,
+        add_hbonds => exists $options{'add-hbonds'},
 )} @{$options{template}};
 
 my @filters = (

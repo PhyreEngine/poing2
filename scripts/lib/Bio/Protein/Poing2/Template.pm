@@ -5,6 +5,7 @@ use Bio::Protein::Poing2::IO::FastaAlignment;
 use Bio::Protein::Poing2::IO::PDB;
 use Bio::Protein::Poing2::Residue;
 use Bio::Protein::Poing2::Atom;
+use Bio::Protein::Poing2::HBond;
 use Bio::Protein::Poing2::Fourmer;
 use Bio::Protein::Poing2::Ramachandran;
 use Bio::Protein::Poing2::Filter::Atom::Backbone;
@@ -75,16 +76,24 @@ If supplied, all the atom IDs of this template will be the same as those in the
 query. If atoms are present in the template that are not present in the query,
 they will be discarded.
 
+=item C<add_hbonds> (Boolean. Default: false)
+
+Should we run L<stride|http://webclu.bio.wzw.tum.de/stride/> to find hydrogen
+bonds and add springs representing these bonds? If the C<stride> executable is
+not in the system path, an exception will be thrown.
+
 =back
 
 =cut
 
 has alignment => (is => 'ro', isa => 'Str', required => 1);
 has model     => (is => 'ro', isa => 'Str', required => 1);
+has add_hbonds=> (is => 'ro', isa => 'Bool', default => 0);
 has query     => (is => 'ro', isa => 'Maybe[Bio::Protein::Poing2::Query]', required => 0);
 has fourmers  => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_fourmers');
 has pairs     => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_pairwise_springs');
 has residues  => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_residues');
+has hbonds    => (is => 'ro', lazy => 1, init_arg => undef, builder => '_build_hbonds');
 has aln       => (is => 'ro', lazy => 1, init_arg => undef, builder => '_read_alignment');
 
 sub _read_residues {
@@ -159,7 +168,83 @@ sub _build_pairwise_springs {
             push @{$pairs}, $pair;
         }
     }
+
+    #Add H bonds if we were told to
+    if($self->add_hbonds){
+        my $hbonds = $self->hbonds;
+        for my $hbond(@{$hbonds}){
+            push @{$pairs}, $hbond->linear;
+        }
+    }
     return $pairs;
+}
+
+sub _build_hbonds {
+    my ($self) = @_;
+
+    my @hbonds = ();
+
+    #Run stride:
+    my @cmd = ('stride', '-h', $self->model);
+    open my $stride_in, q{-|}, @cmd;
+    while(my $ln = <$stride_in>){
+        next unless $ln =~ /^(?:ACC|DNR)/;
+        #Stride H bond lines look like this:
+        #REM  |--Residue 1--|     |--Residue 2--|  N-O N..O=C O..N-C     A1     A2  ~~~~
+        #ACC  SER A    3    1 ->  TRP A    7    5  3.0  156.0  115.2   37.3   51.8  ~~~~
+        #DNR  THR A    4    2 ->  ALA A   30   28  3.0  154.6  118.6   56.8   51.0  ~~~~
+
+        #The first record says that residue 3 is the acceptor (i.e. the O side)
+        #and residue 7 is the donor (i.e. the NH side). The second record has
+        #the residues in reverse order.
+
+        #The N-O column gives the distance between the N and O atoms (which we
+        #will use to add a spring). The "N..O=C" column gives the angle between
+        #the N atom of the donor, and the O and C atoms of the acceptor. The
+        #"O..N-C" column gives the angle between the O atom of the acceptor,
+        #the N atom of the donor and the C atom of the residue before the donor.
+
+        #We will add a spring between the N and O atoms, and add angle
+        #constraints for the NOC and ONC atoms.
+
+        my $type = substr $ln, 0, 3;
+        my $index1 = substr $ln, 10, 5;
+        my $index2 = substr $ln, 30, 5;
+        my $no = substr $ln, 40, 5;
+        my $noc = substr $ln, 45, 7;
+        my $onc = substr $ln, 52, 7;
+
+        $index1 =~ s/ //g;
+        $index2 =~ s/ //g;
+        $no =~ s/ //g;
+        $noc =~ s/ //g;
+        $onc =~ s/ //g;
+
+        my $donor_idx = $type eq 'DNR' ? $index1 : $index2;
+        my $acc_idx   = $type eq 'DNR' ? $index2 : $index1;
+
+        my $donor = $self->residues->{$donor_idx};
+        my $acceptor = $self->residues->{$acc_idx};
+        my $prev = $self->residues->{$donor_idx - 1};
+        next unless $donor && $acceptor;
+
+        my $n_atm = $donor->atom_by_name('N');
+        my $o_atm = $acceptor->atom_by_name('O');
+        next unless $n_atm && $o_atm;
+
+        my $hbond = Bio::Protein::Poing2::HBond->new(
+            donor => $donor,
+            acceptor => $acceptor,
+            distance => $no,
+            noc => $noc,
+            onc => $onc,
+            prev => $prev,
+        );
+        push @hbonds, $hbond;
+    }
+    close $stride_in;
+
+    return \@hbonds;
 }
 
 sub _read_alignment {
