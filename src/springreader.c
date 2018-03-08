@@ -79,6 +79,7 @@ struct model * springreader_parse_str(const char *str){
     set_bool_if_set(root, "do_synthesis", &m->do_synthesis);
     set_int_if_set(root, "fix_before", &m->fix_before);
 
+    if(read_atom_definitions(root)) goto free_copy;
     if(read_residues(root, m))    goto free_copy;
     if(read_atoms(root, m))       goto free_copy;
     if(read_springs(root, m))     goto free_copy;
@@ -86,7 +87,6 @@ struct model * springreader_parse_str(const char *str){
     if(read_torsions(root, m))    goto free_copy;
     if(read_rama(root, m))        goto free_copy;
     if(read_constraints(root, m)) goto free_copy;
-    if(read_atom_definitions(root)) goto free_copy;
 
     free(copy);
     return m;
