@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <float.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
