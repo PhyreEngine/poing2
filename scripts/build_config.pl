@@ -178,7 +178,7 @@ my %poing2_args = (
     $options{'until'}       ? (until       => $options{'until'}     ) : (),
     $options{'no-water'}    ? (use_water   => 0                     ) : (),
     $options{'no-sterics'}  ? (use_sterics => 0                     ) : (),
-    $options{'shield_drag'} ? (shield_drag => 0                     ) : (),
+    $options{'no-shield-drag'} ? (shield_drag => 0                  ) : (),
     spring_filters => \@filters,
 );
 if($options{'record-jitter'}){
