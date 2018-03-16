@@ -12,6 +12,8 @@ use Bio::Protein::Poing2::Filter::Pair::SeqSep;
 use Bio::Protein::Poing2::Filter::Pair::MaxDistance;
 use JSON::XS;
 
+=encoding UTF-8
+
 =head1 NAME
 
 build_config.pl - Build confing for poing2 run
