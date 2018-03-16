@@ -281,6 +281,18 @@ sub _build_fourmers {
 
         #check if the residue type has changed (e.g. general -> GLY)
         my $aln = $self->aln->{$residue_idx};
+
+        # Raise an error if the residue type of the model is different to the
+        # residue type of this alignment pair.
+        if($self->residues->{$residue_idx}->oneletter
+               ne  $aln->{from}->oneletter) {
+           my $model_type = $self->residues->{$residue_idx}->threeletter;
+           my $aln_type = $aln->{from}->threeletter;
+           die "Model residue $residue_idx is $model_type, but the "
+                . "alignment shows the query sequence as having"
+                . " a $aln_type at that position.\n";
+        }
+
         next if !$aln->{to};
 
         my $rama_from = Bio::Protein::Poing2::Ramachandran->new(
