@@ -22,11 +22,10 @@ Bio::Protein::Poing2::Fourmer - Represent four atoms, so we can get dihedral ang
 =cut
 
 has atoms => (is => 'ro', required => 1);
-has dihedral => (is => 'ro', lazy => 1, builder => '_build_dihedral', isa => 'Num');
 
 has constant => (is => 'ro', isa => 'Maybe[Num]', default => undef);
 
-sub _build_dihedral {
+sub dihedral {
     my ($self) = @_;
 
     my $b1 = $self->atoms->[1]->coords - $self->atoms->[0]->coords;
@@ -37,6 +36,7 @@ sub _build_dihedral {
         ($b1 x $b2) x ($b2 x $b3) * $b2 / abs($b2),
         ($b1 x $b2) * ($b2 x $b3)
     ) * 180 / $PI;
+    $angle += 360 if $angle < 0;
     return $angle;
 }
 

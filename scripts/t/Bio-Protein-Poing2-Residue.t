@@ -17,9 +17,11 @@ is_deeply($res1->atoms, [],   'Defaults with no atoms');
 $res1->add_sidechain();
 is($res1->atoms->[0]->name, 'ALA', 'Added sidechain atom');
 
-$res2->init_coarse();
+$res2->init_coarse_bb();
 my %r2_atms = map {$_->name => $_} @{$res2->atoms};
 ok($r2_atms{CA}, 'Added CA atom');
+$res2->init_coarse_sc();
+my %r2_atms = map {$_->name => $_} @{$res2->atoms};
 ok($r2_atms{ALA}, 'Added ALA atom');
 
 

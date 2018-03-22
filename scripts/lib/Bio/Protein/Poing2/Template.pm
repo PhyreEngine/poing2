@@ -272,6 +272,10 @@ sub _build_fourmers {
     my @fourmers = ();
     my $done = 0;
     my $nres = keys %{$self->residues};
+    # Offset between the model and alignment residue indices. This is
+    # increased when a gap in the query is aligned to a residue in the
+    # template.
+    my $query_offset = 0;
     for my $residue_idx(sort {$a <=> $b} keys %{$self->residues}){
 
         my $omega = $self->build_fourmer(
@@ -280,7 +284,13 @@ sub _build_fourmers {
         push @{$self->{omega}}, $omega if defined $omega;
 
         #check if the residue type has changed (e.g. general -> GLY)
-        my $aln = $self->aln->{$residue_idx};
+        my $aln = $self->aln->{$residue_idx - $query_offset};
+
+        # If the template residue is aligned to a gap in the query, continue
+        if(not defined $aln->{from}) {
+            $query_offset++;
+            next;
+        }
 
         # Raise an error if the residue type of the model is different to the
         # residue type of this alignment pair.

@@ -249,5 +249,7 @@ sub string_repr {
     return join q{}, map {$_->string_repr()} @{$self->atoms};
 }
 
+use overload '""' => \&threeletter;
+
 __PACKAGE__->meta->make_immutable;
 1;

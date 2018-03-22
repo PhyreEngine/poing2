@@ -45,7 +45,8 @@ values or set them to the values in C<$coords> if supplied.
 
 =cut
 
-has coords => (is => 'rw', isa => 'Maybe[Math::Vector::Real]', default => undef);
+has coords => (is => 'rw', isa => 'Maybe[Math::Vector::Real]',
+    default => sub { V(0, 0, 0) });
 
 =item C<residue([$res]): Get/set the residue of the atom. This is optional,
 because an atom does not necessarily belong to a residue.

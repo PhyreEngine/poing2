@@ -4,6 +4,8 @@ use warnings;
 use Moose;
 use Bio::Protein::Poing2::Ramachandran::Data;
 
+our $VERSION = "0.0.1";
+
 =head1 Attributes
 
 =over
