@@ -16,4 +16,9 @@ WriteMakefile(
         "Math::Vector::Real" => 0,
         "List::BinarySearch" => 0,
     },
+    EXE_FILES => [qw(
+        bin/build_config.pl
+        bin/final_model.pl
+        bin/pulchra_all.pl
+    )],
 );
