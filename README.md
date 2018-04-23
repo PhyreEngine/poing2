@@ -27,6 +27,8 @@ disable it explicitly:
 ```
 ./configure --disable-openmp && make
 ```
+Running `make` will require the [gperf] executable, which is used to generate a
+perfect hash table for the atom types used by poing2.
 
 Poing2 is packaged with scripts to generate JSON-formatted configuration files
 from PDB-formatted models and FASTA alignments. These supporting scripts are
@@ -106,6 +108,7 @@ of `VAL`.
 
 [autoconf]: https://www.gnu.org/software/autoconf/autoconf.html
 [automake]: https://www.gnu.org/software/automake/
+[gperf]:https://www.gnu.org/software/gperf/
 [cJSON]: https://github.com/DaveGamble/cJSON
 [math-vector-real]: http://search.cpan.org/~salva/Math-Vector-Real-0.17/lib/Math/Vector/Real.pm
 [list-binarysearch]: http://search.cpan.org/~davido/List-BinarySearch-0.25/lib/List/BinarySearch.pm
