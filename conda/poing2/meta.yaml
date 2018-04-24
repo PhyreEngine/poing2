@@ -1,0 +1,68 @@
+package:
+  name: poing2
+  version: "0.0.1"
+
+source:
+  git_rev: master
+  git_url: git@github.com:ImperialCollegeLondon/poing2.git
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - autoconf
+    - automake
+    - git
+    - make
+  run:
+    - libgcc-ng
+    - poing2-scripts
+  host:
+    - libgcc-ng
+
+build:
+# the architecture stuff below tells it to look at the conda_build_config.yaml
+# file and loop through all the arch's listed and compile for each one.
+  string: {{architecture}}_{{ environ.get("BUILD_NUMBER", 0) }}
+  features: 
+    - arch_{{architecture}}
+# The pipe indicates what follows is verbatim text
+# The PREFIX variable is set by conda
+# Much of this taken from https://github.com/ImperialCollegeLondon/poing2
+# The touch was because autoreconf requires a README file
+  script: |
+    touch ./README
+    autoreconf -vi
+    ./configure --disable-openmp --prefix=$PREFIX
+
+    # Strip conda's default compiler flags so we can pass our optimised
+    # versions.
+    export CFLAGS=$(
+        echo "$CFLAGS" | sed \
+        -e 's/-O[^ ]\+//g' -e 's/-march=[^ ]\+//' -e 's/-mtune=[^ ]\+//')
+    export CPPFLAGS=$(echo "$CPPFLAGS" | sed -e 's/-O[^ ]\+//g')
+
+    make \
+        CFLAGS="$CFLAGS -O3 -march={{ architecture }} -ffast-math" \
+        CPPFLAGS="$CPPFLAGS"
+    make install
+
+    # Copy data files into share
+    install -d -m755 "$PREFIX/share/poing2"
+    install -m644 data/*.data "$PREFIX/share/poing2"
+
+    # Create activation script that sets RAMA_DATA
+    mkdir -p $PREFIX/etc/conda/activate.d
+    mkdir -p $PREFIX/etc/conda/deactivate.d
+
+    echo '#!/bin/sh' > $PREFIX/etc/conda/activate.d/poing2.sh
+    echo 'export RAMA_DATA=$CONDA_PREFIX/share/poing2' >> $PREFIX/etc/conda/activate.d/poing2.sh
+    chmod +x $PREFIX/etc/conda/activate.d/poing2.sh
+
+    echo '#!/bin/sh' > $PREFIX/etc/conda/deactivate.d/poing2.sh
+    echo 'unset RAMA_DATA' >> $PREFIX/etc/conda/deactivate.d/poing2.sh
+    chmod +x $PREFIX/etc/conda/deactivate.d/poing2.sh
+
+about:
+  home: https://github.com/ImperialCollegeLondon/poing2
+  license: GPL3
+

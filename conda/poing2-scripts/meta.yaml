@@ -1,0 +1,34 @@
+package:
+  name: poing2-scripts
+  version: "0.0.1"
+
+source:
+  git_rev: master
+  git_url: git@github.com:ImperialCollegeLondon/poing2.git
+
+requirements:
+  build:
+    - perl ==5.22.0.*
+  run:
+    - perl ==5.22.0.*
+    - perl-moose
+    - perl-json-xs
+    - perl-math-vector-real
+    - perl-list-binarysearch
+    - perl-try-tiny
+    - perl-carp
+
+build:
+  noarch: generic
+  number: {{ environ.get("BUILD_NUMBER", 0) }}
+# The pipe indicates what follows is verbatim text
+  script: |
+    cd scripts
+    perl Makefile.PL INSTALLDIRS=site
+    make
+    make install
+
+about:
+  home: https://github.com/ImperialCollegeLondon/poing2
+  license: GPL3
+
