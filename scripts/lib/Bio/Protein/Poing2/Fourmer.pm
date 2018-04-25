@@ -6,11 +6,11 @@ use Carp;
 use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::Data qw($PI);
 use Math::Vector::Real;
-use Moose;
+use Moose::Role;
 
 =head1 NAME
 
-Bio::Protein::Poing2::Fourmer - Represent four atoms, so we can get dihedral angles
+Bio::Protein::Poing2::Fourmer - Base class for torsion constraints on dihedrals.
 
 =head1 SYNOPSIS
 
@@ -22,24 +22,9 @@ Bio::Protein::Poing2::Fourmer - Represent four atoms, so we can get dihedral ang
 =cut
 
 has atoms => (is => 'ro', required => 1);
-has dihedral => (is => 'ro', lazy => 1, builder => '_build_dihedral', isa => 'Num');
-
 has constant => (is => 'ro', isa => 'Maybe[Num]', default => undef);
 
-sub _build_dihedral {
-    my ($self) = @_;
-
-    my $b1 = $self->atoms->[1]->coords - $self->atoms->[0]->coords;
-    my $b2 = $self->atoms->[2]->coords - $self->atoms->[1]->coords;
-    my $b3 = $self->atoms->[3]->coords - $self->atoms->[2]->coords;
-
-    my $angle = atan2(
-        ($b1 x $b2) x ($b2 x $b3) * $b2 / abs($b2),
-        ($b1 x $b2) * ($b2 x $b3)
-    ) * 180 / $PI;
-    $angle += 360 if $angle < 0;
-    return $angle;
-}
+requires 'dihedral';
 
 sub string_repr {
     my ($self) = @_;
@@ -61,7 +46,5 @@ sub TO_JSON {
     $repr->{constant} = $self->constant if $self->constant;
     return $repr;
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

@@ -6,7 +6,7 @@ use Bio::Protein::Poing2::IO::PDB;
 use Bio::Protein::Poing2::Residue;
 use Bio::Protein::Poing2::Atom;
 use Bio::Protein::Poing2::HBond;
-use Bio::Protein::Poing2::Fourmer;
+use Bio::Protein::Poing2::Fourmer::Calculated;
 use Bio::Protein::Poing2::Ramachandran;
 use Bio::Protein::Poing2::Filter::Atom::Backbone;
 use Bio::Protein::Poing2::Filter::Residue::Known;
@@ -345,7 +345,7 @@ sub build_fourmer {
         push @atoms, $atom;
     }
     if(@atoms == 4){
-        return Bio::Protein::Poing2::Fourmer->new(atoms => \@atoms);
+        return Bio::Protein::Poing2::Fourmer::Calculated->new(atoms => \@atoms);
     }else{
         return undef;
     }

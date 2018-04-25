@@ -6,7 +6,7 @@ use Bio::Protein::Poing2::IO::Psipred;
 use Bio::Protein::Poing2::IO::PDB;
 use Bio::Protein::Poing2::Residue;
 use Bio::Protein::Poing2::Atom;
-use Bio::Protein::Poing2::Fourmer;
+use Bio::Protein::Poing2::Fourmer::Fixed;
 use Bio::Protein::Poing2::BondAngle;
 use Bio::Protein::Poing2::Ramachandran::List;
 use Moose;
@@ -239,7 +239,7 @@ sub _init_bb_fourmers {
                 push @omega_atoms, $atom;
             }
             if(@omega_atoms == 4){
-                push @fourmers, Bio::Protein::Poing2::Fourmer->new(
+                push @fourmers, Bio::Protein::Poing2::Fourmer::Fixed->new(
                     atoms => \@omega_atoms,
                     dihedral => 180,
                 );
@@ -252,7 +252,7 @@ sub _init_bb_fourmers {
                 my $sc = $r2->atom_by_name($r2->threeletter);
 
                 if($prev_c && $n && $ca && $sc){
-                    push @fourmers, Bio::Protein::Poing2::Fourmer->new(
+                    push @fourmers, Bio::Protein::Poing2::Fourmer::Fixed->new(
                         atoms => [$prev_c, $n, $ca, $sc],
                         dihedral => 180,
                     );
@@ -281,11 +281,11 @@ sub _init_bb_fourmers {
 
             next if @phi_atoms != 4 || @psi_atoms != 4;
 
-            push @fourmers, Bio::Protein::Poing2::Fourmer->new(
+            push @fourmers, Bio::Protein::Poing2::Fourmer::Fixed->new(
                 atoms => \@phi_atoms,
                 dihedral => -60,
             );
-            push @fourmers, Bio::Protein::Poing2::Fourmer->new(
+            push @fourmers, Bio::Protein::Poing2::Fourmer::Fixed->new(
                 atoms => \@psi_atoms,
                 dihedral => -45,
             );

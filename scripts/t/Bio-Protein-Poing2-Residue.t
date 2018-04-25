@@ -21,7 +21,7 @@ $res2->init_coarse_bb();
 my %r2_atms = map {$_->name => $_} @{$res2->atoms};
 ok($r2_atms{CA}, 'Added CA atom');
 $res2->init_coarse_sc();
-my %r2_atms = map {$_->name => $_} @{$res2->atoms};
+%r2_atms = map {$_->name => $_} @{$res2->atoms};
 ok($r2_atms{ALA}, 'Added ALA atom');
 
 
