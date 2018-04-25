@@ -9,6 +9,14 @@ source:
 requirements:
   build:
     - perl ==5.22.0.*
+    - perl-moose
+    - perl-json-xs
+    - perl-math-vector-real
+    - perl-list-binarysearch
+    - perl-try-tiny
+    - perl-test-more
+    - perl-test-exception
+    - perl-carp
   run:
     - perl ==5.22.0.*
     - perl-moose
@@ -24,9 +32,47 @@ build:
 # The pipe indicates what follows is verbatim text
   script: |
     cd scripts
+    cpanm --installdeps .
     perl Makefile.PL INSTALLDIRS=site
     make
+    # Currently broken, waiting for bioconda to accept PR for
+    # perl-devel-stacktrace
+    # make test
     make install
+
+test:
+  imports:
+    - lang: perl
+      imports:
+        - Bio::Protein::Poing2
+        - Bio::Protein::Poing2::Atom
+        - Bio::Protein::Poing2::BondAngle
+        - Bio::Protein::Poing2::Class
+        - Bio::Protein::Poing2::Data
+        - Bio::Protein::Poing2::Filter::Aln::Known
+        - Bio::Protein::Poing2::Filter::Atom::Backbone
+        - Bio::Protein::Poing2::Filter::Pair::ConsecutiveOnly
+        - Bio::Protein::Poing2::Filter::Pair::MaxDistance
+        - Bio::Protein::Poing2::Filter::Pair::PruneLong
+        - Bio::Protein::Poing2::Filter::Pair::SeqSep
+        - Bio::Protein::Poing2::Filter::Residue::Known
+        - Bio::Protein::Poing2::Fourmer
+        - Bio::Protein::Poing2::Fourmer::Calculated
+        - Bio::Protein::Poing2::Fourmer::Fixed
+        - Bio::Protein::Poing2::HBond
+        - Bio::Protein::Poing2::IO::Fasta
+        - Bio::Protein::Poing2::IO::FastaAlignment
+        - Bio::Protein::Poing2::IO::PDB
+        - Bio::Protein::Poing2::IO::Psipred
+        - Bio::Protein::Poing2::LinearSpring
+        - Bio::Protein::Poing2::Modules
+        - Bio::Protein::Poing2::Query
+        - Bio::Protein::Poing2::Query::HydrophobicSprings
+        - Bio::Protein::Poing2::Ramachandran
+        - Bio::Protein::Poing2::Ramachandran::Data
+        - Bio::Protein::Poing2::Ramachandran::List
+        - Bio::Protein::Poing2::Residue
+        - Bio::Protein::Poing2::Template
 
 about:
   home: https://github.com/ImperialCollegeLondon/poing2

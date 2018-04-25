@@ -33,6 +33,14 @@ build:
     touch ./README
     autoreconf -vi
     ./configure --disable-openmp --prefix=$PREFIX
+    make check
+    make clean
+
+    # Run tests before the main build, because running the tests requires
+    # executing code and we cannot guarantee that we are able to run the
+    # arch-specific code.
+    make check
+    make clean
 
     # Strip conda's default compiler flags so we can pass our optimised
     # versions.
