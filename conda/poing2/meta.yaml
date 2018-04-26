@@ -22,7 +22,7 @@ requirements:
 build:
 # the architecture stuff below tells it to look at the conda_build_config.yaml
 # file and loop through all the arch's listed and compile for each one.
-  string: {{architecture}}_{{ environ.get("BUILD_NUMBER", 0) }}
+  string: {{ architecture }}_{{ environ.get("BUILD_NUMBER", 0) }}
   features: 
     - arch_{{architecture}}
 # The pipe indicates what follows is verbatim text
