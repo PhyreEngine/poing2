@@ -30,11 +30,11 @@ build:
 # Much of this taken from https://github.com/ImperialCollegeLondon/poing2
 # The touch was because autoreconf requires a README file
   script: |
+    # Tells bash to exit at any point upon error status
+    set -e
     touch ./README
     autoreconf -vi
     ./configure --disable-openmp --prefix=$PREFIX
-    make check
-    make clean
 
     # Run tests before the main build, because running the tests requires
     # executing code and we cannot guarantee that we are able to run the
@@ -55,6 +55,7 @@ build:
     make install
 
     # Copy data files into share
+    # install instead of cp to preserve correct permissions
     install -d -m755 "$PREFIX/share/poing2"
     install -m644 data/*.data "$PREFIX/share/poing2"
 
