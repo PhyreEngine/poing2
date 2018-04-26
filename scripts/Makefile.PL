@@ -17,7 +17,7 @@ WriteMakefile(
         "List::BinarySearch" => 0,
     },
     EXE_FILES => [qw(
-        bin/build_config.pl
+        bin/poing2_build_cfg.pl
         bin/final_model.pl
         bin/pulchra_all.pl
     )],

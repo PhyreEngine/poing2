@@ -16,11 +16,11 @@ use JSON::XS;
 
 =head1 NAME
 
-build_config.pl - Build confing for poing2 run
+poing2_build_cfg.pl - Build confing for poing2 run
 
 =head1 USAGE
 
-B<build_config.pl> B<query.fasta> [B<-t> I<aln.fasta>=I<model.pdb>] ...
+B<poing2_build_cfg.pl> B<query.fasta> [B<-t> I<aln.fasta>=I<model.pdb>] ...
 
 =head1 OPTIONS
 
