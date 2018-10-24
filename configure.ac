@@ -5,7 +5,7 @@ AC_INIT(poing2, 0.1)
 AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
+AM_INIT_AUTOMAKE([foreign -Wall -Werror subdir-objects])
 
 AC_PROG_CC
 AM_PROG_CC_C_O
