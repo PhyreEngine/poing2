@@ -4,7 +4,7 @@ package:
 
 source:
   git_rev: master
-  git_url: git@github.com:ImperialCollegeLondon/poing2.git
+  git_url: git@github.com:PhyreEngine/poing2.git
 
 requirements:
   build:
